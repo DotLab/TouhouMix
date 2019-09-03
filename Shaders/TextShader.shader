@@ -120,7 +120,7 @@ Shader "TouhouMix/Text" {
 
         fixed4 SpriteFrag(v2f IN) : SV_Target
         {
-            return SampleSpriteTexture (IN.texcoord).a * IN.color;
+            return SampleSpriteTexture (IN.texcoord).a * IN.color.a * IN.color;
         }
     ENDCG
     }

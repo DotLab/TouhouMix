@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using TouhouMix.Storage;
-using TouhouMix.Storage.Protos;
 
 namespace TouhouMix.Levels {
 	public sealed class GameScheduler : MonoBehaviour {
@@ -8,6 +7,8 @@ namespace TouhouMix.Levels {
 
 		public JsonStorage jsonStorage;
 		public ResourceStorage resourceStorage;
+
+		public TouhouMix.Storage.Protos.Json.V1.UiStateProto uiStateProto;
 
 		void Awake () {
 			if (instance == null) {
@@ -37,9 +38,13 @@ namespace TouhouMix.Levels {
 
 			resourceStorage = new ResourceStorage();
 			resourceStorage.Load();
+
+			uiStateProto = jsonStorage.Get(JsonStorageKeys.V1.UI_STATUS, TouhouMix.Storage.Protos.Json.V1.UiStateProto.CreateDefault());
 		}
 
 		public void Save() {
+			jsonStorage.Set(JsonStorageKeys.V1.UI_STATUS, uiStateProto);
+
 			jsonStorage.Flush();
 		}
 	}
