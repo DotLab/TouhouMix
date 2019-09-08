@@ -37,6 +37,7 @@ namespace TouhouMix.Storage {
 			foreach (var key in jsonStorage.Keys) {
 				string value = jsonStorage[key];
 				if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(value)) continue;
+				Debug.Log(key + ": " + jsonStorage[key]);
 				pairProtoList.Add(new JsonStorageProto.KeyValuePairProto{
 					key = key,
 					value = jsonStorage[key],

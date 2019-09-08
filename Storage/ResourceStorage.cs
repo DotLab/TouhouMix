@@ -26,6 +26,7 @@ namespace TouhouMix.Storage {
 		public readonly Dictionary<int, AuthorProto> authorProtoDict = new Dictionary<int, AuthorProto>();
 		public readonly Dictionary<int, AlbumProto> albumProtoDict = new Dictionary<int, AlbumProto>();
 		public readonly Dictionary<Tuple<int, int>, SongProto> songProtoDict = new Dictionary<Tuple<int, int>, SongProto>();
+		public readonly Dictionary<Tuple<int, int, string>, MidiProto> midiProtoDict = new Dictionary<Tuple<int, int, string>, MidiProto>();
 
 		public void Load() {
 			authorProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AuthorsProto>(LoadText(AUTHORS_FILE_PATH)).authorList);
@@ -46,6 +47,7 @@ namespace TouhouMix.Storage {
 				albumProtoDict[songProto.album].songCount += 1;
 			}
 			foreach (var midiProto in midiProtoList) {
+				midiProtoDict.Add(Tuple.Create(midiProto.album, midiProto.song, midiProto.name), midiProto);
 				authorProtoDict[midiProto.author].midiCount += 1;
 				albumProtoDict[midiProto.album].midiCount += 1;
 				songProtoDict[Tuple.Create(midiProto.album, midiProto.song)].midiCount += 1;

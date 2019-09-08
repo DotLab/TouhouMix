@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace TouhouMix.Levels.SongSelect {
+namespace TouhouMix.Levels.SongSelect.SongSelectPage {
 	public sealed class ScrollViewItemController : MonoBehaviour {
 		public Text tagText;
 		public Text leftText;
