@@ -137,13 +137,13 @@ namespace TouhouMix.Levels.SongSelect {
 			level_.Push(level_.midiDetailPage);
 		}
 
-		void PopulateScrollViewContent(IEnumerable<object> dataSource, System.Action<ScrollViewItemController, object> action) {
+		void PopulateScrollViewContent(IEnumerable<object> dataSource, System.Action<SongSelectItemController, object> action) {
 			int itemCount = scrollViewContentRect.childCount;
 			int i = 0;
 			foreach (var data in dataSource) {
 				var item = i < itemCount ? scrollViewContentRect.GetChild(i++).gameObject : Instantiate(scrollViewItemPrefab, scrollViewContentRect);
 				item.SetActive(true);
-				action(item.GetComponent<ScrollViewItemController>(), data);
+				action(item.GetComponent<SongSelectItemController>(), data);
 			}
 			for (; i < itemCount; i++) {
 				scrollViewContentRect.GetChild(i).gameObject.SetActive(false);

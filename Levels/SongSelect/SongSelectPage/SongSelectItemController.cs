@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 
 namespace TouhouMix.Levels.SongSelect.SongSelectPage {
-	public sealed class ScrollViewItemController : MonoBehaviour {
+	public sealed class SongSelectItemController : MonoBehaviour {
 		public Text tagText;
 		public Text leftText;
 		public Text rightText;
@@ -17,7 +17,7 @@ namespace TouhouMix.Levels.SongSelect.SongSelectPage {
 		}
 
 		public void OnClicked() {
-			if (action != null) action();
+			action();
 		}
 	}
 }

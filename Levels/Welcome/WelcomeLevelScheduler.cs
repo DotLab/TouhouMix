@@ -2,21 +2,27 @@
 using Uif.Settables;
 using Uif.Tasks;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace TouhouMix.Levels.Welcome {
 	public sealed class WelcomeLevelScheduler : MonoBehaviour {
-		public CanvasGroup dotlabPageGroup;
-		public CanvasGroup dmbnPageGroup;
+		public Text versionText;
+		public CanvasGroup[] splashGroups;
 
 		void Start() {
-			AnimationManager.instance.New().Wait(.5f)
-				.FadeIn(dotlabPageGroup, .5f, 0).Then().Wait(1)
-				.FadeOut(dotlabPageGroup, .5f, 0)
-				.FadeIn(dmbnPageGroup, .5f, 0).Then().Wait(1)
-				.FadeOut(dmbnPageGroup, .5f, 0).Then().Call(() => {
-					Debug.Log("Loading SongSelect");
-					UnityEngine.SceneManagement.SceneManager.LoadScene("SongSelect");
-				});
+			versionText.text = Application.version;
+
+			var seq = AnimationManager.instance.New().Wait(.5f);
+			for (int i = 0; i < splashGroups.Length; i++) {
+				splashGroups[i].alpha = 0;
+				seq.FadeIn(splashGroups[i], .5f, 0).Then().Wait(2)
+					.FadeOut(splashGroups[i], .5f, 0);
+			}
+
+			seq.Then().Call(() => {
+				Debug.Log("Loading SongSelect");
+				UnityEngine.SceneManagement.SceneManager.LoadScene("SongSelect");
+			});
 		}
 	}
 }

@@ -4,7 +4,7 @@
 # To import these sprites into your Unity project, download "TexturePackerImporter":
 # https://www.codeandweb.com/texturepacker/unity
 #
-# $TexturePacker:SmartUpdate:183221c4a61f482655689f36d11be398:f37c1a118806db87d5f41c7d295eaee3:a51e1c733bd95c2344351166cb293d60$
+# $TexturePacker:SmartUpdate:4815a752c3c0a66787fadcbe5b158770:d2836ea2798e41a0ee6eb114840a08ea:a51e1c733bd95c2344351166cb293d60$
 #
 :format=40300
 :texture=Main.png
@@ -74,6 +74,7 @@ interface-background-55;800;102;96;64; 0.5;0.5; 0;0;0;0; 4;96;0;0;0;0;64;96;64; 
 interface-background-56;518;890;213;64; 0.5;0.5; 0;0;0;0; 4;213;0;0;0;0;64;213;64; 2;1;2;3;0;1;3
 interface-background-57;518;958;320;64; 0.5;0.5; 0;0;0;0; 4;320;0;0;0;0;64;320;64; 2;1;2;3;0;1;3
 interface-fontawesome-solid-cog;2;378;122;128; 0.5;0.5; 0;0;0;0; 7;122;92;122;36;93;0;0;0;0;94;34;128;93;128; 5;0;5;6;1;2;4;2;3;4;0;1;4;0;4;5
+interface-frame-disk-10;1003;876;10;10; 0.5;0.5; 5;5;5;5
 interface-frame-disk-20;106;286;20;20; 0.5;0.5; 10;10;10;10
 interface-frame-disk-40;2;10;40;40; 0.5;0.5; 20;20;20;20
 interface-frame-disk-60;128;378;60;60; 0.5;0.5; 30;30;30;30
