@@ -11,6 +11,7 @@ namespace TouhouMix.Levels.SongSelect {
 		[Space]
 		public SongSelectPageScheduler songSelectPage;
 		public MidiDetailPageScheduler midiDetailPage;
+		public SynthConfigPageScheduler synthConfigPage;
 
 		public float albumSelectScrollViewPositionY { 
 			get { return game_.uiStateProto.albumSelectScrollViewPositionY; } 
@@ -47,7 +48,11 @@ namespace TouhouMix.Levels.SongSelect {
 
 			pageStack_.Push(songSelectPage);
 
+			synthConfigPage.Init(this);
+			synthConfigPage.Disable();
 			midiDetailPage.Init(this);
+			synthConfigPage.Disable();
+
 			songSelectPage.Init(this);
 		}
 

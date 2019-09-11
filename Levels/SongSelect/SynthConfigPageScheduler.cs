@@ -1,9 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using Midif.V3;
 using UnityEngine.UI;
 using TouhouMix.Levels.SongSelect.SynthConfigPage;
+using Uif.Tasks;
 
 namespace TouhouMix.Levels.SongSelect {
 	public class SynthConfigPageScheduler : PageScheduler<SongSelectLevelScheduler> {
@@ -20,7 +20,6 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		public sealed class PreviewTrack {
-			public RectTransform contentRect;
 			public int seqNoteIndex;
 			public int freeStartIndex;
 			public int noteOnCount;
@@ -29,6 +28,14 @@ namespace TouhouMix.Levels.SongSelect {
 			public bool isMuted;
 			public bool isSoloing;
 			public readonly List<PreviewNote> notes = new List<PreviewNote>();
+
+			public void Reset() {
+				seqNoteIndex = 0;
+				freeStartIndex = 0;
+				noteOnCount = 0;
+				isMuted = false;
+				isSoloing = false;
+			}
 		}
 
 		const string FA_MUSIC = "\uf001";
@@ -51,7 +58,8 @@ namespace TouhouMix.Levels.SongSelect {
 		public float previewTrackNoteHeight = 5;
 
 		public SequenceConfigItemController[] sequenceConfigItems;
-		public PreviewTrack[] previewTracks;
+
+		public int sampleRate;
 
 		Sf2File sf2File;
 		MidiFile midiFile;
@@ -60,22 +68,40 @@ namespace TouhouMix.Levels.SongSelect {
 		Sf2Synth sf2Synth;
 		MidiSequencer midiSequencer;
 
-		void Start() {
+		public override Uif.AnimationSequence Show(Uif.AnimationSequence seq) {
+			return seq.Call(Init).Append(base.Show);
+		}
+
+		public override void Back() {
+			level_.Pop();
+		}
+
+		public override void Init(SongSelectLevelScheduler level) {
+			base.Init(level);
+
 			sf2File = new Sf2File(Resources.Load<TextAsset>("sf2/GeneralUser GS v1.471").bytes);
-			midiFile = new MidiFile(Resources.Load<TextAsset>("test").bytes);
-//			midiFile = new MidiFile(Resources.Load<TextAsset>("dmbn_old/100fes_easy").bytes);
-			previewTicks = previewBeats * midiFile.ticksPerBeat;
-			sequenceCollection = new NoteSequenceCollection(midiFile);
 
 			var audioConfig = AudioSettings.GetConfiguration();
-			var sampleRate = audioConfig.sampleRate;
-			audioConfigText.text = string.Format("Sample Rate: {0:N0} Hz\n" +
+			sampleRate = audioConfig.sampleRate;
+			audioConfigText.text = string.Format(
+				"Sample Rate: {0:N0} Hz\n" +
 				"DSP Buffer Size: {1:N0}\n" +
 				"DSP Theoratical Delay: {2:N1} ms\n" +
 				"{3:N0} Channels", sampleRate, audioConfig.dspBufferSize, (float)audioConfig.dspBufferSize / sampleRate * 1000, (int)audioConfig.speakerMode);
 
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 64);
 			sf2Synth.SetVolume(-10);
+		}
+
+		public void Init() {
+			if (midiFile != null && level_.midiDetailPage.midiFile == midiFile) return; 
+			sf2Synth.Reset();
+
+//			midiFile = level_.midiDetailPage.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
+//			sequenceCollection = level_.midiDetailPage.sequenceCollection ?? new NoteSequenceCollection(midiFile);
+			midiFile = new MidiFile(Resources.Load<TextAsset>("test").bytes);
+			sequenceCollection = new NoteSequenceCollection(midiFile);
+			previewTicks = previewBeats * midiFile.ticksPerBeat;
 
 			midiSequencer = new MidiSequencer(midiFile, sf2Synth);
 			midiSequencer.isMuted = true;
@@ -92,26 +118,27 @@ namespace TouhouMix.Levels.SongSelect {
 			}
 
 			sequenceConfigItems = new SequenceConfigItemController[sequenceCollection.sequences.Count];
-			previewTracks = new PreviewTrack[sequenceConfigItems.Length];
+			int itemCount = scrollViewContentRect.childCount;
 			for (int i = 0; i < sequenceCollection.sequences.Count; i++) {
 				var seq = sequenceCollection.sequences[i];
-				var instance = Instantiate(sequenceConfigItemPrefab, scrollViewContentRect);
+				var instance = i < itemCount ? scrollViewContentRect.GetChild(i).gameObject : Instantiate(sequenceConfigItemPrefab, scrollViewContentRect);
+				instance.SetActive(true);
 				var item = instance.GetComponent<SequenceConfigItemController>();
 				sequenceConfigItems[i] = item;
 
-				previewTracks[i] = new PreviewTrack();
-				var track = previewTracks[i];
-				track.contentRect = item.previewRect;
-				track.startColor = channelColorDict[seq.channel];
+				var track = item.previewTrack;
+				track.Reset();
+				track.startColor = trackColorDict[seq.track];
 				track.startColor.a = 0;
-				track.endColor = trackColorDict[seq.track];
+				track.endColor = channelColorDict[seq.channel];
 
-				item.leftText.text = string.Format("Track {0} (Tk{0})\n" +
+				item.leftText.text = string.Format(
+					"Track {0} (Tk{0})\n" +
 					"Channel {1} (Ch{1})\n" +
 					"{3} (Prog{2})", seq.track, seq.channel, seq.program, seq.channel == MIDI_PERCUSSION_CHANNEL ? "Percussion Set " + seq.program : names[seq.program]);
 				item.iconText.text = seq.channel == MIDI_PERCUSSION_CHANNEL ? FA_DRUM : FA_MUSIC;
-				item.iconFrameImage.color = channelColorDict[seq.channel] * new Color(1, 1, 1, item.iconFrameImage.color.a);
-				item.itemFrameImage.color = trackColorDict[seq.track] * new Color(1, 1, 1, item.itemFrameImage.color.a);
+				item.iconFrameImage.color = trackColorDict[seq.track] * new Color(1, 1, 1, item.iconFrameImage.color.a);
+				item.itemFrameImage.color = channelColorDict[seq.channel] * new Color(1, 1, 1, item.itemFrameImage.color.a);
 
 				item.button1Action = () => {
 					item.isUsingInGame = !item.isUsingInGame;
@@ -119,7 +146,7 @@ namespace TouhouMix.Levels.SongSelect {
 				};
 				item.muteButtonAction = () => {
 					for (int j = 0; j < sequenceConfigItems.Length; j++) {
-						previewTracks[j].isSoloing = false;
+						item.previewTrack.isSoloing = false;
 					}
 					track.isMuted = !track.isMuted;
 					item.muteButtonText.text = track.isMuted ? FA_VOLUME_MUTE : FA_VOLUME_UP;
@@ -127,8 +154,8 @@ namespace TouhouMix.Levels.SongSelect {
 				item.soloButtonAction = () => {
 					if (!track.isSoloing) {  // solo
 						for (int j = 0; j < sequenceConfigItems.Length; j++) {
-							previewTracks[j].isSoloing = false;
-							previewTracks[j].isMuted = true;
+							sequenceConfigItems[j].previewTrack.isSoloing = false;
+							sequenceConfigItems[j].previewTrack.isMuted = true;
 							sequenceConfigItems[j].muteButtonText.text = FA_VOLUME_MUTE;
 						}
 						track.isSoloing = true;
@@ -136,8 +163,8 @@ namespace TouhouMix.Levels.SongSelect {
 						item.muteButtonText.text = FA_VOLUME_UP;
 					} else {  // inverse solo
 						for (int j = 0; j < sequenceConfigItems.Length; j++) {
-							previewTracks[j].isSoloing = false;
-							previewTracks[j].isMuted = false;
+							sequenceConfigItems[j].previewTrack.isSoloing = false;
+							sequenceConfigItems[j].previewTrack.isMuted = false;
 							sequenceConfigItems[j].muteButtonText.text = FA_VOLUME_UP;
 						}
 						track.isSoloing = false;
@@ -146,16 +173,22 @@ namespace TouhouMix.Levels.SongSelect {
 					}
 				};
 			}
+
+			for (int i = sequenceCollection.sequences.Count; i < itemCount; i++) {
+				scrollViewContentRect.GetChild(i).gameObject.SetActive(false);
+			}
 		}
 
 		void Update() {
+			if (midiSequencer == null) return;
+
 			midiSequencer.AdvanceTime(Time.deltaTime);
 			float ticks = midiSequencer.ticks;
 
-			for (int i = 0; i < previewTracks.Length; i++) {
-				var track = previewTracks[i];
-				var seq = sequenceCollection.sequences[i];
+			for (int i = 0; i < sequenceConfigItems.Length; i++) {
 				var item = sequenceConfigItems[i];
+				var track = item.previewTrack;
+				var seq = sequenceCollection.sequences[i];
 				for (; track.seqNoteIndex < seq.notes.Count && seq.notes[track.seqNoteIndex].start <= ticks + previewTicks; track.seqNoteIndex++) {
 					var seqNote = seq.notes[track.seqNoteIndex];
 					// get or create free preview note
@@ -164,7 +197,7 @@ namespace TouhouMix.Levels.SongSelect {
 						note = track.notes[track.freeStartIndex];
 						note.rect.gameObject.SetActive(true);
 					} else {
-						var instance = Instantiate(previewNotePrefab, track.contentRect);
+						var instance = Instantiate(previewNotePrefab, item.previewRect);
 						note = new PreviewNote{rect = instance.GetComponent<RectTransform>(), image = instance.GetComponent<Image>()};
 						track.notes.Add(note);
 					}
@@ -190,16 +223,20 @@ namespace TouhouMix.Levels.SongSelect {
 						track.notes[j] = track.notes[track.freeStartIndex];
 						track.notes[track.freeStartIndex] = note;
 						j -= 1;
-					} else {  // update preview note
-						if (!note.isOn && note.start <= ticks) {  // should be on
-							note.isOn = true;
-							track.noteOnCount += 1;
-							if (!track.isMuted) sf2Synth.NoteOn(seq.channel, note.note, note.velocity);
-						}
-						float scaledStart = (note.start - ticks) / previewTicks;
-						note.rect.anchoredPosition = new Vector2(-scaledStart * previewTrackWidth, note.y);
-						note.image.color = Color.Lerp(track.startColor, track.endColor, 1 - scaledStart);
 					}
+				}
+
+				for (int j = 0; j < track.freeStartIndex; j++) {
+					var note = track.notes[j];
+					// update preview note
+					if (!note.isOn && note.start <= ticks) {  // should be on
+						note.isOn = true;
+						track.noteOnCount += 1;
+						if (!track.isMuted) sf2Synth.NoteOn(seq.channel, note.note, note.velocity);
+					}
+					float scaledStart = (note.start - ticks) / previewTicks;
+					note.rect.anchoredPosition = new Vector2(-scaledStart * previewTrackWidth, note.y);
+					note.image.color = Color.Lerp(track.startColor, track.endColor, 1 - scaledStart);
 				}
 
 				item.previewText.text = string.Format("{0:N0}/{1:N0}", track.noteOnCount, seq.notes.Count);

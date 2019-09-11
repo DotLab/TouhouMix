@@ -26,6 +26,8 @@ namespace TouhouMix.Levels.SongSelect.SynthConfigPage {
 
 		public bool isUsingInGame;
 
+		public SynthConfigPageScheduler.PreviewTrack previewTrack = new SynthConfigPageScheduler.PreviewTrack();
+
 		public void OnButton1Clicked() {
 			button1Action();
 		}

@@ -44,13 +44,15 @@ namespace TouhouMix.Levels.SongSelect {
 			author = res_.authorProtoDict[midi.author];
 
 			byte[] bytes = Resources.Load<TextAsset>("dmbn_old/" + midi.name).bytes;
-//			byte[] bytes = Resources.Load<TextAsset>("test").bytes;
 			string sha256Hash = System.Convert.ToBase64String(SHA256.Create().ComputeHash(bytes));
 			midiFile = new MidiFile(bytes);
 			sequenceCollection = new NoteSequenceCollection(midiFile);
 
 			titleText.text = midi.name;
-			infoText.text = string.Format("{0} • {1}\nby {2}\n{4:N0} Sequences • {5:N0} Notes • {3}", album.name, song.name, author.name, sha256Hash, sequenceCollection.sequences.Count, sequenceCollection.noteCount);
+			infoText.text = string.Format(
+				"{0} • {1}\n" +
+				"by {2}\n" +
+				"{4:N0} Sequences • {5:N0} Notes • {3}", album.name, song.name, author.name, sha256Hash, sequenceCollection.sequences.Count, sequenceCollection.noteCount);
 		}
 
 		public override AnimationSequence Show(AnimationSequence seq) {
@@ -63,7 +65,7 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		public void OnMusicButtonClicked() {
-			Debug.Log("Music");
+			level_.Push(level_.synthConfigPage);
 		}
 	}
 }
