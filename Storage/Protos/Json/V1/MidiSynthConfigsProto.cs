@@ -32,5 +32,39 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		public int soloSequenceIndex;
 
 		public List<SequenceConfigProto> sequenceStateList;
+
+		public static MidiSynthConfigProto LoadOrCreateDefault(TouhouMix.Levels.GameScheduler game, Midif.V3.NoteSequenceCollection collection, string sha256Hash) {
+			MidiSynthConfigProto state;
+
+			try {
+				state = game.midiSynthConfigs.synthConfigDict[sha256Hash];
+				Systemf.Assert.Equal(collection.sequences.Count, state.sequenceStateList.Count);
+			} catch (System.Exception e) {
+				UnityEngine.Debug.LogError(e);
+
+				state = new MidiSynthConfigProto{
+					trackGroupCount = collection.trackGroups.Length,
+					channelGroupCount = collection.channelGroups.Length,
+					soloSequenceIndex = -1,
+					sequenceStateList = new List<MidiSynthConfigProto.SequenceConfigProto>(),
+				};
+
+				for (int i = 0; i < collection.sequences.Count; i++) {
+					var seq = collection.sequences[i];
+					state.sequenceStateList.Add(new MidiSynthConfigProto.SequenceConfigProto{
+						sequenceIndex = i,
+						track = seq.track,
+						trackGroup = seq.trackGroup,
+						channel = seq.channel,
+						channelGroup = seq.channelGroup,
+						program = seq.program,
+						shouldUseInGame = i == 0,
+						isMuted = false,
+					});
+				}
+			}
+
+			return state;
+		}
 	}
 }

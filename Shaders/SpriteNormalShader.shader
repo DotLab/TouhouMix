@@ -1,5 +1,5 @@
 ﻿// Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
-Shader "TouhouMix/Text" {
+Shader "TouhouMix/SpriteNormal" {
   Properties {
     _MainTex ("Sprite Texture", 2D) = "white" {}
     _Color ("Tint", Color) = (1,1,1,1)
@@ -120,7 +120,9 @@ Shader "TouhouMix/Text" {
 
         fixed4 SpriteFrag(v2f IN) : SV_Target
         {
-            return SampleSpriteTexture (IN.texcoord).a * IN.color.a * IN.color;
+            fixed4 c = SampleSpriteTexture (IN.texcoord) * IN.color;
+            c.rgb *= c.a;
+            return c;
         }
     ENDCG
     }
