@@ -54,6 +54,7 @@ namespace TouhouMix.Levels.SongSelect {
 			synthConfigPage.Disable();
 
 			songSelectPage.Init(this);
+			songSelectPage.Enable();
 		}
 
 		public void OnBackButtonClicked() {
