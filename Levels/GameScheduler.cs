@@ -8,7 +8,8 @@ namespace TouhouMix.Levels {
 		public JsonStorage jsonStorage;
 		public ResourceStorage resourceStorage;
 
-		public TouhouMix.Storage.Protos.Json.V1.UiStateProto uiStateProto;
+		public TouhouMix.Storage.Protos.Json.V1.UiStateProto uiState;
+		public TouhouMix.Storage.Protos.Json.V1.MidiSynthConfigsProto midiSynthConfigs;
 
 		void Awake () {
 			if (instance == null) {
@@ -39,11 +40,13 @@ namespace TouhouMix.Levels {
 			resourceStorage = new ResourceStorage();
 			resourceStorage.Load();
 
-			uiStateProto = jsonStorage.Get(JsonStorageKeys.V1.UI_STATUS, TouhouMix.Storage.Protos.Json.V1.UiStateProto.CreateDefault());
+			uiState = jsonStorage.Get(JsonStorageKeys.V1.UI_STATE, TouhouMix.Storage.Protos.Json.V1.UiStateProto.CreateDefault());
+			midiSynthConfigs = jsonStorage.Get(JsonStorageKeys.V1.MIDI_SYNTH_CONFIGS, TouhouMix.Storage.Protos.Json.V1.MidiSynthConfigsProto.CreateDefault());
 		}
 
 		public void Save() {
-			jsonStorage.Set(JsonStorageKeys.V1.UI_STATUS, uiStateProto);
+			jsonStorage.Set(JsonStorageKeys.V1.UI_STATE, uiState);
+			jsonStorage.Set(JsonStorageKeys.V1.MIDI_SYNTH_CONFIGS, midiSynthConfigs);
 
 			jsonStorage.Flush();
 		}

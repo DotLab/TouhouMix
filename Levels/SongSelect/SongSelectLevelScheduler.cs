@@ -14,28 +14,28 @@ namespace TouhouMix.Levels.SongSelect {
 		public SynthConfigPageScheduler synthConfigPage;
 
 		public float albumSelectScrollViewPositionY { 
-			get { return game_.uiStateProto.albumSelectScrollViewPositionY; } 
-			set { game_.uiStateProto.albumSelectScrollViewPositionY = value; } 
+			get { return game_.uiState.albumSelectScrollViewPositionY; } 
+			set { game_.uiState.albumSelectScrollViewPositionY = value; } 
 		}
 		public int selectedAlbum { 
-			get { return game_.uiStateProto.selectedAlbum; }
-			set { game_.uiStateProto.selectedAlbum = value; } 
+			get { return game_.uiState.selectedAlbum; }
+			set { game_.uiState.selectedAlbum = value; } 
 		}
 		public float songSelectScrollViewPositionY { 
-			get { return game_.uiStateProto.songSelectScrollViewPositionY; } 
-			set { game_.uiStateProto.songSelectScrollViewPositionY = value; } 
+			get { return game_.uiState.songSelectScrollViewPositionY; } 
+			set { game_.uiState.songSelectScrollViewPositionY = value; } 
 		}
 		public int selectedSong { 
-			get { return game_.uiStateProto.selectedSong; }
-			set { game_.uiStateProto.selectedSong = value; } 
+			get { return game_.uiState.selectedSong; }
+			set { game_.uiState.selectedSong = value; } 
 		}
 		public float midiSelectScrollViewPositionY { 
-			get { return game_.uiStateProto.midiSelectScrollViewPositionY; } 
-			set { game_.uiStateProto.midiSelectScrollViewPositionY = value; } 
+			get { return game_.uiState.midiSelectScrollViewPositionY; } 
+			set { game_.uiState.midiSelectScrollViewPositionY = value; } 
 		}
 		public string selectedMidi { 
-			get { return game_.uiStateProto.selectedMidi; }
-			set { game_.uiStateProto.selectedMidi = value; } 
+			get { return game_.uiState.selectedMidi; }
+			set { game_.uiState.selectedMidi = value; } 
 		}
 
 		readonly Stack<IPageScheduler<SongSelectLevelScheduler>> pageStack_ = new Stack<IPageScheduler<SongSelectLevelScheduler>>();

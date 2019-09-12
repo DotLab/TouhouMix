@@ -4,32 +4,11 @@ using Midif.V3;
 using UnityEngine.UI;
 using TouhouMix.Levels.SongSelect.SynthConfigPage;
 using Uif.Tasks;
+using TouhouMix.Storage.Protos.Json.V1;
+using TouhouMix.Storage;
 
 namespace TouhouMix.Levels.SongSelect {
 	public class SynthConfigPageScheduler : PageScheduler<SongSelectLevelScheduler> {
-		public sealed class SynthConfigPageStateProto {
-			public sealed class SequenceStateProto {
-				public int sequenceIndex;
-
-				public int track;
-				public int trackGroup;
-				public int channel;
-				public int channelGroup;
-				public int program;
-
-				public bool shouldUseInGame;
-
-				public bool isMuted;
-			}
-
-			public int trackGroupCount;
-			public int channelGroupCount;
-
-			public int soloSequenceIndex;
-
-			public List<SequenceStateProto> sequenceStateList;
-		}
-
 		public sealed class PreviewNote {
 			public RectTransform rect;
 			public Image image;
@@ -81,10 +60,11 @@ namespace TouhouMix.Levels.SongSelect {
 		public float previewTrackNoteHeight = 5;
 
 		public SequenceConfigItemController[] sequenceConfigItems;
-		public SynthConfigPageStateProto state;
+		public MidiSynthConfigProto state;
 
 		public int sampleRate;
 
+		string midiFileSha256Hash;
 		Sf2File sf2File;
 		MidiFile midiFile;
 		NoteSequenceCollection sequenceCollection;
@@ -97,6 +77,8 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		public override void Back() {
+			game_.midiSynthConfigs.synthConfigDict[midiFileSha256Hash] = state;
+
 			level_.Pop();
 		}
 
@@ -124,18 +106,15 @@ namespace TouhouMix.Levels.SongSelect {
 //			midiFile = level_.midiDetailPage.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
 //			sequenceCollection = level_.midiDetailPage.sequenceCollection ?? new NoteSequenceCollection(midiFile);
 			midiFile = new MidiFile(Resources.Load<TextAsset>("test").bytes);
+			midiFileSha256Hash = MiscHelper.GetBase64EncodedSha256Hash(midiFile.bytes);
+
 			sequenceCollection = new NoteSequenceCollection(midiFile);
 			previewTicks = previewBeats * midiFile.ticksPerBeat;
 
 			midiSequencer = new MidiSequencer(midiFile, sf2Synth);
 			midiSequencer.isMuted = true;
 
-			state = new SynthConfigPageStateProto{
-				trackGroupCount = sequenceCollection.trackGroups.Length,
-				channelGroupCount = sequenceCollection.channelGroups.Length,
-				soloSequenceIndex = -1,
-				sequenceStateList = new List<SynthConfigPageStateProto.SequenceStateProto>(),
-			};
+			LoadOrCreateState();
 
 			sequenceConfigItems = new SequenceConfigItemController[sequenceCollection.sequences.Count];
 			int childCount = scrollViewContentRect.childCount;
@@ -145,18 +124,6 @@ namespace TouhouMix.Levels.SongSelect {
 				var item = instance.GetComponent<SequenceConfigItemController>();
 				sequenceConfigItems[i] = item;
 				item.previewTrack.Reset();
-
-				var seq = sequenceCollection.sequences[i];
-				var sequenceState = new SynthConfigPageStateProto.SequenceStateProto{
-					sequenceIndex = i,
-					track = seq.track,
-					trackGroup = seq.trackGroup,
-					channel = seq.channel,
-					channelGroup = seq.channelGroup,
-					program = seq.program,
-					shouldUseInGame = false,
-					isMuted = false,
-				};
 
 				item.button1Action = () => {
 					item.state.shouldUseInGame = !item.state.shouldUseInGame;
@@ -176,8 +143,6 @@ namespace TouhouMix.Levels.SongSelect {
 					}
 					ApplyState();
 				};
-
-				state.sequenceStateList.Add(sequenceState);
 			}
 
 			for (int i = sequenceCollection.sequences.Count; i < childCount; i++) {
@@ -185,6 +150,37 @@ namespace TouhouMix.Levels.SongSelect {
 			}
 
 			ApplyState();
+		}
+
+		void LoadOrCreateState() {
+			try {
+				state = game_.midiSynthConfigs.synthConfigDict[midiFileSha256Hash];
+
+				Systemf.Assert.Equal(sequenceCollection.sequences.Count, state.sequenceStateList.Count);
+			} catch (System.Exception e) {
+				Debug.LogError(e);
+
+				state = new MidiSynthConfigProto{
+					trackGroupCount = sequenceCollection.trackGroups.Length,
+					channelGroupCount = sequenceCollection.channelGroups.Length,
+					soloSequenceIndex = -1,
+					sequenceStateList = new List<MidiSynthConfigProto.SequenceConfigProto>(),
+				};
+				
+				for (int i = 0; i < sequenceCollection.sequences.Count; i++) {
+					var seq = sequenceCollection.sequences[i];
+					state.sequenceStateList.Add(new MidiSynthConfigProto.SequenceConfigProto{
+						sequenceIndex = i,
+						track = seq.track,
+						trackGroup = seq.trackGroup,
+						channel = seq.channel,
+						channelGroup = seq.channelGroup,
+						program = seq.program,
+						shouldUseInGame = false,
+						isMuted = false,
+					});
+				}
+			}
 		}
 
 		void ApplyState() {

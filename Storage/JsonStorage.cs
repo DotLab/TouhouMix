@@ -24,7 +24,16 @@ namespace TouhouMix.Storage {
 		}
 
 		public void Flush() {
-			UnityEngine.Debug.Log(json.Stringify(jsonStorage));
+			#if THMIX_DEBUG_LOG
+			var sb = new System.Text.StringBuilder();
+			foreach (var pair in jsonStorage) {
+				sb.Append(pair.Key);
+				sb.Append(": ");
+				sb.Append(pair.Value);
+				sb.AppendLine();
+			}
+			UnityEngine.Debug.Log(sb.ToString());
+			#endif
 			File.WriteAllText(JSON_STORAGE_FILE_PATH, json.Stringify(jsonStorage));
 		}
 

@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using Uif.Extensions;
+using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.SongSelect.SynthConfigPage {
 	public sealed class SequenceConfigItemController : MonoBehaviour {
@@ -37,16 +38,16 @@ namespace TouhouMix.Levels.SongSelect.SynthConfigPage {
 
 		public SynthConfigPageScheduler.PreviewTrack previewTrack = new SynthConfigPageScheduler.PreviewTrack();
 
-		public SynthConfigPageScheduler.SynthConfigPageStateProto props;
-		public SynthConfigPageScheduler.SynthConfigPageStateProto.SequenceStateProto state;
+		public MidiSynthConfigProto props;
+		public MidiSynthConfigProto.SequenceConfigProto state;
 
 		public Color previewStartColor;
 		public Color previewEndColor;
 		public bool shouldMute;
 
 		public void ApplyState(
-			SynthConfigPageScheduler.SynthConfigPageStateProto props,
-			SynthConfigPageScheduler.SynthConfigPageStateProto.SequenceStateProto state
+			MidiSynthConfigProto props,
+			MidiSynthConfigProto.SequenceConfigProto state
 		) {
 			this.props = props;
 			this.state = state;
