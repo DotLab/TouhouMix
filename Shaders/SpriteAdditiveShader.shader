@@ -1,5 +1,5 @@
 ﻿// Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
-Shader "TouhouMix/Sprite" {
+Shader "TouhouMix/SpriteAdditive" {
   Properties {
     _MainTex ("Sprite Texture", 2D) = "white" {}
     _Color ("Tint", Color) = (1,1,1,1)
@@ -21,7 +21,7 @@ Shader "TouhouMix/Sprite" {
     Cull Off
     Lighting Off
     ZWrite Off
-    Blend One OneMinusSrcAlpha
+    Blend One One
 
     Pass {
     CGPROGRAM

@@ -1,5 +1,5 @@
 ﻿// Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
-Shader "TouhouMix/DanmakuSprite" {
+Shader "TouhouMix/SpriteDanmaku" {
   Properties {
     _MainTex ("Sprite Texture", 2D) = "white" {}
     _Color ("Tint", Color) = (1,1,1,1)
