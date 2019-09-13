@@ -99,6 +99,8 @@ namespace TouhouMix.Levels.Gameplay {
 			public int index;
 
 			public int holdingFingerId;
+			public float holdingOffset;
+			public float holdingX;
 
 			public void Reset() {
 				rect.gameObject.SetActive(true);
@@ -385,7 +387,7 @@ namespace TouhouMix.Levels.Gameplay {
 				} else {
 					float startY = block.holdingFingerId != -1 ? judgeHeight : GetY(ticks, start);
 					float endY = GetY(ticks, end);
-					block.rect.anchoredPosition = new Vector2(block.x, startY);
+					block.rect.anchoredPosition = new Vector2(block.holdingFingerId != -1 ? block.holdingX : block.x, startY);
 					block.rect.sizeDelta = new Vector2(blockWidth, endY - startY);
 				}
 			}
@@ -397,7 +399,7 @@ namespace TouhouMix.Levels.Gameplay {
 				return Es.Calc(cacheEsType, (start - ticks) / cacheTicks) * cacheHeight + judgeHeight;
 			} else { // start <= ticks
 				// in grace period
-				return (1f - Es.Calc(graceEsType, (ticks - start) / graceTicks)) * judgeHeight;
+				return judgeHeight - judgeHeight * Es.Calc(graceEsType, (ticks - start) / graceTicks);
 			}
 		}
 
@@ -419,7 +421,7 @@ namespace TouhouMix.Levels.Gameplay {
 			if (bestBlock.type == Block.BlockType.Short) {
 				TouchShortBlock(bestBlock, bestBlockIndex);
 			} else {
-				TouchLongBlock(bestBlock, bestBlockIndex, fingerId);
+				TouchLongBlock(bestBlock, bestBlockIndex, fingerId, x);
 			}
 		}
 
@@ -439,6 +441,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 			Block holdingBlock;
 			if (holdingBlockDict.TryGetValue(fingerId, out holdingBlock)) {
+				holdingBlock.holdingX = x + holdingBlock.holdingOffset;
 			}
 		}
 
@@ -495,8 +498,10 @@ namespace TouhouMix.Levels.Gameplay {
 			HideAndFreeTouchedBlock(block, index, shortBlocks, ref shortBlocksFreeStartIndex);
 		}
 
-		void TouchLongBlock(Block block, int index, int fingerId) {
+		void TouchLongBlock(Block block, int index, int fingerId, float x) {
 			block.holdingFingerId = fingerId;
+			block.holdingOffset = block.x - x;
+			block.holdingX = block.x;
 			holdingBlockDict.Add(fingerId, block);
 		}
 
