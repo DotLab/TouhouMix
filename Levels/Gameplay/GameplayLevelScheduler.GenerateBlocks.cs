@@ -13,7 +13,7 @@ using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
-		void GenerateGameNotes(float ticks) {
+		void GenerateGameNotes() {
 			tentativeBlockDict.Clear();
 
 			for (int i = 0; i < gameSequences.Count; i++) {

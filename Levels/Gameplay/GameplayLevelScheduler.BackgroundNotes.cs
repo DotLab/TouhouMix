@@ -13,7 +13,7 @@ using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
-		void UpdateBackgroundNotes(float ticks) {
+		void UpdateBackgroundNotes() {
 			// end note before starting new note
 			for (int i = 0; i < backgroundNoteFreeStartIndex; i++) {
 				var note = backgroundNotes[i];

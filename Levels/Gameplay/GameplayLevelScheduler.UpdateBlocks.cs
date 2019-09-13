@@ -13,13 +13,13 @@ using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
-		void UpdateBlocks(float ticks) {
-			UpdateBlocks(ticks, instantBlocks, ref instantBlocksFreeStartIndex);
-			UpdateBlocks(ticks, shortBlocks, ref shortBlocksFreeStartIndex);
-			UpdateLongBlocks(ticks, longBlocks, ref longBlocksFreeStartIndex);
+		void UpdateBlocks() {
+			UpdateBlocks(instantBlocks, ref instantBlocksFreeStartIndex);
+			UpdateBlocks(shortBlocks, ref shortBlocksFreeStartIndex);
+			UpdateLongBlocks(longBlocks, ref longBlocksFreeStartIndex);
 		}
 
-		void UpdateBlocks(float ticks, List<Block> blocks, ref int freeStartIndex) {
+		void UpdateBlocks(List<Block> blocks, ref int freeStartIndex) {
 			for (int i = 0; i < freeStartIndex; i++) {
 				var block = blocks[i];
 				float start = block.note.start;
@@ -28,13 +28,13 @@ namespace TouhouMix.Levels.Gameplay {
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;
 				} else {
-					float y = GetY(ticks, start);
+					float y = GetY(start);
 					block.rect.anchoredPosition = new Vector2(block.x, y);
 				}
 			}
 		}
 
-		void UpdateLongBlocks(float ticks, List<Block> blocks, ref int freeStartIndex) {
+		void UpdateLongBlocks(List<Block> blocks, ref int freeStartIndex) {
 			for (int i = 0; i < freeStartIndex; i++) {
 				var block = blocks[i];
 				float start = block.note.start;
@@ -50,15 +50,15 @@ namespace TouhouMix.Levels.Gameplay {
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;
 				} else {
-					float startY = block.holdingFingerId != -1 ? judgeHeight : GetY(ticks, start);
-					float endY = GetY(ticks, end);
+					float startY = block.holdingFingerId != -1 ? judgeHeight : GetY(start);
+					float endY = GetY(end);
 					block.rect.anchoredPosition = new Vector2(block.holdingFingerId != -1 ? block.holdingX : block.x, startY);
 					block.rect.sizeDelta = new Vector2(blockWidth, endY - startY);
 				}
 			}
 		}
 
-		float GetY(float ticks, float start) {
+		float GetY(float start) {
 			if (ticks < start) {
 				// in cache period
 				return Es.Calc(cacheEsType, (start - ticks) / cacheTicks) * cacheHeight + judgeHeight;

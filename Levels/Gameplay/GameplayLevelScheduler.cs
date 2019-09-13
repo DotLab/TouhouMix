@@ -59,10 +59,26 @@ namespace TouhouMix.Levels.Gameplay {
 		public float blockJudgingWidth = 120;
 		float blockJudgingHalfWidth;
 
+		[Space]
+		public Text scoreText;
+		public Text comboText;
+		public Text judgmentText;
+		public Text accuracyText;
+		public float scoreBase = 125;
+		public float perfectTimingScoreMultiplier = 1;
+		public float greatTimingScoreMultiplier = .88f;
+		public float goodTimingScoreMultiplier = .8f;
+		public float badTimingScoreMultiplier = .4f;
+		public float missTimingScoreMultiplier = 0;
+		int score;
+		int combo;
+
 		GameScheduler game_;
 		AnimationManager anim_;
 
+		float ticks;
 		bool hasStarted;
+		bool isPaused;
 
 		int sampleRate;
 
@@ -212,25 +228,28 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		void Update() {
-			if (!hasStarted) return;
+			if (!hasStarted || isPaused) return;
 
 			midiSequencer.AdvanceTime(Time.deltaTime);
-			float ticks = midiSequencer.ticks;
+			ticks = midiSequencer.ticks;
 
-			UpdateBackgroundNotes(ticks);
+			UpdateBackgroundNotes();
 
-			GenerateGameNotes(ticks);
+			GenerateGameNotes();
 
-			touchedLaneSet.Clear();
 			#if UNITY_EDITOR
-			ProcessMouse(ticks);
+			ProcessMouse();
 			#else
-			ProcessTouches(ticks);
+			ProcessTouches();
 			#endif
 
-			UpdateBlocks(ticks);
+			UpdateBlocks();
 
 			sf2Synth.Panic();
+		}
+
+		public void OnPauseButtonClicked() {
+			isPaused = !isPaused;
 		}
 
 		void OnAudioFilterRead (float[] buffer, int channel) {
