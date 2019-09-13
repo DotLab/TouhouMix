@@ -38,21 +38,25 @@ namespace TouhouMix.Levels.Gameplay {
 			var touchCount = Input.touchCount;
 
 			for (int i = 0; i < touchCount; i++) {
-//				var touch = Input.GetTouch(i);
-//				var position = touch.position.Div(sizeWatcher.resolution).Mult(sizeWatcher.canvasSize);
-//				if (position.y > 0.5f * sizeWatcher.canvasSize.y) continue;
-//
-//				float x = position.x;
-//				FillTouchedLaneSet(x);
-//
-//				if (touch.phase == TouchPhase.Began) {
-//					// find the nearest note to press
-//					TouchDown(ticks, position, touch.fingerId);
-//				} else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) {
-//					// clean up hold and find the nearest perfect instant key to press
-//				} else {
-//					// update hold and find the perfect instant key to press
-//				}
+				var touch = Input.GetTouch(i);
+				var position = touch.position.Div(sizeWatcher.resolution).Mult(sizeWatcher.canvasSize);
+
+				float x = position.x;
+				if (position.y < 0.5f * sizeWatcher.canvasSize.y) {
+					// only mark lane as touched when touch is in range
+					MarkTouchedLanes(x);
+				}
+
+				if (touch.phase == TouchPhase.Began) {
+					// find the nearest note to press
+					TouchDown(ticks, x, touch.fingerId);
+				} else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) {
+					// clean up hold and find the nearest perfect instant key to press
+					TouchUp(ticks, x, touch.fingerId);
+				} else {
+					// update hold and find the perfect instant key to press
+					Hold(ticks, x, touch.fingerId);
+				}
 			}
 		}
 

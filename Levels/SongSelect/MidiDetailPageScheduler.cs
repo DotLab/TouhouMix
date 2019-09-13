@@ -67,5 +67,10 @@ namespace TouhouMix.Levels.SongSelect {
 		public void OnMusicButtonClicked() {
 			level_.Push(level_.synthConfigPage);
 		}
+
+		public void OnPlayButtonClicked() {
+			Debug.Log("Loading Gameplay");
+			UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
+		}
 	}
 }
