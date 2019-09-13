@@ -14,6 +14,10 @@ namespace TouhouMix.Prefabs {
 		public int resolutionY;
 		public Vector2 resolution;
 
+		void Awake() {
+			Update();
+		}
+
 		void Update() {
 			if (resolutionX != Screen.width || resolutionY != Screen.height) {
 				Recalculate();
