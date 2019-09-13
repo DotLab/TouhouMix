@@ -10,11 +10,12 @@ namespace TouhouMix.Prefabs {
 		public Vector2 canvasSize;
 		public float canvasAspect;
 
-		int resolutionX_;
-		int resolutionY_;
+		public int resolutionX;
+		public int resolutionY;
+		public Vector2 resolution;
 
 		void Update() {
-			if (resolutionX_ != Screen.width || resolutionY_ != Screen.height) {
+			if (resolutionX != Screen.width || resolutionY != Screen.height) {
 				Recalculate();
 				if (CanvasSizeChange != null) CanvasSizeChange(canvasSize, canvasAspect);
 			}
@@ -22,8 +23,9 @@ namespace TouhouMix.Prefabs {
 
 		[ContextMenu("Recalculate")]
 		public void Recalculate() {
-			resolutionX_ = Screen.width;
-			resolutionY_ = Screen.height;
+			resolution.x = resolutionX = Screen.width;
+			resolution.y = resolutionY = Screen.height;
+			
 			canvasSize = canvasRect.sizeDelta;
 			canvasAspect = canvasSize.x / canvasSize.y;
 		}

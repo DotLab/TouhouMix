@@ -23,17 +23,17 @@ namespace TouhouMix.Levels.SongSelect {
 
 		public sealed class PreviewTrack {
 			public int seqNoteIndex;
-			public int freeStartIndex;
 			public int noteOnCount;
 
+			public int notesFreeStartIndex;
 			public readonly List<PreviewNote> notes = new List<PreviewNote>();
 
 			public void Reset() {
-				for (int i = 0; i < freeStartIndex; i++) {
+				for (int i = 0; i < notesFreeStartIndex; i++) {
 					notes[i].rect.gameObject.SetActive(false);
 				}
 				seqNoteIndex = 0;
-				freeStartIndex = 0;
+				notesFreeStartIndex = 0;
 				noteOnCount = 0;
 			}
 		}
@@ -175,17 +175,17 @@ namespace TouhouMix.Levels.SongSelect {
 
 					// get or create free preview note
 					PreviewNote note;
-					if (track.freeStartIndex < track.notes.Count) {
-						note = track.notes[track.freeStartIndex];
+					if (track.notesFreeStartIndex < track.notes.Count) {
+						note = track.notes[track.notesFreeStartIndex];
 						note.rect.gameObject.SetActive(true);
 					} else {
 						var instance = Instantiate(previewNotePrefab, item.previewRect);
 						note = new PreviewNote{rect = instance.GetComponent<RectTransform>(), image = instance.GetComponent<Image>()};
 						track.notes.Add(note);
 					}
+					track.notesFreeStartIndex += 1;
 
 					// start preview note
-					track.freeStartIndex += 1;
 					note.isFree = false;
 					note.isOn = false;
 					note.start = seqNote.start;
@@ -196,7 +196,7 @@ namespace TouhouMix.Levels.SongSelect {
 					note.rect.sizeDelta = new Vector2((float)seqNote.duration / previewTicks * previewTrackWidth, previewTrackNoteHeight);
 				}
 
-				for (int j = 0; j < track.freeStartIndex; j++) {
+				for (int j = 0; j < track.notesFreeStartIndex; j++) {
 					var note = track.notes[j];
 					if (note.end <= ticks) {  // free preview note
 						if (!note.isOn) {  // the note is overdue, on before off
@@ -206,14 +206,14 @@ namespace TouhouMix.Levels.SongSelect {
 						sf2Synth.NoteOff(seq.channel, note.note, 0);
 						note.isFree = true;
 						note.rect.gameObject.SetActive(false);
-						track.freeStartIndex -= 1;
-						track.notes[j] = track.notes[track.freeStartIndex];
-						track.notes[track.freeStartIndex] = note;
+						track.notesFreeStartIndex -= 1;
+						track.notes[j] = track.notes[track.notesFreeStartIndex];
+						track.notes[track.notesFreeStartIndex] = note;
 						j -= 1;
 					}
 				}
 
-				for (int j = 0; j < track.freeStartIndex; j++) {
+				for (int j = 0; j < track.notesFreeStartIndex; j++) {
 					var note = track.notes[j];
 					// update preview note
 					if (!note.isOn && note.start <= ticks) {  // should be on
