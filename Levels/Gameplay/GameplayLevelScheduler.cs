@@ -9,6 +9,7 @@ using Midif.V3;
 using Systemf;
 using Uif.Extensions;
 using Uif.Settables.Components;
+using TouhouMix.Prefabs;
 using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
@@ -20,11 +21,12 @@ namespace TouhouMix.Levels.Gameplay {
 		[Space]
 		public CanvasGroup readyPageGroup;
 		public Text readyPageText;
-
-		[Space]
+		public CanvasGroup gameplayPageGroup;
+		public Button pauseButton;
 		public RectTransform judgeRect;
 		public float judgeHeight = 80;
 		float cacheHeight;
+		public CanvasGroup pausePageGroup;
 
 		[Space]
 		public int cacheEsType;
@@ -49,8 +51,10 @@ namespace TouhouMix.Levels.Gameplay {
 		public RectTransform longBlockPageRect;
 		public float maxInstantBlockBeats = 1f / 16;
 		public float maxShortBlockBeats = 1f / 4;
+		public float endDelayBeats = 2;
 		float maxInstantBlockTicks;
 		float maxShortBlockTicks;
+		float endTicks;
 
 		[Space]
 		public int laneCount;
@@ -60,18 +64,37 @@ namespace TouhouMix.Levels.Gameplay {
 		float blockJudgingHalfWidth;
 
 		[Space]
+		public ProgressBarPageScheduler progressBar;
 		public Text scoreText;
+		public Text scoreAdditionText;
 		public Text comboText;
 		public Text judgmentText;
 		public Text accuracyText;
 		public float scoreBase = 125;
-		public float perfectTimingScoreMultiplier = 1;
-		public float greatTimingScoreMultiplier = .88f;
-		public float goodTimingScoreMultiplier = .8f;
-		public float badTimingScoreMultiplier = .4f;
-		public float missTimingScoreMultiplier = 0;
+		public Color perfectColor;
+		public Color greatColor;
+		public Color goodColor;
+		public Color badColor;
+		public Color missColor;
 		int score;
 		int combo;
+		float accuracyFactor;
+		float perfectAccuracyFactor;
+		float accuracy;
+
+		[Space]
+		public ParticleBurstEmitter perfectEmitter;
+		public ParticleBurstEmitter greatEmitter;
+		public ParticleBurstEmitter goodEmitter;
+		public ParticleBurstEmitter badEmitter;
+
+		enum Judgment {
+			Perfect,
+			Great,
+			Good,
+			Bad,
+			Miss,
+		}
 
 		GameScheduler game_;
 		AnimationManager anim_;
@@ -79,6 +102,7 @@ namespace TouhouMix.Levels.Gameplay {
 		float ticks;
 		bool hasStarted;
 		bool isPaused;
+		bool hasEnded;
 
 		int sampleRate;
 
@@ -144,9 +168,22 @@ namespace TouhouMix.Levels.Gameplay {
 		readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
 		readonly HashSet<int> touchedLaneSet = new HashSet<int>();
 
+		int perfectCount = 0;
+		int greatCount = 0;
+		int goodCount = 0;
+		int badCount = 0;
+		int missCount = 0;
+		int maxCombo;
+
 		void Start() {
 			game_ = GameScheduler.instance;
 			anim_ = AnimationManager.instance;
+
+			scoreText.text = "";
+			scoreAdditionText.text = "";
+			comboText.text = "";
+			judgmentText.text = "";
+			accuracyText.text = "";
 
 			hasStarted = false;
 
@@ -160,14 +197,16 @@ namespace TouhouMix.Levels.Gameplay {
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 64);
 			sf2Synth.SetVolume(-10);
 
-			midiFile = new MidiFile(Resources.Load<TextAsset>("test").bytes);
+			midiFile = game_.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
+			sequenceCollection = game_.noteSequenceCollection ?? new NoteSequenceCollection(midiFile);
+
 			midiFileSha256Hash = MiscHelper.GetBase64EncodedSha256Hash(midiFile.bytes);
 
-			sequenceCollection = new NoteSequenceCollection(midiFile);
 			cacheTicks = cacheBeats * midiFile.ticksPerBeat;
 			graceTicks = graceBeats * midiFile.ticksPerBeat;
 			maxInstantBlockTicks = maxInstantBlockBeats * midiFile.ticksPerBeat;
 			maxShortBlockTicks = maxShortBlockBeats * midiFile.ticksPerBeat;
+			endTicks = sequenceCollection.end + graceTicks + endDelayBeats * midiFile.ticksPerBeat;
 
 			blockJudgingHalfWidth = blockJudgingWidth * .5f;
 
@@ -190,6 +229,7 @@ namespace TouhouMix.Levels.Gameplay {
 					backgroundSequences.Add(sequenceCollection.sequences[seqConfig.sequenceIndex]);
 				}
 			}
+			Debug.LogFormat("background tracks: {0}, game tracks: {1}", backgroundSequences.Count, gameSequences.Count);
 
 			perfectTiming *= timingMultiplier;
 			greatTiming *= timingMultiplier;
@@ -201,8 +241,11 @@ namespace TouhouMix.Levels.Gameplay {
 			gameTracks = new BackgroundTrack[gameSequences.Count];
 			for (int i = 0; i < gameTracks.Length; i++) gameTracks[i] = new BackgroundTrack();
 
-//			ShowReadyAnimation();
-			StartGame();
+			pausePageGroup.gameObject.SetActive(false);
+
+			midiSequencer.ticks = -cacheTicks;
+			ShowReadyAnimation();
+//			StartGame();
 		}
 
 		void ShowReadyAnimation() {
@@ -223,15 +266,49 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		void StartGame() {
+			#if UNITY_ANDROID
+			Screen.autorotateToLandscapeLeft = false;
+			Screen.autorotateToLandscapeRight = false;
+			#endif
+
 			readyPageGroup.gameObject.SetActive(false);
 			hasStarted = true;
 		}
 
+		void EndGame() {
+			Debug.Log("game end");
+			anim_.New()
+				.FadeOut(gameplayPageGroup, 1, 0).Then()
+				.Call(() => {
+					game_.perfectCount = perfectCount;
+					game_.greatCount = greatCount;
+					game_.goodCount = goodCount;
+					game_.badCount = badCount;
+					game_.missCount = missCount;
+					game_.score = score;
+					game_.accuracy = accuracy;
+					game_.maxComboCount = maxCombo;
+
+					#if UNITY_ANDROID
+					Screen.autorotateToLandscapeLeft = true;
+					Screen.autorotateToLandscapeRight = true;
+					#endif
+
+					UnityEngine.SceneManagement.SceneManager.LoadScene("GameplayResult");
+				});
+		}
+
 		void Update() {
-			if (!hasStarted || isPaused) return;
+			if (!hasStarted || isPaused || hasEnded) return;
 
 			midiSequencer.AdvanceTime(Time.deltaTime);
 			ticks = midiSequencer.ticks;
+
+			if (ticks >= endTicks) {
+				hasEnded = true;
+				EndGame();
+				return;
+			}
 
 			UpdateBackgroundNotes();
 
@@ -245,11 +322,35 @@ namespace TouhouMix.Levels.Gameplay {
 
 			UpdateBlocks();
 
+			progressBar.SetProgress(ticks / sequenceCollection.end);
+
 			sf2Synth.Panic();
 		}
 
 		public void OnPauseButtonClicked() {
-			isPaused = !isPaused;
+			pauseButton.interactable = false;
+			isPaused = true;
+
+			pausePageGroup.gameObject.SetActive(true);
+			pausePageGroup.alpha = 0;
+			anim_.New().FadeIn(pausePageGroup, .5f, 0);
+		}
+
+		public void OnRestartButtonClicked() {
+			UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
+		}
+
+		public void OnResumeButtonClicked() {
+			anim_.New().FadeOut(pausePageGroup, .5f, 0).Then()
+				.Call(() => {
+					pausePageGroup.gameObject.SetActive(false);
+					pauseButton.interactable = true;
+					isPaused = false;
+				});
+		}
+
+		public void OnStopButtonClicked() {
+			UnityEngine.SceneManagement.SceneManager.LoadScene("SongSelect");
 		}
 
 		void OnAudioFilterRead (float[] buffer, int channel) {

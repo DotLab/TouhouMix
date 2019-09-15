@@ -13,6 +13,39 @@ using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
+		void StartLongNote(NoteSequenceCollection.Note seqNote) {
+			sf2Synth.NoteOn(seqNote.channel, seqNote.note, seqNote.velocity);
+		}
+
+		void StopLongNote(NoteSequenceCollection.Note seqNote) {
+			sf2Synth.NoteOff(seqNote.channel, seqNote.note, 0);
+		}
+
+		void AddAsBackgroundNotes(Block block, bool shouldAddMainNote) {
+			if (shouldAddMainNote) {
+				AddBackgroundNote(block.note);
+			}
+			foreach (var note in block.backgroundNotes) {
+				AddBackgroundNote(note);
+			}
+		}
+
+		void AddBackgroundNote(NoteSequenceCollection.Note seqNote) {
+			// start background note
+			sf2Synth.NoteOn(seqNote.channel, seqNote.note, seqNote.velocity);
+			if (seqNote.end <= ticks) {
+				// already overdue
+				sf2Synth.NoteOff(seqNote.channel, seqNote.note, 0);
+			} else {
+				if (backgroundNoteFreeStartIndex < backgroundNotes.Count) {
+					backgroundNotes[backgroundNoteFreeStartIndex] = seqNote;
+				} else {
+					backgroundNotes.Add(seqNote);
+				}
+				backgroundNoteFreeStartIndex += 1;
+			}
+		}
+
 		void UpdateBackgroundNotes() {
 			// end note before starting new note
 			for (int i = 0; i < backgroundNoteFreeStartIndex; i++) {
@@ -32,20 +65,7 @@ namespace TouhouMix.Levels.Gameplay {
 				var track = backgroundTracks[i];
 
 				for (; track.seqNoteIndex < seq.notes.Count && seq.notes[track.seqNoteIndex].start <= ticks; track.seqNoteIndex++) {
-					var seqNote = seq.notes[track.seqNoteIndex];
-					// start background note
-					sf2Synth.NoteOn(seq.channel, seqNote.note, seqNote.velocity);
-					if (seqNote.end <= ticks) {
-						// already overdue
-						sf2Synth.NoteOn(seq.channel, seqNote.note, seqNote.velocity);
-					} else {
-						if (backgroundNoteFreeStartIndex < backgroundNotes.Count) {
-							backgroundNotes[backgroundNoteFreeStartIndex] = seqNote;
-						} else {
-							backgroundNotes.Add(seqNote);
-						}
-						backgroundNoteFreeStartIndex += 1;
-					}
+					AddBackgroundNote(seq.notes[track.seqNoteIndex]);
 				}
 			}
 		}

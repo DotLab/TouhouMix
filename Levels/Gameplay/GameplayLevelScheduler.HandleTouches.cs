@@ -71,35 +71,46 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		void ProcessTouchDown(float x, int fingerId) {
-			bool isInstantBlockTouched = CheckAllInstantBlocks(false);
+//			bool isInstantBlockTouched = CheckAllInstantBlocks(false);
+//			if (isInstantBlockTouched) return;
 
 			int bestBlockIndex = -1;
 			Block bestBlock = null;
 			float bestTimingDiff = -1;
 			float bestOffset = -1;
+			FindBestNote(x, instantBlocks, instantBlocksFreeStartIndex, 
+				ref bestBlockIndex, ref bestBlock, ref bestTimingDiff, ref bestOffset);
 			FindBestNote(x, shortBlocks, shortBlocksFreeStartIndex, 
 				ref bestBlockIndex, ref bestBlock, ref bestTimingDiff, ref bestOffset);
 			FindBestNote(x, longBlocks, longBlocksFreeStartIndex, 
 				ref bestBlockIndex, ref bestBlock, ref bestTimingDiff, ref bestOffset);
 
-			// when touched instant blocks, only touch short or long block when timing is perfect
-			if (bestBlock == null || (isInstantBlockTouched && bestTimingDiff > perfectTiming)) return;
+			if (bestBlock == null) return;
 				
-			if (bestBlock.type == Block.BlockType.Short) {
-				TouchShortBlock(bestBlock, bestBlockIndex);
-			} else {
-				TouchLongBlock(bestBlock, bestBlockIndex, fingerId, x);
+//			if (bestBlock.type == Block.BlockType.Instant) {
+//				TouchInstantBlock(bestBlock, bestBlockIndex);
+//			} else if (bestBlock.type == Block.BlockType.Short) {
+//				TouchShortBlock(bestBlock, bestBlockIndex);
+//			} else {
+//				TouchLongBlock(bestBlock, bestBlockIndex, fingerId, x);
+//			}
+			switch (bestBlock.type) {
+			case Block.BlockType.Instant: TouchInstantBlock(bestBlock, bestBlockIndex); break;
+			case Block.BlockType.Short: TouchShortBlock(bestBlock, bestBlockIndex); break;
+			case Block.BlockType.Long: TouchLongBlock(bestBlock, bestBlockIndex, fingerId, x); break;
 			}
 		}
 
 		void ProcessTouchUp(float x, int fingerId) {
-			CheckAllInstantBlocks(false);
-
 			Block holdingBlock;
 			if (holdingBlockDict.TryGetValue(fingerId, out holdingBlock)) {
 				holdingBlock.holdingFingerId = -1;
 				holdingBlockDict.Remove(fingerId);
 				HideAndFreeTouchedBlock(holdingBlock, holdingBlock.index, longBlocks, ref longBlocksFreeStartIndex);
+				CountScoreForLongBlockTail(holdingBlock);
+
+				// Only check instant block when ending long block
+				CheckAllInstantBlocks(false);
 			}
 		}
 
@@ -158,11 +169,15 @@ namespace TouhouMix.Levels.Gameplay {
 		void TouchInstantBlock(Block block, int index) {
 			block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block, index, instantBlocks, ref instantBlocksFreeStartIndex);
+			CountScoreForBlock(block);
+			AddAsBackgroundNotes(block, true);
 		}
 
 		void TouchShortBlock(Block block, int index) {
 			block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block, index, shortBlocks, ref shortBlocksFreeStartIndex);
+			CountScoreForBlock(block);
+			AddAsBackgroundNotes(block, true);
 		}
 
 		void TouchLongBlock(Block block, int index, int fingerId, float x) {
@@ -170,6 +185,9 @@ namespace TouhouMix.Levels.Gameplay {
 			block.holdingOffset = block.x - x;
 			block.holdingX = block.x;
 			holdingBlockDict.Add(fingerId, block);
+			CountScoreForBlock(block);
+			AddAsBackgroundNotes(block, true);
+			StartLongNote(block.note);
 		}
 
 		static void HideAndFreeTouchedBlock(Block block, int index, List<Block> blocks, ref int freeStartIndex) {

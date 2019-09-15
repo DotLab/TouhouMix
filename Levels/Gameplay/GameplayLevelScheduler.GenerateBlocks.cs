@@ -43,6 +43,7 @@ namespace TouhouMix.Levels.Gameplay {
 						longBlockPrefab, longBlockPageRect);
 				}
 				block.rect.SetAsLastSibling();
+				block.rect.sizeDelta = new Vector2(blockWidth, 0);
 				block.lane = lane;
 				block.x = laneXDict[lane];
 			}

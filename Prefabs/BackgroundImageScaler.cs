@@ -17,6 +17,10 @@ namespace TouhouMix.Prefabs {
 			sizeWatcher.CanvasSizeChange -= RescaleBackground;
 		}
 
+		void Start() {
+			RescaleBackground(sizeWatcher.canvasSize, sizeWatcher.canvasAspect);
+		}
+
 		public void RescaleBackground(Vector2 canvasSize, float canvasAspect) {
 			Vector2 backgroundSize;
 			if (sprite) {

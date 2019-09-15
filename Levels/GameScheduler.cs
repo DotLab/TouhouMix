@@ -11,6 +11,22 @@ namespace TouhouMix.Levels {
 		public TouhouMix.Storage.Protos.Json.V1.UiStateProto uiState;
 		public TouhouMix.Storage.Protos.Json.V1.MidiSynthConfigsProto midiSynthConfigs;
 
+		public Midif.V3.MidiFile midiFile;
+		public Midif.V3.NoteSequenceCollection noteSequenceCollection;
+
+		public string title;
+		public string subtitle;
+
+		public int perfectCount;
+		public int greatCount;
+		public int goodCount;
+		public int badCount;
+		public int missCount;
+		public int maxComboCount;
+
+		public int score;
+		public float accuracy;
+
 		void Awake () {
 			if (instance == null) {
 				Init();

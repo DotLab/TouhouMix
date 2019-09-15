@@ -2,9 +2,18 @@
 
 namespace TouhouMix.Prefabs {
 	public sealed class CanvasSizeWatcher : MonoBehaviour {
+		public enum Match {
+			Width,
+			Height,
+		}
+
 		public event System.Action<Vector2, float> CanvasSizeChange;
 
 		public RectTransform canvasRect;
+
+		[Space]
+		public Vector2 canvasReferenceSize;
+		public Match sizeMatch;
 
 		[Space]
 		public Vector2 canvasSize;
@@ -29,9 +38,16 @@ namespace TouhouMix.Prefabs {
 		public void Recalculate() {
 			resolution.x = resolutionX = Screen.width;
 			resolution.y = resolutionY = Screen.height;
-			
-			canvasSize = canvasRect.sizeDelta;
-			canvasAspect = canvasSize.x / canvasSize.y;
+			canvasAspect = resolution.x / resolution.y;
+
+			if (sizeMatch == Match.Width) {
+				canvasSize.x = canvasReferenceSize.x;
+				canvasSize.y = canvasReferenceSize.x / canvasAspect;
+			} else {  // match == Match.Height
+				canvasSize.y = canvasReferenceSize.y;
+				canvasSize.x = canvasReferenceSize.y / canvasAspect;
+			}
+			Debug.Log("canvas size: " + canvasSize);
 		}
 	}
 }

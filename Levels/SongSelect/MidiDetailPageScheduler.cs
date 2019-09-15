@@ -70,6 +70,11 @@ namespace TouhouMix.Levels.SongSelect {
 
 		public void OnPlayButtonClicked() {
 			Debug.Log("Loading Gameplay");
+			game_.midiFile = midiFile;
+			game_.noteSequenceCollection = sequenceCollection;
+			game_.title = midi.name;
+			game_.subtitle = string.Format(
+				"{0} • {1}", album.name, song.name);
 			UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
 		}
 	}

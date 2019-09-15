@@ -25,6 +25,7 @@ namespace TouhouMix.Levels.Gameplay {
 				float start = block.note.start;
 				if (start <= ticks - graceTicks) {
 					// miss
+					CountMiss(block);
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;
 				} else {
@@ -41,12 +42,15 @@ namespace TouhouMix.Levels.Gameplay {
 				float end = block.end;
 				if (end <= ticks - graceTicks) {
 					// miss
+					CountMiss(block);
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;
 				} else if (block.holdingFingerId != -1 && end <= ticks) {
 					// hold finish
 					holdingBlockDict.Remove(block.holdingFingerId);
 					block.holdingFingerId = -1;
+					CountScoreForLongBlockTail(block);
+					StopLongNote(block.note);
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;
 				} else {

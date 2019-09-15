@@ -103,12 +103,10 @@ namespace TouhouMix.Levels.SongSelect {
 			if (midiFile != null && level_.midiDetailPage.midiFile == midiFile) return; 
 			sf2Synth.Reset();
 
-//			midiFile = level_.midiDetailPage.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
-//			sequenceCollection = level_.midiDetailPage.sequenceCollection ?? new NoteSequenceCollection(midiFile);
-			midiFile = new MidiFile(Resources.Load<TextAsset>("test").bytes);
+			midiFile = level_.midiDetailPage.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
+			sequenceCollection = level_.midiDetailPage.sequenceCollection ?? new NoteSequenceCollection(midiFile);
 			midiFileSha256Hash = MiscHelper.GetBase64EncodedSha256Hash(midiFile.bytes);
 
-			sequenceCollection = new NoteSequenceCollection(midiFile);
 			previewTicks = previewBeats * midiFile.ticksPerBeat;
 
 			midiSequencer = new MidiSequencer(midiFile, sf2Synth);
