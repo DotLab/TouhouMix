@@ -10,6 +10,9 @@ namespace TouhouMix.Levels.Welcome {
 		public CanvasGroup[] splashGroups;
 
 		void Start() {
+			Application.targetFrameRate = Screen.currentResolution.refreshRate;
+			Debug.Log("refresh rate: " + Screen.currentResolution.refreshRate);
+
 			versionText.text = Application.version;
 
 			var seq = AnimationManager.instance.New().Wait(.5f);
@@ -21,7 +24,7 @@ namespace TouhouMix.Levels.Welcome {
 
 			seq.Then().Call(() => {
 				Debug.Log("Loading SongSelect");
-				UnityEngine.SceneManagement.SceneManager.LoadScene("SongSelect");
+				UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.SONG_SELECT_LEVEL_BUILD_INDEX);
 			});
 		}
 	}

@@ -63,11 +63,11 @@ namespace TouhouMix.Levels {
 		}
 
 		public void OnMenuButtonClicked() {
-			UnityEngine.SceneManagement.SceneManager.LoadScene("SongSelect");
+			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.SONG_SELECT_LEVEL_BUILD_INDEX);
 		}
 
 		public void OnAgainButtonClicked() {
-			UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
+			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
 		}
 	}
 }

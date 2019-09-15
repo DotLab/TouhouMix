@@ -294,7 +294,7 @@ namespace TouhouMix.Levels.Gameplay {
 					Screen.autorotateToLandscapeRight = true;
 					#endif
 
-					UnityEngine.SceneManagement.SceneManager.LoadScene("GameplayResult");
+					UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_RESULT_LEVEL_BUILD_INDEX);
 				});
 		}
 
@@ -337,7 +337,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void OnRestartButtonClicked() {
-			UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
+			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
 		}
 
 		public void OnResumeButtonClicked() {
@@ -350,7 +350,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void OnStopButtonClicked() {
-			UnityEngine.SceneManagement.SceneManager.LoadScene("SongSelect");
+			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.SONG_SELECT_LEVEL_BUILD_INDEX);
 		}
 
 		void OnAudioFilterRead (float[] buffer, int channel) {

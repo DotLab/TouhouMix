@@ -43,7 +43,7 @@ namespace TouhouMix.Levels.SongSelect {
 			}
 			author = res_.authorProtoDict[midi.author];
 
-			byte[] bytes = Resources.Load<TextAsset>("dmbn_old/" + midi.name).bytes;
+			byte[] bytes = Resources.Load<TextAsset>(midi.path).bytes;
 			string sha256Hash = MiscHelper.GetBase64EncodedSha256Hash(bytes);
 			midiFile = new MidiFile(bytes);
 			sequenceCollection = new NoteSequenceCollection(midiFile);
@@ -75,7 +75,7 @@ namespace TouhouMix.Levels.SongSelect {
 			game_.title = midi.name;
 			game_.subtitle = string.Format(
 				"{0} • {1}", album.name, song.name);
-			UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
+			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
 		}
 	}
 }

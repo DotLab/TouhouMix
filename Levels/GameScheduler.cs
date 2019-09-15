@@ -3,6 +3,11 @@ using TouhouMix.Storage;
 
 namespace TouhouMix.Levels {
 	public sealed class GameScheduler : MonoBehaviour {
+		public const int WELCOME_LEVEL_BUILD_INDEX = 0;
+		public const int SONG_SELECT_LEVEL_BUILD_INDEX = 1;
+		public const int GAMEPLAY_LEVEL_BUILD_INDEX = 2;
+		public const int GAMEPLAY_RESULT_LEVEL_BUILD_INDEX = 3;
+
 		public static GameScheduler instance;
 
 		public JsonStorage jsonStorage;
