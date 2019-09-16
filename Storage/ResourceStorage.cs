@@ -35,6 +35,7 @@ namespace TouhouMix.Storage {
 			for (int i = 0; i < MIDIS_FILE_PATH_LIST.Length; i++) {
 				midiProtoList.AddRange(UnityEngine.JsonUtility.FromJson<MidisProto>(LoadText(MIDIS_FILE_PATH_LIST[i])).midiList);
 			}
+			LoadCustomMidis(midiProtoList);
 
 			foreach (var authorProto in authorProtoList) {
 				authorProtoDict.Add(authorProto.author, authorProto);
@@ -51,6 +52,24 @@ namespace TouhouMix.Storage {
 				authorProtoDict[midiProto.author].midiCount += 1;
 				albumProtoDict[midiProto.album].midiCount += 1;
 				songProtoDict[Tuple.Create(midiProto.album, midiProto.song)].midiCount += 1;
+			}
+		}
+
+		static void LoadCustomMidis(List<MidiProto> list) {
+			string[] paths = System.IO.Directory.GetFiles(UnityEngine.Application.persistentDataPath, "*.mid");
+			if (paths.Length == 0) return;
+
+			foreach (string path in paths) {
+				var fileName = System.IO.Path.GetFileName(path);
+				var midiInfo = new MidiProto{
+					author = 0, 
+					album = 0, 
+					song = 1, 
+					name = fileName, 
+					path = path, 
+					isFile = true
+				};
+				list.Add(midiInfo);
 			}
 		}
 

@@ -11,5 +11,6 @@
 		public int song;
 		public string name;
 		public string path;
+		public bool isFile;
 	}
 }

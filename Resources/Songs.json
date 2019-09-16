@@ -1,5 +1,7 @@
 {
 	"songList": [
+{ "album": 0, "song": 1, "name": "???" },
+
 { "album": 1, "song": 1, "name": "A Sacred Lot" },
 { "album": 1, "song": 2, "name": "永遠の巫女" },
 { "album": 1, "song": 3, "name": "The Positive and Negative" },

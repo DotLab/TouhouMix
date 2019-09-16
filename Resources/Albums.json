@@ -1,5 +1,7 @@
 {
 	"albumList": [
+{ "album": 0,    "tag": "EXT",   "name": "Custom Midis" },
+
 { "album": 1,    "tag": "TH01",   "name": "東方靈異伝　～ Highly Responsive to Prayers" },
 { "album": 2,    "tag": "TH02",   "name": "東方封魔録　～ the Story of Eastern Wonderland" },
 { "album": 3,    "tag": "TH03",   "name": "東方夢時空　～ Phantasmagoria of Dim.Dream" },

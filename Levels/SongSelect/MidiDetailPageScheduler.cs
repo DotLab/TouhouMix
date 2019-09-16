@@ -43,7 +43,7 @@ namespace TouhouMix.Levels.SongSelect {
 			}
 			author = res_.authorProtoDict[midi.author];
 
-			byte[] bytes = Resources.Load<TextAsset>(midi.path).bytes;
+			byte[] bytes = midi.isFile ? System.IO.File.ReadAllBytes(midi.path) : Resources.Load<TextAsset>(midi.path).bytes;
 			string sha256Hash = MiscHelper.GetBase64EncodedSha256Hash(bytes);
 			midiFile = new MidiFile(bytes);
 			sequenceCollection = new NoteSequenceCollection(midiFile);
