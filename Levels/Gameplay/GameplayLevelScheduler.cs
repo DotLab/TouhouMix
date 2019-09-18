@@ -253,12 +253,12 @@ namespace TouhouMix.Levels.Gameplay {
 			readyPageGroup.alpha = 0;
 			anim_.New().FadeIn(readyPageGroup, .5f, 0).Then()
 				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				.Set(readyPageText.GetStringSettable(), "3")
-				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				.Set(readyPageText.GetStringSettable(), "2")
-				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				.Set(readyPageText.GetStringSettable(), "1")
-				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+//				.Set(readyPageText.GetStringSettable(), "3")
+//				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+//				.Set(readyPageText.GetStringSettable(), "2")
+//				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+//				.Set(readyPageText.GetStringSettable(), "1")
+//				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
 				.Set(readyPageText.GetStringSettable(), "Go")
 				.Set(readyPageText.GetAlphaFloatSettable(), 1)
 				.FadeOutFromOne(readyPageGroup, 1, EsType.QuadIn).Then()
@@ -314,7 +314,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 			GenerateGameNotes();
 
-			#if UNITY_EDITOR
+			#if UNITY_EDITOR || UNITY_STANDALONE
 			ProcessMouse();
 			#else
 			ProcessTouches();
@@ -333,7 +333,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 			pausePageGroup.gameObject.SetActive(true);
 			pausePageGroup.alpha = 0;
-			anim_.New().FadeIn(pausePageGroup, .5f, 0);
+			anim_.New().FadeIn(pausePageGroup, .2f, 0);
 		}
 
 		public void OnRestartButtonClicked() {
@@ -341,7 +341,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void OnResumeButtonClicked() {
-			anim_.New().FadeOut(pausePageGroup, .5f, 0).Then()
+			anim_.New().FadeOut(pausePageGroup, .2f, 0).Then()
 				.Call(() => {
 					pausePageGroup.gameObject.SetActive(false);
 					pauseButton.interactable = true;
