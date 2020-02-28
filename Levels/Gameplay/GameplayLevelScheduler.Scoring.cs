@@ -49,6 +49,10 @@ namespace TouhouMix.Levels.Gameplay {
 			perfectAccuracyFactor += GetJudgmentAccuracyContribution(Judgment.Perfect);
 			accuracy = accuracyFactor / perfectAccuracyFactor;
 			FlashAccuracy();
+
+			flashControllers[block.lane].Dim(.6f);
+			anim_.New(backgroundRect).ScaleFromTo(backgroundRect, new Vector3(1.1f, 1.1f, 1), Vector3.one, .3f, EsType.Linear)
+				.RotateFromTo(backgroundRect, -2, 0, .1f, EsType.Linear);
 		}
 
 		void CountScoreForLongBlockTail(Block block) {

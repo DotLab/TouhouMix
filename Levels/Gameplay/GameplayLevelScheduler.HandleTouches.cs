@@ -156,7 +156,7 @@ namespace TouhouMix.Levels.Gameplay {
 //				Debug.LogFormat("compare best note tick {2}, time {0}, offset {1}", timeingDiff, offset, tickDiff);
 				if (timeingDiff <= badTiming) {
 					// if within bad timing, compare
-					if (bestBlock == null || timeingDiff < bestTimingDiff || offset < bestOffset) {
+					if (bestBlock == null || timeingDiff < bestTimingDiff || (timeingDiff == bestTimingDiff && offset < bestOffset)) {
 						bestBlock = block;
 						bestTimingDiff = timeingDiff;
 						bestBlockIndex = i;

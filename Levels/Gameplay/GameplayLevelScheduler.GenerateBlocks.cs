@@ -61,10 +61,12 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 			}
 
-			if (note.duration <= maxInstantBlockTicks) {
+			float durationInSeconds = note.duration * beatsPerTick / midiSequencer.beatsPerSecond;
+			//Debug.Log(durationInSeconds);
+			if (durationInSeconds <= maxInstantBlockSeconds) {
 				// tentative instant block
 				AddTentativeInstantBlock(note);
-			} else if (note.duration <= maxShortBlockTicks) {
+			} else if (durationInSeconds <= maxShortBlockSeconds) {
 				// tentative short block
 				if (overlappingLongBlock != null) {
 					// if has overlapping long block, change to instant block

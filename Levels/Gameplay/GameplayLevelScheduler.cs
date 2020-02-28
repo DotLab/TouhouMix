@@ -49,11 +49,14 @@ namespace TouhouMix.Levels.Gameplay {
 		public RectTransform instantBlockPageRect;
 		public RectTransform shortBlockPageRect;
 		public RectTransform longBlockPageRect;
-		public float maxInstantBlockBeats = 1f / 16;
-		public float maxShortBlockBeats = 1f / 4;
+		//public float maxInstantBlockBeats = 1f / 16;
+		//public float maxShortBlockBeats = 1f / 4;
+		public float maxInstantBlockSeconds = .2f;
+		public float maxShortBlockSeconds = .8f;
 		public float endDelayBeats = 2;
-		float maxInstantBlockTicks;
-		float maxShortBlockTicks;
+		//float maxInstantBlockTicks;
+		//float maxShortBlockTicks;
+		float beatsPerTick;
 		float endTicks;
 
 		[Space]
@@ -87,6 +90,12 @@ namespace TouhouMix.Levels.Gameplay {
 		public ParticleBurstEmitter greatEmitter;
 		public ParticleBurstEmitter goodEmitter;
 		public ParticleBurstEmitter badEmitter;
+
+		public RectTransform flashPageRect;
+		public GameObject flashPrefab;
+		FlashController[] flashControllers;
+
+		public RectTransform backgroundRect;
 
 		enum Judgment {
 			Perfect,
@@ -204,8 +213,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 			cacheTicks = cacheBeats * midiFile.ticksPerBeat;
 			graceTicks = graceBeats * midiFile.ticksPerBeat;
-			maxInstantBlockTicks = maxInstantBlockBeats * midiFile.ticksPerBeat;
-			maxShortBlockTicks = maxShortBlockBeats * midiFile.ticksPerBeat;
+			beatsPerTick = 1 / (float)midiFile.ticksPerBeat;
 			endTicks = sequenceCollection.end + graceTicks + endDelayBeats * midiFile.ticksPerBeat;
 
 			blockJudgingHalfWidth = blockJudgingWidth * .5f;
@@ -216,6 +224,14 @@ namespace TouhouMix.Levels.Gameplay {
 			float laneSpacing = (canvasWidth - blockWidth) / (laneCount - 1);
 			for (int i = 0; i < laneXDict.Length; i++) {
 				laneXDict[i] = laneStart + i * laneSpacing;
+			}
+
+			flashControllers = new FlashController[laneCount];
+			for (int i = 0; i < laneCount; i++) {
+				var flashController = Instantiate(flashPrefab, flashPageRect).GetComponent<FlashController>();
+				flashController.rect.anchoredPosition = new Vector2(laneXDict[i], judgeHeight);
+				flashController.rect.sizeDelta = new Vector2(blockWidth, 0);
+				flashControllers[i] = flashController;
 			}
 
 			midiSequencer = new MidiSequencer(midiFile, sf2Synth);
