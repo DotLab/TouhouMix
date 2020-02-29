@@ -25,7 +25,7 @@ namespace TouhouMix.Levels.Gameplay {
 				float start = block.note.start;
 				if (start <= ticks - graceTicks) {
 					// miss
-					CountMiss(block);
+					scoringManager.CountMiss(block);
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;
 				} else {
@@ -42,14 +42,14 @@ namespace TouhouMix.Levels.Gameplay {
 				float end = block.end;
 				if (end <= ticks - graceTicks) {
 					// miss
-					CountMiss(block);
+					scoringManager.CountMiss(block);
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;
 				} else if (block.holdingFingerId != -1 && end <= ticks) {
 					// hold finish
 					holdingBlockDict.Remove(block.holdingFingerId);
 					block.holdingFingerId = -1;
-					CountScoreForLongBlockTail(block);
+					scoringManager.CountScoreForLongBlockTail(GetTiming(block.end), block);
 					StopLongNote(block.note);
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;
@@ -70,6 +70,12 @@ namespace TouhouMix.Levels.Gameplay {
 				// in grace period
 				return judgeHeight - judgeHeight * Es.Calc(graceEsType, (ticks - start) / graceTicks);
 			}
+		}
+
+		float GetTiming(float timingTicks) {
+			float timing = ticks - timingTicks;
+			if (timing < 0) timing = -timing;
+			return midiSequencer.ToSeconds(timing);
 		}
 	}
 }

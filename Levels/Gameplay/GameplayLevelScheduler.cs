@@ -1,14 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Uif;
 using Uif.Settables;
 using Uif.Tasks;
 using Midif.V3;
-using Systemf;
-using Uif.Extensions;
-using Uif.Settables.Components;
 using TouhouMix.Prefabs;
 using TouhouMix.Storage.Protos.Json.V1;
 
@@ -16,7 +12,7 @@ namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
 		const int MOUSE_TOUCH_ID = -100;
 
-		public TouhouMix.Prefabs.CanvasSizeWatcher sizeWatcher;
+		public CanvasSizeWatcher sizeWatcher;
 
 		[Space]
 		public CanvasGroup readyPageGroup;
@@ -35,12 +31,6 @@ namespace TouhouMix.Levels.Gameplay {
 		public float graceBeats = 1;
 		float cacheTicks;
 		float graceTicks;
-		public float perfectTiming = .05f;
-		public float greatTiming = .15f;
-		public float goodTiming = .2f;
-		public float badTiming = .5f;
-		// easy 1.6, normal 1.3, hard 1, expert .8
-		public float timingMultiplier = 1;
 
 		[Space]
 		public GameObject instantBlockPrefab;
@@ -49,61 +39,21 @@ namespace TouhouMix.Levels.Gameplay {
 		public RectTransform instantBlockPageRect;
 		public RectTransform shortBlockPageRect;
 		public RectTransform longBlockPageRect;
-		//public float maxInstantBlockBeats = 1f / 16;
-		//public float maxShortBlockBeats = 1f / 4;
 		public float maxInstantBlockSeconds = .2f;
 		public float maxShortBlockSeconds = .8f;
 		public float endDelayBeats = 2;
-		//float maxInstantBlockTicks;
-		//float maxShortBlockTicks;
 		float beatsPerTick;
 		float endTicks;
 
 		[Space]
 		public int laneCount;
-		float[] laneXDict;
+		public float[] laneXDict;
 		public float blockWidth = 100;
 		public float blockJudgingWidth = 120;
 		float blockJudgingHalfWidth;
 
 		[Space]
-		public ProgressBarPageScheduler progressBar;
-		public Text scoreText;
-		public Text scoreAdditionText;
-		public Text comboText;
-		public Text judgmentText;
-		public Text accuracyText;
-		public float scoreBase = 125;
-		public Color perfectColor;
-		public Color greatColor;
-		public Color goodColor;
-		public Color badColor;
-		public Color missColor;
-		int score;
-		int combo;
-		float accuracyFactor;
-		float perfectAccuracyFactor;
-		float accuracy;
-
-		[Space]
-		public ParticleBurstEmitter perfectEmitter;
-		public ParticleBurstEmitter greatEmitter;
-		public ParticleBurstEmitter goodEmitter;
-		public ParticleBurstEmitter badEmitter;
-
-		public RectTransform flashPageRect;
-		public GameObject flashPrefab;
-		FlashController[] flashControllers;
-
-		public RectTransform backgroundRect;
-
-		enum Judgment {
-			Perfect,
-			Great,
-			Good,
-			Bad,
-			Miss,
-		}
+		public ScoringManager scoringManager;
 
 		GameScheduler game_;
 		AnimationManager anim_;
@@ -128,7 +78,7 @@ namespace TouhouMix.Levels.Gameplay {
 		readonly List<NoteSequenceCollection.Sequence> gameSequences = new List<NoteSequenceCollection.Sequence>();
 		readonly List<NoteSequenceCollection.Sequence> backgroundSequences = new List<NoteSequenceCollection.Sequence>();
 
-		sealed class Block {
+		public sealed class Block {
 			public enum BlockType {
 				Instant,
 				Short,
@@ -173,26 +123,12 @@ namespace TouhouMix.Levels.Gameplay {
 		int longBlocksFreeStartIndex;
 
 		readonly Dictionary<int, Block> holdingBlockDict = new Dictionary<int, Block>();
-
 		readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
 		readonly HashSet<int> touchedLaneSet = new HashSet<int>();
 
-		int perfectCount = 0;
-		int greatCount = 0;
-		int goodCount = 0;
-		int badCount = 0;
-		int missCount = 0;
-		int maxCombo;
-
-		void Start() {
+		public void Start() {
 			game_ = GameScheduler.instance;
 			anim_ = AnimationManager.instance;
-
-			scoreText.text = "";
-			scoreAdditionText.text = "";
-			comboText.text = "";
-			judgmentText.text = "";
-			accuracyText.text = "";
 
 			hasStarted = false;
 
@@ -226,14 +162,6 @@ namespace TouhouMix.Levels.Gameplay {
 				laneXDict[i] = laneStart + i * laneSpacing;
 			}
 
-			flashControllers = new FlashController[laneCount];
-			for (int i = 0; i < laneCount; i++) {
-				var flashController = Instantiate(flashPrefab, flashPageRect).GetComponent<FlashController>();
-				flashController.rect.anchoredPosition = new Vector2(laneXDict[i], judgeHeight);
-				flashController.rect.sizeDelta = new Vector2(blockWidth, 0);
-				flashControllers[i] = flashController;
-			}
-
 			midiSequencer = new MidiSequencer(midiFile, sf2Synth);
 			midiSequencer.isMuted = true;
 
@@ -247,11 +175,6 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 			Debug.LogFormat("background tracks: {0}, game tracks: {1}", backgroundSequences.Count, gameSequences.Count);
 
-			perfectTiming *= timingMultiplier;
-			greatTiming *= timingMultiplier;
-			goodTiming *= timingMultiplier;
-			badTiming *= timingMultiplier;
-
 			backgroundTracks = new BackgroundTrack[backgroundSequences.Count];
 			for (int i = 0; i < backgroundTracks.Length; i++) backgroundTracks[i] = new BackgroundTrack();
 			gameTracks = new BackgroundTrack[gameSequences.Count];
@@ -259,9 +182,10 @@ namespace TouhouMix.Levels.Gameplay {
 
 			pausePageGroup.gameObject.SetActive(false);
 
+			scoringManager.Init(this);
+
 			midiSequencer.ticks = -cacheTicks;
 			ShowReadyAnimation();
-//			StartGame();
 		}
 
 		void ShowReadyAnimation() {
@@ -296,14 +220,7 @@ namespace TouhouMix.Levels.Gameplay {
 			anim_.New()
 				.FadeOut(gameplayPageGroup, 1, 0).Then()
 				.Call(() => {
-					game_.perfectCount = perfectCount;
-					game_.greatCount = greatCount;
-					game_.goodCount = goodCount;
-					game_.badCount = badCount;
-					game_.missCount = missCount;
-					game_.score = score;
-					game_.accuracy = accuracy;
-					game_.maxComboCount = maxCombo;
+					scoringManager.ReportScores();
 
 					#if UNITY_ANDROID
 					Screen.autorotateToLandscapeLeft = true;
@@ -338,7 +255,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 			UpdateBlocks();
 
-			progressBar.SetProgress(ticks / sequenceCollection.end);
+			scoringManager.SetProgress(ticks / sequenceCollection.end);
 
 			sf2Synth.Panic();
 		}

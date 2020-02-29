@@ -107,7 +107,7 @@ namespace TouhouMix.Levels.Gameplay {
 				holdingBlock.holdingFingerId = -1;
 				holdingBlockDict.Remove(fingerId);
 				HideAndFreeTouchedBlock(holdingBlock, holdingBlock.index, longBlocks, ref longBlocksFreeStartIndex);
-				CountScoreForLongBlockTail(holdingBlock);
+				scoringManager.CountScoreForLongBlockTail(GetTiming(holdingBlock.end), holdingBlock);
 
 				// Only check instant block when ending long block
 				CheckAllInstantBlocks(false);
@@ -125,6 +125,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 		bool CheckAllInstantBlocks(bool onlyCheckOverdue) {
 			bool isInstantBlockTouched = false;
+			float perfectTiming = scoringManager.perfectTiming;
 			for (int i = 0; i < instantBlocksFreeStartIndex; i++) {
 				var block = instantBlocks[i];
 				if (!touchedLaneSet.Contains(block.lane)) continue;
@@ -145,6 +146,7 @@ namespace TouhouMix.Levels.Gameplay {
 		void FindBestNote(float x, List<Block> blocks, int freeStartIndex, 
 			ref int bestBlockIndex, ref Block bestBlock, ref float bestTimingDiff, ref float bestOffset
 		) {
+			float badTiming = scoringManager.badTiming;
 			for (int i = 0; i < freeStartIndex; i++) {
 				var block = blocks[i];
 				if (!touchedLaneSet.Contains(block.lane)) continue;
@@ -169,14 +171,14 @@ namespace TouhouMix.Levels.Gameplay {
 		void TouchInstantBlock(Block block, int index) {
 			block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block, index, instantBlocks, ref instantBlocksFreeStartIndex);
-			CountScoreForBlock(block);
+			scoringManager.CountScoreForBlock(GetTiming(block.note.start), block);
 			AddAsBackgroundNotes(block, true);
 		}
 
 		void TouchShortBlock(Block block, int index) {
 			block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block, index, shortBlocks, ref shortBlocksFreeStartIndex);
-			CountScoreForBlock(block);
+			scoringManager.CountScoreForBlock(GetTiming(block.note.start), block);
 			AddAsBackgroundNotes(block, true);
 		}
 
@@ -185,7 +187,7 @@ namespace TouhouMix.Levels.Gameplay {
 			block.holdingOffset = block.x - x;
 			block.holdingX = block.x;
 			holdingBlockDict.Add(fingerId, block);
-			CountScoreForBlock(block);
+			scoringManager.CountScoreForBlock(GetTiming(block.note.start), block);
 			AddAsBackgroundNotes(block, true);
 			StartLongNote(block.note);
 		}

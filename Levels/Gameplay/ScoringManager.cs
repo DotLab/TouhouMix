@@ -2,31 +2,119 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TouhouMix.Prefabs;
 using Uif;
 using Uif.Settables;
-using Uif.Tasks;
-using Midif.V3;
-using Systemf;
-using Uif.Extensions;
-using Uif.Settables.Components;
-using TouhouMix.Storage.Protos.Json.V1;
-using TouhouMix.Prefabs;
+using Block = TouhouMix.Levels.Gameplay.GameplayLevelScheduler.Block;
 
 namespace TouhouMix.Levels.Gameplay {
-	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
-		void CountScoreForBlock(Block block) {
-			float timing = ticks - block.note.start;
-			if (timing < 0) timing = -timing;
-			timing = midiSequencer.ToSeconds(timing);
+	public sealed class ScoringManager : MonoBehaviour {
+		public float perfectTiming = .05f;
+		public float greatTiming = .15f;
+		public float goodTiming = .2f;
+		public float badTiming = .5f;
+		// easy 1.6, normal 1.3, hard 1, expert .8
+		public float timingMultiplier = 1;
+
+		[Space]
+		public ProgressBarPageScheduler progressBar;
+		public Text scoreText;
+		public Text scoreAdditionText;
+		public Text comboText;
+		public Text judgmentText;
+		public Text accuracyText;
+		public float scoreBase = 125;
+		public Color perfectColor;
+		public Color greatColor;
+		public Color goodColor;
+		public Color badColor;
+		public Color missColor;
+		int score;
+		int combo;
+		float accuracyFactor;
+		float perfectAccuracyFactor;
+		float accuracy;
+
+		int perfectCount = 0;
+		int greatCount = 0;
+		int goodCount = 0;
+		int badCount = 0;
+		int missCount = 0;
+		int maxCombo;
+
+		[Space]
+		public ParticleBurstEmitter perfectEmitter;
+		public ParticleBurstEmitter greatEmitter;
+		public ParticleBurstEmitter goodEmitter;
+		public ParticleBurstEmitter badEmitter;
+
+		public RectTransform flashPageRect;
+		public GameObject flashPrefab;
+		FlashController[] flashControllers;
+
+		public RectTransform backgroundRect;
+
+		enum Judgment {
+			Perfect,
+			Great,
+			Good,
+			Bad,
+			Miss,
+		}
+
+		GameScheduler game_;
+		AnimationManager anim_;
+
+		public void Init(GameplayLevelScheduler level) {
+			game_ = GameScheduler.instance;
+			anim_ = AnimationManager.instance;
+
+			scoreText.text = "";
+			scoreAdditionText.text = "";
+			comboText.text = "";
+			judgmentText.text = "";
+			accuracyText.text = "";
+
+			perfectTiming *= timingMultiplier;
+			greatTiming *= timingMultiplier;
+			goodTiming *= timingMultiplier;
+			badTiming *= timingMultiplier;
+
+			flashControllers = new FlashController[level.laneCount];
+			for (int i = 0; i < level.laneCount; i++) {
+				var flashController = Instantiate(flashPrefab, flashPageRect).GetComponent<FlashController>();
+				flashController.rect.anchoredPosition = new Vector2(level.laneXDict[i], level.judgeHeight);
+				flashController.rect.sizeDelta = new Vector2(level.blockWidth, 0);
+				flashControllers[i] = flashController;
+			}
+		}
+
+		public void SetProgress(float progress) {
+			progressBar.SetProgress(progress);
+		}
+
+		public void ReportScores() {
+			game_.perfectCount = perfectCount;
+			game_.greatCount = greatCount;
+			game_.goodCount = goodCount;
+			game_.badCount = badCount;
+			game_.missCount = missCount;
+			game_.score = score;
+			game_.accuracy = accuracy;
+			game_.maxComboCount = maxCombo;
+		}
+
+
+		public void CountScoreForBlock(float timing, Block block) {
 			var judgment = GetTimingJudgment(timing);
 			FlashJudgment(judgment);
 
 			switch (judgment) {
-			case Judgment.Perfect: perfectCount += 1; break;
-			case Judgment.Great: greatCount += 1; break;
-			case Judgment.Good: goodCount += 1; break;
-			case Judgment.Bad: badCount += 1; break;
-			case Judgment.Miss: missCount += 1; break;
+				case Judgment.Perfect: perfectCount += 1; break;
+				case Judgment.Great: greatCount += 1; break;
+				case Judgment.Good: goodCount += 1; break;
+				case Judgment.Bad: badCount += 1; break;
+				case Judgment.Miss: missCount += 1; break;
 			}
 
 			var emitter = GetParticleEmitterFromJudgment(judgment);
@@ -55,19 +143,16 @@ namespace TouhouMix.Levels.Gameplay {
 				.RotateFromTo(backgroundRect, -2, 0, .1f, EsType.Linear);
 		}
 
-		void CountScoreForLongBlockTail(Block block) {
-			float timing = ticks - block.end;
-			if (timing < 0) timing = -timing;
-			timing = midiSequencer.ToSeconds(timing);
+		public void CountScoreForLongBlockTail(float timing, Block block) {
 			var judgment = GetTimingJudgment(timing);
 			FlashJudgment(judgment);
 
 			switch (judgment) {
-			case Judgment.Perfect: perfectCount += 1; break;
-			case Judgment.Great: greatCount += 1; break;
-			case Judgment.Good: goodCount += 1; break;
-			case Judgment.Bad: badCount += 1; break;
-			case Judgment.Miss: missCount += 1; break;
+				case Judgment.Perfect: perfectCount += 1; break;
+				case Judgment.Great: greatCount += 1; break;
+				case Judgment.Good: goodCount += 1; break;
+				case Judgment.Bad: badCount += 1; break;
+				case Judgment.Miss: missCount += 1; break;
 			}
 
 			var emitter = GetParticleEmitterFromJudgment(judgment);
@@ -92,8 +177,8 @@ namespace TouhouMix.Levels.Gameplay {
 			FlashAccuracy();
 		}
 
-		void CountMiss(Block block) {
-//			Debug.Log("Miss!");
+		public void CountMiss(Block block) {
+			//			Debug.Log("Miss!");
 			FlashJudgment(Judgment.Miss);
 			combo = 0;
 			ClearCombo();
@@ -106,10 +191,10 @@ namespace TouhouMix.Levels.Gameplay {
 
 		float GetBlockTypeScoreMultipler(Block.BlockType type) {
 			switch (type) {
-			case Block.BlockType.Instant: return .5f;
-			case Block.BlockType.Short: return 1f;
-			case Block.BlockType.Long: return 1.25f;
-			default: throw new System.NotImplementedException();
+				case Block.BlockType.Instant: return .5f;
+				case Block.BlockType.Short: return 1f;
+				case Block.BlockType.Long: return 1.25f;
+				default: throw new System.NotImplementedException();
 			}
 		}
 
@@ -133,59 +218,59 @@ namespace TouhouMix.Levels.Gameplay {
 
 		float GetJudgmentScoreMultiplier(Judgment judgment) {
 			switch (judgment) {
-			case Judgment.Perfect: return 1f;
-			case Judgment.Great: return .88f;
-			case Judgment.Good: return .8f;
-			case Judgment.Bad: return .4f;
-			default: return 0;
+				case Judgment.Perfect: return 1f;
+				case Judgment.Great: return .88f;
+				case Judgment.Good: return .8f;
+				case Judgment.Bad: return .4f;
+				default: return 0;
 			}
 		}
 
 		float GetJudgmentAccuracyContribution(Judgment judgment) {
 			switch (judgment) {
-			case Judgment.Perfect: return 300;
-			case Judgment.Great: return 200;
-			case Judgment.Good: return 100;
-			case Judgment.Bad: return 50;
-			default: return 0;
+				case Judgment.Perfect: return 300;
+				case Judgment.Great: return 200;
+				case Judgment.Good: return 100;
+				case Judgment.Bad: return 50;
+				default: return 0;
 			}
 		}
 
 		ParticleBurstEmitter GetParticleEmitterFromJudgment(Judgment judgment) {
 			switch (judgment) {
-			case Judgment.Perfect: return perfectEmitter;
-			case Judgment.Great: return greatEmitter;
-			case Judgment.Good: return goodEmitter;
-			default: return badEmitter;
+				case Judgment.Perfect: return perfectEmitter;
+				case Judgment.Great: return greatEmitter;
+				case Judgment.Good: return goodEmitter;
+				default: return badEmitter;
 			}
 		}
 
 		bool CheckShouldKeepComboFromJudgment(Judgment judgment) {
 			switch (judgment) {
-			case Judgment.Perfect:
-			case Judgment.Great:
-			case Judgment.Good: return true;
-			default: return false;
+				case Judgment.Perfect:
+				case Judgment.Great:
+				case Judgment.Good: return true;
+				default: return false;
 			}
 		}
 
 		string GetJudgmentText(Judgment judgment) {
 			switch (judgment) {
-			case Judgment.Perfect: return "PERFECT";
-			case Judgment.Great: return "GREAT";
-			case Judgment.Good: return "GOOD";
-			case Judgment.Bad: return "BAD";
-			default: return "MISS";
+				case Judgment.Perfect: return "PERFECT";
+				case Judgment.Great: return "GREAT";
+				case Judgment.Good: return "GOOD";
+				case Judgment.Bad: return "BAD";
+				default: return "MISS";
 			}
 		}
 
 		Color GetJudgmentColor(Judgment judgment) {
 			switch (judgment) {
-			case Judgment.Perfect: return perfectColor;
-			case Judgment.Great: return greatColor;
-			case Judgment.Good: return goodColor;
-			case Judgment.Bad: return badColor;
-			default: return missColor;
+				case Judgment.Perfect: return perfectColor;
+				case Judgment.Great: return greatColor;
+				case Judgment.Good: return goodColor;
+				case Judgment.Bad: return badColor;
+				default: return missColor;
 			}
 		}
 
@@ -212,7 +297,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 		void ClearCombo() {
 			anim_.New(comboText)
-//				.ScaleFromTo(comboText.transform, new Vector3(1.2f, 1.2f, 1.2f), Vector3.one, .2f, 0)
+				//				.ScaleFromTo(comboText.transform, new Vector3(1.2f, 1.2f, 1.2f), Vector3.one, .2f, 0)
 				.FadeTo(comboText, 0, .2f, 0);
 		}
 
@@ -221,7 +306,7 @@ namespace TouhouMix.Levels.Gameplay {
 			scoreAdditionText.text = string.Format("+{0:N0}", addition);
 			anim_.New(scoreText)
 				.ScaleFromTo(scoreText.transform, new Vector3(1.3f, 1.3f, 1.3f), Vector3.one, .2f, 0);
-//				.FadeFromTo(scoreText, 1, .5f, .2f, 0);
+			//				.FadeFromTo(scoreText, 1, .5f, .2f, 0);
 			anim_.New(scoreAdditionText)
 				.FadeOutFromOne(scoreAdditionText, .2f, 0)
 				.ScaleFromTo(scoreAdditionText.transform, new Vector3(1.2f, 1.2f, 1.2f), Vector3.one, .2f, 0)
