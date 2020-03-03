@@ -6,15 +6,16 @@ using TouhouMix.Prefabs;
 using Uif;
 using Uif.Settables;
 using Block = TouhouMix.Levels.Gameplay.GameplayLevelScheduler.Block;
+using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed class ScoringManager : MonoBehaviour {
+		public float timingOffset = 0;
 		public float perfectTiming = .05f;
 		public float greatTiming = .15f;
 		public float goodTiming = .2f;
 		public float badTiming = .5f;
 		// easy 1.6, normal 1.3, hard 1, expert .8
-		public float timingMultiplier = 1;
 
 		[Space]
 		public ProgressBarPageScheduler progressBar;
@@ -43,6 +44,7 @@ namespace TouhouMix.Levels.Gameplay {
 		int maxCombo;
 
 		[Space]
+		public Transform sparkPage;
 		public ParticleBurstEmitter perfectEmitter;
 		public ParticleBurstEmitter greatEmitter;
 		public ParticleBurstEmitter goodEmitter;
@@ -75,11 +77,6 @@ namespace TouhouMix.Levels.Gameplay {
 			judgmentText.text = "";
 			accuracyText.text = "";
 
-			perfectTiming *= timingMultiplier;
-			greatTiming *= timingMultiplier;
-			goodTiming *= timingMultiplier;
-			badTiming *= timingMultiplier;
-
 			flashControllers = new FlashController[level.laneCount];
 			for (int i = 0; i < level.laneCount; i++) {
 				var flashController = Instantiate(flashPrefab, flashPageRect).GetComponent<FlashController>();
@@ -87,6 +84,30 @@ namespace TouhouMix.Levels.Gameplay {
 				flashController.rect.sizeDelta = new Vector2(level.blockWidth, 0);
 				flashControllers[i] = flashController;
 			}
+		}
+
+		public void LoadGameplayConfig(GameplayConfigProto config) {
+			try {
+				timingOffset = config.judgeTimeOffset;
+				perfectTiming = config.perfectTime;
+				greatTiming = config.greatTime;
+				goodTiming = config.goodTime;
+				badTiming = config.badTime;
+
+				perfectEmitter = LoadSparkPreset(config.perfectSparkPreset, config.perfectSparkScaling);
+				greatEmitter = LoadSparkPreset(config.greatSparkPreset, config.greatSparkScaling);
+				goodEmitter = LoadSparkPreset(config.goodSparkPreset, config.goodSparkScaling);
+				badEmitter = LoadSparkPreset(config.badSparkPreset, config.badSparkScaling);
+			} catch(System.Exception e) {
+				Debug.Log(e);
+			}
+		}
+
+		ParticleBurstEmitter LoadSparkPreset(string path, float scaling) {
+			var prefab = Resources.Load<GameObject>("Sparks/" + path);
+			var instance = Instantiate(prefab, sparkPage, false);
+			instance.transform.localScale = new Vector3(scaling, scaling, scaling);
+			return instance.GetComponent<ParticleBurstEmitter>();
 		}
 
 		public void SetProgress(float progress) {
@@ -106,7 +127,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 
 		public void CountScoreForBlock(float timing, Block block) {
-			var judgment = GetTimingJudgment(timing);
+			var judgment = GetTimingJudgment(timing + timingOffset);
 			FlashJudgment(judgment);
 
 			switch (judgment) {
@@ -138,13 +159,13 @@ namespace TouhouMix.Levels.Gameplay {
 			accuracy = accuracyFactor / perfectAccuracyFactor;
 			FlashAccuracy();
 
-			flashControllers[block.lane].Dim(.6f);
-			anim_.New(backgroundRect).ScaleFromTo(backgroundRect, new Vector3(1.1f, 1.1f, 1), Vector3.one, .3f, EsType.Linear)
-				.RotateFromTo(backgroundRect, -2, 0, .1f, EsType.Linear);
+			flashControllers[block.lane].Dim(1);
+			anim_.New(backgroundRect).ScaleFromTo(backgroundRect, new Vector3(1.2f, 1.2f, 1), Vector3.one, .4f, EsType.Linear)
+				.RotateFromTo(backgroundRect, -2, 0, .2f, EsType.Linear);
 		}
 
 		public void CountScoreForLongBlockTail(float timing, Block block) {
-			var judgment = GetTimingJudgment(timing);
+			var judgment = GetTimingJudgment(timing + timingOffset);
 			FlashJudgment(judgment);
 
 			switch (judgment) {

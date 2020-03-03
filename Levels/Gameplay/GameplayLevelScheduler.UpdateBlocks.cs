@@ -65,10 +65,10 @@ namespace TouhouMix.Levels.Gameplay {
 		float GetY(float start) {
 			if (ticks < start) {
 				// in cache period
-				return Es.Calc(cacheEsType, (start - ticks) / cacheTicks) * cacheHeight + judgeHeight;
+				return Es.Calc(cacheEsType, Clamp01((start - ticks) / cacheTicks)) * cacheHeight + judgeHeight;
 			} else { // start <= ticks
 				// in grace period
-				return judgeHeight - judgeHeight * Es.Calc(graceEsType, (ticks - start) / graceTicks);
+				return judgeHeight - judgeHeight * Es.Calc(graceEsType, Clamp01((ticks - start) / graceTicks));
 			}
 		}
 
@@ -76,6 +76,10 @@ namespace TouhouMix.Levels.Gameplay {
 			float timing = ticks - timingTicks;
 			if (timing < 0) timing = -timing;
 			return midiSequencer.ToSeconds(timing);
+		}
+
+		static float Clamp01(float t) {
+			return t < 0 ? 0 : t > 1 ? 1 : t;
 		}
 	}
 }

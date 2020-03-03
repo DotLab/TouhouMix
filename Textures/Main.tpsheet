@@ -4,7 +4,7 @@
 # To import these sprites into your Unity project, download "TexturePackerImporter":
 # https://www.codeandweb.com/texturepacker/unity
 #
-# $TexturePacker:SmartUpdate:5afc18a76d2897e6838df63767081fac:17b5cee84b5870f5e51fd5ea972566b8:a51e1c733bd95c2344351166cb293d60$
+# $TexturePacker:SmartUpdate:69a05caf5ecd09883118e91ab57da708:17b5cee84b5870f5e51fd5ea972566b8:a51e1c733bd95c2344351166cb293d60$
 #
 :format=40300
 :texture=Main.png
@@ -13,7 +13,7 @@
 :borders=enabled
 :alphahandling=ClearTransparentPixels
 
-common-glow-point-100;2;274;100;100; 0.5;0.5; 0;0;0;0; 4;100;0;0;0;0;100;100;100; 2;1;2;3;0;1;3
+common-glow-point-100;2;274;100;100; 0.5;0.5; 50;50;50;50
 common-gradient-transparent-to-white-vertical;1017;972;2;50; 0.5;0.5; 0;0;0;0; 4;2;0;0;0;0;50;2;50; 2;1;2;3;0;1;3
 common-gradient-transparent-to-white;2;12;50;2; 0.5;0.5; 0;0;0;0; 4;50;0;0;0;0;2;50;2; 2;1;2;3;0;1;3
 common-whilte;1017;966;2;2; 0.5;0.5; 0;0;0;0; 4;2;0;0;0;0;2;2;2; 2;1;2;3;0;1;3

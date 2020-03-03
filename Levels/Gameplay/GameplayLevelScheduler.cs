@@ -13,14 +13,17 @@ namespace TouhouMix.Levels.Gameplay {
 		const int MOUSE_TOUCH_ID = -100;
 
 		public CanvasSizeWatcher sizeWatcher;
+		public bool shouldLoadGameplayConfig;
 
 		[Space]
 		public CanvasGroup readyPageGroup;
+		public CanvasGroup configPageGroup;
 		public Text readyPageText;
 		public CanvasGroup gameplayPageGroup;
 		public Button pauseButton;
 		public RectTransform judgeRect;
 		public float judgeHeight = 80;
+		public float judgeThickness = 2;
 		float cacheHeight;
 		public CanvasGroup pausePageGroup;
 
@@ -130,6 +133,10 @@ namespace TouhouMix.Levels.Gameplay {
 			game_ = GameScheduler.instance;
 			anim_ = AnimationManager.instance;
 
+			if (shouldLoadGameplayConfig) {
+				LoadGameplayConfig();
+			}
+
 			hasStarted = false;
 
 			judgeRect.anchoredPosition = new Vector2(0, judgeHeight);
@@ -188,21 +195,74 @@ namespace TouhouMix.Levels.Gameplay {
 			ShowReadyAnimation();
 		}
 
+		void LoadGameplayConfig() {
+			var config = game_.gameplayConfig;
+			try {
+				instantBlockPrefab = LoadBlockPreset(config.instantBlockPreset);
+				shortBlockPrefab = LoadBlockPreset(config.shortBlockPreset);
+				longBlockPrefab = LoadBlockPreset(config.longBlockPreset);
+
+				laneCount = config.laneCount;
+				blockWidth = config.blockSize;
+				blockJudgingWidth = config.blockJudgingWidth;
+
+				judgeHeight = config.judgeLinePosition;
+				judgeThickness = config.judgeLineThickness;
+
+				cacheBeats = config.cacheTime;
+				cacheEsType = config.cacheEasingType;
+				graceBeats = config.graceTime;
+				graceEsType = config.graceEasingType;
+
+				maxInstantBlockSeconds = config.instantBlockMaxTime;
+				maxShortBlockSeconds = config.shortBlockMaxTime;
+
+				scoringManager.LoadGameplayConfig(config);
+			} catch (System.Exception e) {
+				Debug.LogError(e);
+			}
+		}
+
+		GameObject LoadBlockPreset(string path) {
+			return Resources.Load<GameObject>("Blocks/" + path);
+		}
+
 		void ShowReadyAnimation() {
 			readyPageGroup.gameObject.SetActive(true);
 			readyPageGroup.alpha = 0;
-			anim_.New().FadeIn(readyPageGroup, .5f, 0).Then()
+			anim_.New(this).FadeIn(readyPageGroup, .5f, 0).Then()
+				.RotateFromTo(readyPageText.transform, -180, 0, .8f, EsType.BackOut)
 				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-//				.Set(readyPageText.GetStringSettable(), "3")
-//				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-//				.Set(readyPageText.GetStringSettable(), "2")
-//				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-//				.Set(readyPageText.GetStringSettable(), "1")
-//				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				.Set(readyPageText.GetStringSettable(), "Go")
+				.Set(readyPageText.GetStringSettable(), "3")
+				.RotateFromTo(readyPageText.transform, 180, 0, .8f, EsType.BackOut)
+				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+				.Set(readyPageText.GetStringSettable(), "2")
+				.RotateFromTo(readyPageText.transform, -180, 0, .8f, EsType.BackOut)
+				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+				.Set(readyPageText.GetStringSettable(), "1")
+				.RotateFromTo(readyPageText.transform, 180, 0, .8f, EsType.BackOut)
+				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+				.Set(readyPageText.GetStringSettable(), "GO")
 				.Set(readyPageText.GetAlphaFloatSettable(), 1)
+				.ScaleTo(readyPageText.transform, new Vector3(2, 2, 1), 1, EsType.CubicIn)
 				.FadeOutFromOne(readyPageGroup, 1, EsType.QuadIn).Then()
 				.Call(StartGame);
+		}
+
+		public void OnConfigButtonClicked() {
+			anim_.Clear(this);
+			configPageGroup.gameObject.SetActive(true);
+			anim_.New(this).FadeOut(readyPageGroup, .5f, 0)
+				.FadeIn(configPageGroup, .5f, 0);
+		}
+
+		public void OnConfigPageBackButtonClicked() {
+			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
+		}
+
+		public void OnConfigPageUndoButtonClicked() {
+			game_.RestoreDefaultGameplayConfig();
+			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
 		}
 
 		void StartGame() {

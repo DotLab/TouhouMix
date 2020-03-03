@@ -17,10 +17,12 @@ namespace TouhouMix.Prefabs {
 
 		public Particle[] particles;
 
-		RectTransform trans;
+		RectTransform rect;
+		Transform trans;
 
 		void Awake() {
-			trans = GetComponent<RectTransform>();
+			rect = GetComponent<RectTransform>();
+			trans = GetComponent<Transform>();
 
 			var parsys = GetComponentsInChildren<ParticleSystem>();
 			particles = new Particle[parsys.Length];
@@ -33,20 +35,29 @@ namespace TouhouMix.Prefabs {
 				var count = parsys[i].emission.GetBursts(bursts);
 				if (count == 0) continue;
 
-				particles[i].MinCount = bursts[0].minCount;
-				particles[i].MaxCount = bursts[0].maxCount;
+				if (bursts[0].count.mode == ParticleSystemCurveMode.TwoConstants) {
+					particles[i].MinCount = bursts[0].minCount;
+					particles[i].MaxCount = bursts[0].maxCount;
+				} else {
+					particles[i].MinCount = particles[i].MaxCount = bursts[0].maxCount;
+				}
 
+				parsys[i].simulationSpace = ParticleSystemSimulationSpace.World;
 				parsys[i].emission.SetBursts(new ParticleSystem.Burst[0]);
 			}
-//			StartCoroutine(Handler());
 		}
 
-//		System.Collections.IEnumerator Handler() {
-//			while (true) {
-//				Emit();
-//				yield return new WaitForSeconds(1);
-//			}
-//		}
+		System.Collections.IEnumerator Handler() {
+			while (true) {
+				Emit();
+				yield return new WaitForSeconds(1);
+			}
+		}
+
+		System.Collections.IEnumerator DelayHandler() {
+			yield return new WaitForSeconds(1); 
+			Emit();
+		}
 
 		[ContextMenu("Emit")]
 		public void Emit() {
@@ -54,8 +65,24 @@ namespace TouhouMix.Prefabs {
 				particle.System.Emit(particle.Count);
 		}
 
+		[ContextMenu("EmitDelayed")]
+		public void EmitDelayed() {
+			StartCoroutine(DelayHandler());
+		}
+
+		[ContextMenu("EmitLoop")]
+		public void EmitLoop() {
+			StartCoroutine(Handler());
+		}
+
+		[ContextMenu("EmitLoopStop")]
+		public void EmitLoopStop() {
+			StopAllCoroutines();
+		}
+
 		public void Emit(Vector2 position) {
-			trans.anchoredPosition = position;
+			//trans.anchoredPosition = position;
+			trans.localPosition = position;
 			foreach (var particle in particles)
 				particle.System.Emit(particle.Count);
 		}

@@ -32,7 +32,7 @@ namespace TouhouMix.Storage {
 				sb.Append(pair.Value);
 				sb.AppendLine();
 			}
-			UnityEngine.Debug.Log(sb.ToString());
+			//UnityEngine.Debug.Log(sb.ToString());
 			#endif
 			File.WriteAllText(JSON_STORAGE_FILE_PATH, json.Stringify(jsonStorage));
 		}
