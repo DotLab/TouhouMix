@@ -42,7 +42,9 @@ namespace TouhouMix.Prefabs {
 					particles[i].MinCount = particles[i].MaxCount = bursts[0].maxCount;
 				}
 
-				parsys[i].simulationSpace = ParticleSystemSimulationSpace.World;
+				//parsys[i].simulationSpace = ParticleSystemSimulationSpace.World;
+				var main = parsys[i].main;
+				main.simulationSpace = ParticleSystemSimulationSpace.World;
 				parsys[i].emission.SetBursts(new ParticleSystem.Burst[0]);
 			}
 		}

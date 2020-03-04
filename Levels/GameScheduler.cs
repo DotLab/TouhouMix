@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using TouhouMix.Storage;
+using TouhouMix.Net;
 
 namespace TouhouMix.Levels {
 	public sealed class GameScheduler : MonoBehaviour {
@@ -33,14 +34,21 @@ namespace TouhouMix.Levels {
 		public int score;
 		public float accuracy;
 
+		public NetManager netManager;
+
 		void Awake () {
 			if (instance == null) {
 				Init();
 				instance = this;
 				DontDestroyOnLoad(gameObject);
+				ImaginationOverflow.UniversalFileAssociation.FileAssociationManager.Instance.FileActivated += FileActivatedHandler;
 			} else {
 				Destroy(gameObject);
 			}
+		}
+
+		void OnDisable() {
+			ImaginationOverflow.UniversalFileAssociation.FileAssociationManager.Instance.FileActivated -= FileActivatedHandler;
 		}
 
 		void OnApplicationFocus(bool hasFocus) {
@@ -65,6 +73,9 @@ namespace TouhouMix.Levels {
 			uiState = jsonStorage.Get(JsonStorageKeys.V1.UI_STATE, Storage.Protos.Json.V1.UiStateProto.CreateDefault());
 			midiSynthConfigs = jsonStorage.Get(JsonStorageKeys.V1.MIDI_SYNTH_CONFIGS, Storage.Protos.Json.V1.MidiSynthConfigsProto.CreateDefault());
 			gameplayConfig = jsonStorage.Get(JsonStorageKeys.V1.GAMEPLAY_CONFIG, Storage.Protos.Json.V1.GameplayConfigProto.CreateDefault());
+
+			netManager = new NetManager();
+			//netManager.Init();
 		}
 
 		[ContextMenu("RestoreDefaultGameplayConfig")]
@@ -78,6 +89,16 @@ namespace TouhouMix.Levels {
 			jsonStorage.Set(JsonStorageKeys.V1.GAMEPLAY_CONFIG, gameplayConfig);
 
 			jsonStorage.Flush();
+		}
+
+		private void FileActivatedHandler(ImaginationOverflow.UniversalFileAssociation.Data.FileInformation fileInfo) {
+			var localPath = System.IO.Path.Combine(Application.persistentDataPath, fileInfo.Name);
+			using (var fileStream = System.IO.File.Create(localPath)) {
+				fileInfo.Stream.Seek(0, System.IO.SeekOrigin.Begin);
+				fileInfo.Stream.CopyTo(fileStream);
+			}
+			Debug.Log("File " + fileInfo.Name + " written");
+			resourceStorage.LoadCustomMidis();
 		}
 	}
 }

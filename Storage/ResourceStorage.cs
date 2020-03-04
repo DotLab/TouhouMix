@@ -22,6 +22,7 @@ namespace TouhouMix.Storage {
 		public readonly List<AlbumProto> albumProtoList = new List<AlbumProto>();
 		public readonly List<SongProto> songProtoList = new List<SongProto>();
 		public readonly List<MidiProto> midiProtoList = new List<MidiProto>();
+		public readonly HashSet<string> customMidiPathSet = new HashSet<string>();
 
 		public readonly Dictionary<int, AuthorProto> authorProtoDict = new Dictionary<int, AuthorProto>();
 		public readonly Dictionary<int, AlbumProto> albumProtoDict = new Dictionary<int, AlbumProto>();
@@ -35,7 +36,6 @@ namespace TouhouMix.Storage {
 			for (int i = 0; i < MIDIS_FILE_PATH_LIST.Length; i++) {
 				midiProtoList.AddRange(UnityEngine.JsonUtility.FromJson<MidisProto>(LoadText(MIDIS_FILE_PATH_LIST[i])).midiList);
 			}
-			LoadCustomMidis(midiProtoList);
 
 			foreach (var authorProto in authorProtoList) {
 				authorProtoDict.Add(authorProto.author, authorProto);
@@ -53,28 +53,40 @@ namespace TouhouMix.Storage {
 				albumProtoDict[midiProto.album].midiCount += 1;
 				songProtoDict[Tuple.Create(midiProto.album, midiProto.song)].midiCount += 1;
 			}
+
+			LoadCustomMidis();
 		}
 
-		static void LoadCustomMidis(List<MidiProto> list) {
+		public void LoadCustomMidis() {
 			string[] paths = System.IO.Directory.GetFiles(UnityEngine.Application.persistentDataPath, "*.mid");
 			if (paths.Length == 0) return;
 
 			foreach (string path in paths) {
+				if (customMidiPathSet.Contains(path)) {
+					continue;
+				}
+
 				var fileName = System.IO.Path.GetFileName(path);
-				var midiInfo = new MidiProto{
-					author = 0, 
-					album = 0, 
-					song = 1, 
-					name = fileName, 
-					path = path, 
+				var midiProto = new MidiProto {
+					author = 0,
+					album = 0,
+					song = 1,
+					name = fileName,
+					path = path,
 					isFile = true
 				};
-				list.Add(midiInfo);
+				midiProtoList.Add(midiProto);
+				customMidiPathSet.Add(path);
+
+				midiProtoDict.Add(Tuple.Create(midiProto.album, midiProto.song, midiProto.name), midiProto);
+				authorProtoDict[midiProto.author].midiCount += 1;
+				albumProtoDict[midiProto.album].midiCount += 1;
+				songProtoDict[Tuple.Create(midiProto.album, midiProto.song)].midiCount += 1;
 			}
 		}
 
 		public IEnumerable<object> QueryAlbums() {
-			return albumProtoList.Where(x => x.midiCount > 0).Cast<object>();
+			return albumProtoList.Where(x => x.album == 0 || x.midiCount > 0).Cast<object>();
 		}
 
 		public IEnumerable<object> QuerySongsByAlbum(int album) {
