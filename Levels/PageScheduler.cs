@@ -10,7 +10,7 @@ namespace TouhouMix.Levels {
 
 		protected T level_;
 
-		protected CanvasGroup group_;
+		public CanvasGroup group_;
 
 		public virtual void Init(T level) {
 			anim_ = AnimationManager.instance;
@@ -21,7 +21,8 @@ namespace TouhouMix.Levels {
 			group_ = GetComponent<CanvasGroup>();	
 		}
 
-		public virtual void Back() {}
+		public virtual void Back() {
+		}
 
 		public virtual void Enable() {
 			gameObject.SetActive(true);
@@ -32,11 +33,13 @@ namespace TouhouMix.Levels {
 		}
 
 		public virtual AnimationSequence Hide(AnimationSequence seq) {
-			return seq.FadeOut(group_, .25f, 0).Then().Call(Disable);
+			return seq.FadeOut(group_, .25f, EsType.CubicOut)
+				.ScaleTo(transform, Vector3.zero, .25f, EsType.CubicOut).Then().Call(Disable);
 		}
 
 		public virtual AnimationSequence Show(AnimationSequence seq) {
-			return seq.Call(Enable).FadeInFromZero(group_, .25f, 0);
+			return seq.Call(Enable).FadeInFromZero(group_, .25f, EsType.CubicOut)
+				.ScaleFromTo(transform, Vector3.one * 2f, Vector3.one, .25f, EsType.CubicOut);
 		}
 	}
 }

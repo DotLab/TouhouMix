@@ -89,10 +89,10 @@ namespace TouhouMix.Levels.Gameplay {
 		public void LoadGameplayConfig(GameplayConfigProto config) {
 			try {
 				timingOffset = config.judgeTimeOffset;
-				perfectTiming = config.perfectTime;
-				greatTiming = config.greatTime;
-				goodTiming = config.goodTime;
-				badTiming = config.badTime;
+				//perfectTiming = config.perfectTime;
+				//greatTiming = config.greatTime;
+				//goodTiming = config.goodTime;
+				//badTiming = config.badTime;
 
 				perfectEmitter = LoadSparkPreset(config.perfectSparkPreset, config.perfectSparkScaling);
 				greatEmitter = LoadSparkPreset(config.greatSparkPreset, config.greatSparkScaling);
@@ -123,10 +123,23 @@ namespace TouhouMix.Levels.Gameplay {
 			game_.score = score;
 			game_.accuracy = accuracy;
 			game_.maxComboCount = maxCombo;
+
+			game_.netManager.ClAppTrialUpload(new Net.NetManager.Trial {
+				hash = MiscHelper.GetHexEncodedMd5Hash(game_.midiFile.bytes),
+				score = score,
+				combo = maxCombo,
+				accuracy = accuracy,
+
+				perfectCount = perfectCount,
+				greatCount = greatCount,
+				goodCount = goodCount,
+				badCount = badCount,
+				missCount = missCount,
+			}, null);
 		}
 
 
-		public void CountScoreForBlock(float timing, Block block) {
+		public void CountScoreForBlock(float timing, Block block, bool isHolding = false) {
 			var judgment = GetTimingJudgment(timing + timingOffset);
 			FlashJudgment(judgment);
 
@@ -151,6 +164,9 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 
 			int noteScore = (int)(scoreBase * GetBlockTypeScoreMultipler(block.type) * GetJudgmentScoreMultiplier(judgment) * GetComboScoreMultiplier(combo));
+			if (isHolding) {
+				noteScore = 1;
+			}
 			score += noteScore;
 			FlashScore(noteScore);
 

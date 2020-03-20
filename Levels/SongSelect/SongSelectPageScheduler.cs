@@ -4,7 +4,6 @@ using UnityEngine.UI;
 using Uif;
 using Uif.Settables;
 using Uif.Tasks;
-using TouhouMix.Levels.SongSelect.SongSelectPage;
 using TouhouMix.Storage;
 
 namespace TouhouMix.Levels.SongSelect {

@@ -136,7 +136,7 @@ namespace TouhouMix.Levels.Gameplay {
 				if ((onlyCheckOverdue && 0 <= timingDiff && timingDiff <= perfectTiming) ||
 					(!onlyCheckOverdue && -perfectTiming <= timingDiff && timingDiff <= perfectTiming)) {
 					// if within perfect timing, touch
-					TouchInstantBlock(block, i);
+					TouchInstantBlock(block, i, true);
 					isInstantBlockTouched = true;
 				}
 			}
@@ -168,10 +168,10 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 		}
 
-		void TouchInstantBlock(Block block, int index) {
+		void TouchInstantBlock(Block block, int index, bool isHolding = false) {
 			block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block, index, instantBlocks, ref instantBlocksFreeStartIndex);
-			scoringManager.CountScoreForBlock(GetTiming(block.note.start), block);
+			scoringManager.CountScoreForBlock(GetTiming(block.note.start), block, isHolding);
 			AddAsBackgroundNotes(block, true);
 		}
 

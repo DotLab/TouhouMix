@@ -198,9 +198,12 @@ namespace TouhouMix.Levels.Gameplay {
 		void LoadGameplayConfig() {
 			var config = game_.gameplayConfig;
 			try {
-				instantBlockPrefab = LoadBlockPreset(config.instantBlockPreset);
-				shortBlockPrefab = LoadBlockPreset(config.shortBlockPreset);
-				longBlockPrefab = LoadBlockPreset(config.longBlockPreset);
+				var instantBlockPrefab = LoadBlockPreset(config.instantBlockPreset);
+				var shortBlockPrefab = LoadBlockPreset(config.shortBlockPreset);
+				var longBlockPrefab = LoadBlockPreset(config.longBlockPreset);
+				this.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : this.instantBlockPrefab;
+				this.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : this.shortBlockPrefab;
+				this.longBlockPrefab = longBlockPrefab ? longBlockPrefab : this.longBlockPrefab;
 
 				laneCount = config.laneCount;
 				blockWidth = config.blockSize;

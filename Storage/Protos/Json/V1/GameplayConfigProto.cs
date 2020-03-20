@@ -39,9 +39,9 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		
 		public static GameplayConfigProto CreateDefault() {
 			return new GameplayConfigProto {
-				instantBlockPreset = "Voez/VoezInstantBlock",
-				shortBlockPreset = "Voez/VoezShortBlock",
-				longBlockPreset = "Voez/VoezLongBlock",
+				instantBlockPreset = "Squre45/InstantBlock",
+				shortBlockPreset = "Squre45/ShortBlock",
+				longBlockPreset = "Squre45/LongBlock",
 
 				laneCount = 12,
 				blockSize = 150,

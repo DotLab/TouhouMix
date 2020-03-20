@@ -8,6 +8,7 @@ namespace TouhouMix.Storage {
 		const string AUTHORS_FILE_PATH = "Authors";
 		const string ALBUMS_FILE_PATH = "Albums";
 		const string SONGS_FILE_PATH = "Songs";
+		const string MIDI_HASH_LIST_FILE_PATH = "MidiHashList";
 		readonly string[] MIDIS_FILE_PATH_LIST = {"MidisContrib", "MidisDmbn", "MidisDmbnNew"};
 
 		static string LoadText(string path) {
@@ -22,6 +23,7 @@ namespace TouhouMix.Storage {
 		public readonly List<AlbumProto> albumProtoList = new List<AlbumProto>();
 		public readonly List<SongProto> songProtoList = new List<SongProto>();
 		public readonly List<MidiProto> midiProtoList = new List<MidiProto>();
+		public readonly HashSet<string> midiHashSet = new HashSet<string>();
 		public readonly HashSet<string> customMidiPathSet = new HashSet<string>();
 
 		public readonly Dictionary<int, AuthorProto> authorProtoDict = new Dictionary<int, AuthorProto>();
@@ -33,6 +35,9 @@ namespace TouhouMix.Storage {
 			authorProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AuthorsProto>(LoadText(AUTHORS_FILE_PATH)).authorList);
 			albumProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AlbumsProto>(LoadText(ALBUMS_FILE_PATH)).albumList);
 			songProtoList.AddRange(UnityEngine.JsonUtility.FromJson<SongsProto>(LoadText(SONGS_FILE_PATH)).songList);
+			foreach (string hash in UnityEngine.JsonUtility.FromJson<HashListProto>(LoadText(MIDI_HASH_LIST_FILE_PATH)).hashList) {
+				midiHashSet.Add(hash);
+			}
 			for (int i = 0; i < MIDIS_FILE_PATH_LIST.Length; i++) {
 				midiProtoList.AddRange(UnityEngine.JsonUtility.FromJson<MidisProto>(LoadText(MIDIS_FILE_PATH_LIST[i])).midiList);
 			}

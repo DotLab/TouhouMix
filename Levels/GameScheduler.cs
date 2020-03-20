@@ -1,6 +1,15 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 using TouhouMix.Storage;
 using TouhouMix.Net;
+using JsonObj = System.Collections.Generic.Dictionary<string, object>;
+using JsonList = System.Collections.Generic.List<object>;
+
+public partial class SROptions {
+	public int rtt {
+		get { return TouhouMix.Levels.GameScheduler.instance.netManager.rtt; }
+	}
+}
 
 namespace TouhouMix.Levels {
 	public sealed class GameScheduler : MonoBehaviour {
@@ -13,6 +22,8 @@ namespace TouhouMix.Levels {
 
 		public JsonStorage jsonStorage;
 		public ResourceStorage resourceStorage;
+		public NetManager netManager;
+		public LocalDb localDb;
 
 		public Storage.Protos.Json.V1.UiStateProto uiState;
 		public Storage.Protos.Json.V1.MidiSynthConfigsProto midiSynthConfigs;
@@ -34,8 +45,13 @@ namespace TouhouMix.Levels {
 		public int score;
 		public float accuracy;
 
-		public NetManager netManager;
+		public string username;
+		public string password;
+		public JsonObj userObj;
 
+		readonly List<System.Action> actionQueue = new List<System.Action>();
+
+		#region LifeHook
 		void Awake () {
 			if (instance == null) {
 				Init();
@@ -62,6 +78,7 @@ namespace TouhouMix.Levels {
 		void OnApplicationQuit() {
 			Save();
 		}
+		#endregion
 
 		public void Init() {
 			jsonStorage = new JsonStorage();
@@ -74,8 +91,14 @@ namespace TouhouMix.Levels {
 			midiSynthConfigs = jsonStorage.Get(JsonStorageKeys.V1.MIDI_SYNTH_CONFIGS, Storage.Protos.Json.V1.MidiSynthConfigsProto.CreateDefault());
 			gameplayConfig = jsonStorage.Get(JsonStorageKeys.V1.GAMEPLAY_CONFIG, Storage.Protos.Json.V1.GameplayConfigProto.CreateDefault());
 
+			username = PlayerPrefs.GetString("TEMP_USERNAME", null);
+			password = PlayerPrefs.GetString("TEMP_PASSWORD", null);
+
 			netManager = new NetManager();
-			//netManager.Init();
+			netManager.Init();
+
+			localDb = new LocalDb();
+			localDb.Init();
 		}
 
 		[ContextMenu("RestoreDefaultGameplayConfig")]
@@ -89,6 +112,9 @@ namespace TouhouMix.Levels {
 			jsonStorage.Set(JsonStorageKeys.V1.GAMEPLAY_CONFIG, gameplayConfig);
 
 			jsonStorage.Flush();
+
+			PlayerPrefs.SetString("TEMP_USERNAME", username);
+			PlayerPrefs.SetString("TEMP_PASSWORD", password);
 		}
 
 		private void FileActivatedHandler(ImaginationOverflow.UniversalFileAssociation.Data.FileInformation fileInfo) {
@@ -99,6 +125,31 @@ namespace TouhouMix.Levels {
 			}
 			Debug.Log("File " + fileInfo.Name + " written");
 			resourceStorage.LoadCustomMidis();
+		}
+
+		public void ExecuteOnMain(System.Action action) {
+			lock(actionQueue) {
+				actionQueue.Add(action);
+			}
+		}
+
+		private void Update() {
+			int count = actionQueue.Count;
+			for (int i = 0; i < count; i++) {
+#if UNITY_EDITOR
+				actionQueue[i].Invoke();
+#else
+				try {
+					actionQueue[i].Invoke();
+				} catch(System.Exception ex) {
+					Debug.LogError(ex);
+				}
+#endif
+			}
+
+			lock(actionQueue) {
+				actionQueue.RemoveRange(0, count);
+			}
 		}
 	}
 }

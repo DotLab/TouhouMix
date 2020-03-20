@@ -12,6 +12,8 @@ namespace TouhouMix.Levels.SongSelect {
 		public SongSelectPageScheduler songSelectPage;
 		public MidiDetailPageScheduler midiDetailPage;
 		public SynthConfigPageScheduler synthConfigPage;
+		public MidiDirectPageScheduler midiDirectPage;
+		public DownloadedSongSelectPageScheduler downloadedSongSelectPage;
 
 		public float albumSelectScrollViewPositionY { 
 			get { return game_.uiState.albumSelectScrollViewPositionY; } 
@@ -38,6 +40,8 @@ namespace TouhouMix.Levels.SongSelect {
 			set { game_.uiState.selectedMidi = value; } 
 		}
 
+		public DownloadedSongSelectPageScheduler.Midi selectedDownloadedMidi;
+
 		readonly Stack<IPageScheduler<SongSelectLevelScheduler>> pageStack_ = new Stack<IPageScheduler<SongSelectLevelScheduler>>();
 		GameScheduler game_;
 		AnimationManager anim_;
@@ -50,15 +54,30 @@ namespace TouhouMix.Levels.SongSelect {
 
 			synthConfigPage.Init(this);
 			synthConfigPage.Disable();
+
 			midiDetailPage.Init(this);
-			synthConfigPage.Disable();
+			midiDetailPage.Disable();
 
 			songSelectPage.Init(this);
 			songSelectPage.Enable();
+
+			midiDirectPage.Init(this);
+			midiDirectPage.Disable();
+
+			downloadedSongSelectPage.Init(this);
+			downloadedSongSelectPage.Disable();
 		}
 
 		public void OnBackButtonClicked() {
 			pageStack_.Peek().Back();
+		}
+
+		public void OpenMidiDirectPage() {
+			Push(midiDirectPage);
+		}
+
+		public void OnDownloadedButtonClicked() {
+			Push(downloadedSongSelectPage);
 		}
 
 		public void EnableBackButton() {
