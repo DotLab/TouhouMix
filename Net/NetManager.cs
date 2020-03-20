@@ -41,7 +41,7 @@ namespace TouhouMix.Net {
 //#if UNITY_EDITOR
 //			websocket = new WebSocket("ws://192.168.1.102:6008");
 //#else
-			websocket = new WebSocket("ws://asia.thmix.org/websocket");
+			websocket = new WebSocket("wss://asia.thmix.org/websocket");
 //#endif
 
 			websocket.OnOpen += OnSocketOpen;

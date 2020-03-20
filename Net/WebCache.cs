@@ -113,8 +113,8 @@ namespace TouhouMix.Net {
 			public WwwLoadJob(string path, string url, string filePath, Action<ILoadJob<T>> callback) : base(path, callback) {
 				this.path = path;
 				this.url = url
-					.Replace("https://storage.thmix.org", "http://asia.storage.thmix.org")
-					.Replace("https://storage.googleapis.com/microvolt-bucket-1", "http://asia.storage.thmix.org");
+					.Replace("https://storage.thmix.org", "https://asia.storage.thmix.org")
+					.Replace("https://storage.googleapis.com/microvolt-bucket-1", "https://asia.storage.thmix.org");
 				Debug.Log(url + " to " + this.url);
 				this.filePath = filePath;
 
