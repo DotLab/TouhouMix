@@ -14,6 +14,7 @@ namespace TouhouMix.Levels.SongSelect {
 		public SynthConfigPageScheduler synthConfigPage;
 		public MidiDirectPageScheduler midiDirectPage;
 		public DownloadedSongSelectPageScheduler downloadedSongSelectPage;
+		public AppConfigPageScheduler appConfigPageScheduler;
 
 		public float albumSelectScrollViewPositionY { 
 			get { return game_.uiState.albumSelectScrollViewPositionY; } 
@@ -66,6 +67,9 @@ namespace TouhouMix.Levels.SongSelect {
 
 			downloadedSongSelectPage.Init(this);
 			downloadedSongSelectPage.Disable();
+
+			appConfigPageScheduler.Init(this);
+			appConfigPageScheduler.Disable();
 		}
 
 		public void OnBackButtonClicked() {
@@ -78,6 +82,10 @@ namespace TouhouMix.Levels.SongSelect {
 
 		public void OnDownloadedButtonClicked() {
 			Push(downloadedSongSelectPage);
+		}
+
+		public void OnAppConfigButtonClicked() {
+			Push(appConfigPageScheduler);
 		}
 
 		public void EnableBackButton() {

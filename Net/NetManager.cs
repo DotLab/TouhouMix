@@ -38,11 +38,11 @@ namespace TouhouMix.Net {
 		Task pingTask;
 
 		public void Init() {
-//#if UNITY_EDITOR
-//			websocket = new WebSocket("ws://192.168.1.102:6008");
-//#else
+#if UNITY_EDITOR
+			websocket = new WebSocket("ws://192.168.1.102:6008");
+#else
 			websocket = new WebSocket("wss://asia.thmix.org/websocket");
-//#endif
+#endif
 
 			websocket.OnOpen += OnSocketOpen;
 			websocket.OnClose += OnSocketClose;
@@ -298,6 +298,13 @@ namespace TouhouMix.Net {
 		public void ClAppMidiRecordList(string hash, int page, RpcCallback callback) {
 			Rpc("ClAppMidiRecordList", new JsonObj() {
 				["hash"] = hash, ["page"] = page,
+			}, callback);
+		}
+
+		public void ClAppTranslate(string src, string lang, RpcCallback callback) {
+			Rpc("ClAppTranslate", new JsonObj() {
+				["src"] = src,
+				["lang"] = lang,
 			}, callback);
 		}
 	}

@@ -24,10 +24,12 @@ namespace TouhouMix.Levels {
 		public ResourceStorage resourceStorage;
 		public NetManager netManager;
 		public LocalDb localDb;
+		public TranslationService translationSevice;
 
 		public Storage.Protos.Json.V1.UiStateProto uiState;
 		public Storage.Protos.Json.V1.MidiSynthConfigsProto midiSynthConfigs;
 		public Storage.Protos.Json.V1.GameplayConfigProto gameplayConfig;
+		public Storage.Protos.Json.V1.AppConfigProto appConfig;
 
 		public Midif.V3.MidiFile midiFile;
 		public Midif.V3.NoteSequenceCollection noteSequenceCollection;
@@ -90,6 +92,7 @@ namespace TouhouMix.Levels {
 			uiState = jsonStorage.Get(JsonStorageKeys.V1.UI_STATE, Storage.Protos.Json.V1.UiStateProto.CreateDefault());
 			midiSynthConfigs = jsonStorage.Get(JsonStorageKeys.V1.MIDI_SYNTH_CONFIGS, Storage.Protos.Json.V1.MidiSynthConfigsProto.CreateDefault());
 			gameplayConfig = jsonStorage.Get(JsonStorageKeys.V1.GAMEPLAY_CONFIG, Storage.Protos.Json.V1.GameplayConfigProto.CreateDefault());
+			appConfig = jsonStorage.Get(JsonStorageKeys.V1.APP_CONFIG, Storage.Protos.Json.V1.AppConfigProto.CreateDefault());
 
 			username = PlayerPrefs.GetString("TEMP_USERNAME", null);
 			password = PlayerPrefs.GetString("TEMP_PASSWORD", null);
@@ -99,6 +102,11 @@ namespace TouhouMix.Levels {
 
 			localDb = new LocalDb();
 			localDb.Init();
+
+			translationSevice = new TranslationService();
+			translationSevice.Init(netManager);
+			translationSevice.Load();
+			translationSevice.lang = appConfig.displayLang;
 		}
 
 		[ContextMenu("RestoreDefaultGameplayConfig")]
@@ -110,8 +118,11 @@ namespace TouhouMix.Levels {
 			jsonStorage.Set(JsonStorageKeys.V1.UI_STATE, uiState);
 			jsonStorage.Set(JsonStorageKeys.V1.MIDI_SYNTH_CONFIGS, midiSynthConfigs);
 			jsonStorage.Set(JsonStorageKeys.V1.GAMEPLAY_CONFIG, gameplayConfig);
+			jsonStorage.Set(JsonStorageKeys.V1.APP_CONFIG, appConfig);
 
 			jsonStorage.Flush();
+
+			translationSevice.Flush();
 
 			PlayerPrefs.SetString("TEMP_USERNAME", username);
 			PlayerPrefs.SetString("TEMP_PASSWORD", password);
@@ -133,21 +144,31 @@ namespace TouhouMix.Levels {
 			}
 		}
 
+		public void SetDisplayLanguageByIndex(int index) {
+			string lang = resourceStorage.langOptionDictByIndex[index].lang;
+			appConfig.displayLang = lang;
+			translationSevice.lang = lang;
+		}
+
+		public int GetDisplayLanguageIndex() {
+			return resourceStorage.langOptionDictByLang[appConfig.displayLang].index;
+		}
+
 		private void Update() {
-			int count = actionQueue.Count;
-			for (int i = 0; i < count; i++) {
+			lock (actionQueue) {
+				int count = actionQueue.Count;
+				for (int i = 0; i < count; i++) {
 #if UNITY_EDITOR
-				actionQueue[i].Invoke();
-#else
-				try {
 					actionQueue[i].Invoke();
-				} catch(System.Exception ex) {
-					Debug.LogError(ex);
-				}
+#else
+					try {
+						actionQueue[i].Invoke();
+					} catch(System.Exception ex) {
+						Debug.LogError(ex);
+					}
 #endif
 			}
 
-			lock(actionQueue) {
 				actionQueue.RemoveRange(0, count);
 			}
 		}

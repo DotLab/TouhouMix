@@ -49,7 +49,7 @@ namespace TouhouMix.Levels.Gameplay {
 					// hold finish
 					holdingBlockDict.Remove(block.holdingFingerId);
 					block.holdingFingerId = -1;
-					scoringManager.CountScoreForLongBlockTail(GetTiming(block.end), block);
+					scoringManager.CountScoreForLongBlockTail(GetTiming(block.end), block, true);
 					StopLongNote(block.note);
 					HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
 					i -= 1;

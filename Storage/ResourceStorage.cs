@@ -9,6 +9,7 @@ namespace TouhouMix.Storage {
 		const string ALBUMS_FILE_PATH = "Albums";
 		const string SONGS_FILE_PATH = "Songs";
 		const string MIDI_HASH_LIST_FILE_PATH = "MidiHashList";
+		const string LANG_OPTION_LIST_FILE_PATH = "LangOptionList";
 		readonly string[] MIDIS_FILE_PATH_LIST = {"MidisContrib", "MidisDmbn", "MidisDmbnNew"};
 
 		static string LoadText(string path) {
@@ -30,6 +31,11 @@ namespace TouhouMix.Storage {
 		public readonly Dictionary<int, AlbumProto> albumProtoDict = new Dictionary<int, AlbumProto>();
 		public readonly Dictionary<Tuple<int, int>, SongProto> songProtoDict = new Dictionary<Tuple<int, int>, SongProto>();
 		public readonly Dictionary<Tuple<int, int, string>, MidiProto> midiProtoDict = new Dictionary<Tuple<int, int, string>, MidiProto>();
+
+		public readonly List<LangOptionProto> langOptionList = new List<LangOptionProto>();
+		public readonly Dictionary<string, LangOptionProto> langOptionDictByLang = new Dictionary<string, LangOptionProto>();
+		public readonly Dictionary<string, LangOptionProto> langOptionDictByName = new Dictionary<string, LangOptionProto>();
+		public readonly Dictionary<int, LangOptionProto> langOptionDictByIndex = new Dictionary<int, LangOptionProto>();
 
 		public void Load() {
 			authorProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AuthorsProto>(LoadText(AUTHORS_FILE_PATH)).authorList);
@@ -60,6 +66,15 @@ namespace TouhouMix.Storage {
 			}
 
 			LoadCustomMidis();
+
+			langOptionList.AddRange(UnityEngine.JsonUtility.FromJson<LangOptionListProto>(LoadText(LANG_OPTION_LIST_FILE_PATH)).langOptionList);
+			for (int i = 0; i < langOptionList.Count; i++) {
+				var option = langOptionList[i];
+				option.index = i;
+				langOptionDictByLang.Add(option.lang, option);
+				langOptionDictByName.Add(option.name, option);
+				langOptionDictByIndex.Add(option.index, option);
+			}
 		}
 
 		public void LoadCustomMidis() {

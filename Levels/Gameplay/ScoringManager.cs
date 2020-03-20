@@ -180,7 +180,7 @@ namespace TouhouMix.Levels.Gameplay {
 				.RotateFromTo(backgroundRect, -2, 0, .2f, EsType.Linear);
 		}
 
-		public void CountScoreForLongBlockTail(float timing, Block block) {
+		public void CountScoreForLongBlockTail(float timing, Block block, bool isHolding = false) {
 			var judgment = GetTimingJudgment(timing + timingOffset);
 			FlashJudgment(judgment);
 
@@ -205,6 +205,9 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 
 			int noteScore = (int)(scoreBase * GetBlockTypeScoreMultipler(Block.BlockType.Instant) * GetJudgmentScoreMultiplier(judgment) * GetComboScoreMultiplier(combo));
+			if (isHolding) {
+				noteScore = 1;
+			}
 			score += noteScore;
 			FlashScore(noteScore);
 
