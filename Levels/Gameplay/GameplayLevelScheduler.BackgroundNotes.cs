@@ -1,30 +1,18 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using Uif;
-using Uif.Settables;
-using Uif.Tasks;
+﻿using UnityEngine;
 using Midif.V3;
-using Systemf;
-using Uif.Extensions;
-using Uif.Settables.Components;
-using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
-		void StartLongNote(NoteSequenceCollection.Note seqNote) {
+		public void StartNote(NoteSequenceCollection.Note seqNote) {
 			sf2Synth.NoteOn(seqNote.channel, seqNote.note, seqNote.velocity);
 		}
 
-		void StopLongNote(NoteSequenceCollection.Note seqNote) {
+		public void StopNote(NoteSequenceCollection.Note seqNote) {
 			sf2Synth.NoteOff(seqNote.channel, seqNote.note, 0);
 		}
 
-		void AddAsBackgroundNotes(Block block, bool shouldAddMainNote) {
-			if (shouldAddMainNote) {
-				AddBackgroundNote(block.note);
-			}
+		public void AddBackgroundNotes(GameplayBlock block) {
+			AddBackgroundNote(block.note);
 			foreach (var note in block.backgroundNotes) {
 				AddBackgroundNote(note);
 			}

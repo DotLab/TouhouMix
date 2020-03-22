@@ -9,7 +9,7 @@ using TouhouMix.Prefabs;
 using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
-	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
+	public sealed partial class GameplayLevelScheduler : MonoBehaviour, IGameplayHost {
 		const int MOUSE_TOUCH_ID = -100;
 
 		public CanvasSizeWatcher sizeWatcher;
@@ -21,42 +21,20 @@ namespace TouhouMix.Levels.Gameplay {
 		public Text readyPageText;
 		public CanvasGroup gameplayPageGroup;
 		public Button pauseButton;
-		public RectTransform judgeRect;
-		public float judgeHeight = 80;
-		public float judgeThickness = 2;
-		float cacheHeight;
 		public CanvasGroup pausePageGroup;
 
 		[Space]
-		public int cacheEsType;
 		public float cacheBeats = 2;
-		public int graceEsType;
-		public float graceBeats = 1;
-		float cacheTicks;
-		float graceTicks;
-
-		[Space]
-		public GameObject instantBlockPrefab;
-		public GameObject shortBlockPrefab;
-		public GameObject longBlockPrefab;
-		public RectTransform instantBlockPageRect;
-		public RectTransform shortBlockPageRect;
-		public RectTransform longBlockPageRect;
-		public float maxInstantBlockSeconds = .2f;
-		public float maxShortBlockSeconds = .8f;
 		public float endDelayBeats = 2;
-		float beatsPerTick;
+		float cacheTicks;
 		float endTicks;
 
 		[Space]
-		public int laneCount;
-		public float[] laneXDict;
-		public float blockWidth = 100;
-		public float blockJudgingWidth = 120;
-		float blockJudgingHalfWidth;
+		public ScoringManager scoringManager;
 
 		[Space]
-		public ScoringManager scoringManager;
+		public OneOnlyGameplayManager oneOnlyGameplayManager;
+		IGameplayManager gameplayManager;
 
 		GameScheduler game_;
 		AnimationManager anim_;
@@ -81,35 +59,6 @@ namespace TouhouMix.Levels.Gameplay {
 		readonly List<NoteSequenceCollection.Sequence> gameSequences = new List<NoteSequenceCollection.Sequence>();
 		readonly List<NoteSequenceCollection.Sequence> backgroundSequences = new List<NoteSequenceCollection.Sequence>();
 
-		public sealed class Block {
-			public enum BlockType {
-				Instant,
-				Short,
-				Long,
-			}
-
-			public BlockType type;
-			public NoteSequenceCollection.Note note;
-			public List<NoteSequenceCollection.Note> backgroundNotes = new List<NoteSequenceCollection.Note>();
-
-			public float end;
-			public RectTransform rect;
-			public ISettable<Color> color;
-
-			public int lane;
-			public float x;
-			public int index;
-
-			public int holdingFingerId;
-			public float holdingOffset;
-			public float holdingX;
-
-			public void Reset() {
-				rect.gameObject.SetActive(true);
-				holdingFingerId = -1;
-			}
-		}
-
 		sealed class BackgroundTrack {
 			public int seqNoteIndex;
 		}
@@ -118,29 +67,17 @@ namespace TouhouMix.Levels.Gameplay {
 		BackgroundTrack[] backgroundTracks;
 		BackgroundTrack[] gameTracks;
 
-		readonly List<Block> instantBlocks = new List<Block>();
-		readonly List<Block> shortBlocks = new List<Block>();
-		readonly List<Block> longBlocks = new List<Block>();
-		int instantBlocksFreeStartIndex;
-		int shortBlocksFreeStartIndex;
-		int longBlocksFreeStartIndex;
-
-		readonly Dictionary<int, Block> holdingBlockDict = new Dictionary<int, Block>();
-		readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
-		readonly HashSet<int> touchedLaneSet = new HashSet<int>();
-
 		public void Start() {
 			game_ = GameScheduler.instance;
 			anim_ = AnimationManager.instance;
+
+			gameplayManager = oneOnlyGameplayManager;
 
 			if (shouldLoadGameplayConfig) {
 				LoadGameplayConfig();
 			}
 
 			hasStarted = false;
-
-			judgeRect.anchoredPosition = new Vector2(0, judgeHeight);
-			cacheHeight = sizeWatcher.canvasSize.y - judgeHeight;
 
 			sf2File = new Sf2File(Resources.Load<TextAsset>("sf2/GeneralUser GS v1.471").bytes);
 
@@ -155,19 +92,7 @@ namespace TouhouMix.Levels.Gameplay {
 			midiFileSha256Hash = MiscHelper.GetBase64EncodedSha256Hash(midiFile.bytes);
 
 			cacheTicks = cacheBeats * midiFile.ticksPerBeat;
-			graceTicks = graceBeats * midiFile.ticksPerBeat;
-			beatsPerTick = 1 / (float)midiFile.ticksPerBeat;
-			endTicks = sequenceCollection.end + graceTicks + endDelayBeats * midiFile.ticksPerBeat;
-
-			blockJudgingHalfWidth = blockJudgingWidth * .5f;
-
-			float canvasWidth = sizeWatcher.canvasSize.x;
-			laneXDict = new float[laneCount];
-			float laneStart = blockWidth * .5f;
-			float laneSpacing = (canvasWidth - blockWidth) / (laneCount - 1);
-			for (int i = 0; i < laneXDict.Length; i++) {
-				laneXDict[i] = laneStart + i * laneSpacing;
-			}
+			endTicks = sequenceCollection.end + endDelayBeats * midiFile.ticksPerBeat;
 
 			midiSequencer = new MidiSequencer(midiFile, sf2Synth);
 			midiSequencer.isMuted = true;
@@ -190,8 +115,8 @@ namespace TouhouMix.Levels.Gameplay {
 			pausePageGroup.gameObject.SetActive(false);
 
 			scoringManager.Init(this);
+			gameplayManager.Init(this);
 
-			midiSequencer.ticks = -cacheTicks;
 			ShowReadyAnimation();
 		}
 
@@ -201,24 +126,25 @@ namespace TouhouMix.Levels.Gameplay {
 				var instantBlockPrefab = LoadBlockPreset(config.instantBlockPreset);
 				var shortBlockPrefab = LoadBlockPreset(config.shortBlockPreset);
 				var longBlockPrefab = LoadBlockPreset(config.longBlockPreset);
-				this.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : this.instantBlockPrefab;
-				this.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : this.shortBlockPrefab;
-				this.longBlockPrefab = longBlockPrefab ? longBlockPrefab : this.longBlockPrefab;
+				oneOnlyGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : oneOnlyGameplayManager.instantBlockPrefab;
+				oneOnlyGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : oneOnlyGameplayManager.shortBlockPrefab;
+				oneOnlyGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : oneOnlyGameplayManager.longBlockPrefab;
 
-				laneCount = config.laneCount;
-				blockWidth = config.blockSize;
-				blockJudgingWidth = config.blockJudgingWidth;
+				oneOnlyGameplayManager.laneCount = config.laneCount;
+				oneOnlyGameplayManager.blockWidth = config.blockSize;
+				oneOnlyGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
 
-				judgeHeight = config.judgeLinePosition;
-				judgeThickness = config.judgeLineThickness;
+				oneOnlyGameplayManager.judgeHeight = config.judgeLinePosition;
+				oneOnlyGameplayManager.judgeThickness = config.judgeLineThickness;
 
 				cacheBeats = config.cacheTime;
-				cacheEsType = config.cacheEasingType;
-				graceBeats = config.graceTime;
-				graceEsType = config.graceEasingType;
+				oneOnlyGameplayManager.cacheBeats = config.cacheTime;
+				oneOnlyGameplayManager.cacheEsType = config.cacheEasingType;
+				oneOnlyGameplayManager.graceBeats = config.graceTime;
+				oneOnlyGameplayManager.graceEsType = config.graceEasingType;
 
-				maxInstantBlockSeconds = config.instantBlockMaxTime;
-				maxShortBlockSeconds = config.shortBlockMaxTime;
+				oneOnlyGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
+				oneOnlyGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
 
 				scoringManager.LoadGameplayConfig(config);
 			} catch (System.Exception e) {
@@ -310,11 +236,11 @@ namespace TouhouMix.Levels.Gameplay {
 
 			GenerateGameNotes();
 
-			#if UNITY_EDITOR || UNITY_STANDALONE
+#if UNITY_EDITOR || UNITY_STANDALONE
 			ProcessMouse();
-			#else
+#else
 			ProcessTouches();
-			#endif
+#endif
 
 			UpdateBlocks();
 
@@ -351,6 +277,26 @@ namespace TouhouMix.Levels.Gameplay {
 
 		void OnAudioFilterRead (float[] buffer, int channel) {
 			if (sf2Synth != null) sf2Synth.Process(buffer);
+		}
+
+		public Vector2 GetCanvasSize() {
+			return sizeWatcher.canvasSize;
+		}
+
+		public float GetBeatsPerSecond() {
+			return midiSequencer.beatsPerSecond;
+		}
+
+		public ScoringManager GetScoringManager() {
+			return scoringManager;
+		}
+
+		public MidiSequencer GetMidiSequencer() {
+			return midiSequencer;
+		}
+
+		public MidiFile GetMidiFile() {
+			return midiFile;
 		}
 	}
 }

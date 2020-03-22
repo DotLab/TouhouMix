@@ -5,7 +5,6 @@ using UnityEngine.UI;
 using TouhouMix.Prefabs;
 using Uif;
 using Uif.Settables;
-using Block = TouhouMix.Levels.Gameplay.GameplayLevelScheduler.Block;
 using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
@@ -77,13 +76,13 @@ namespace TouhouMix.Levels.Gameplay {
 			judgmentText.text = "";
 			accuracyText.text = "";
 
-			flashControllers = new FlashController[level.laneCount];
-			for (int i = 0; i < level.laneCount; i++) {
-				var flashController = Instantiate(flashPrefab, flashPageRect).GetComponent<FlashController>();
-				flashController.rect.anchoredPosition = new Vector2(level.laneXDict[i], level.judgeHeight);
-				flashController.rect.sizeDelta = new Vector2(level.blockWidth, 0);
-				flashControllers[i] = flashController;
-			}
+			//flashControllers = new FlashController[laneCount];
+			//for (int i = 0; i < laneCount; i++) {
+			//	var flashController = Instantiate(flashPrefab, flashPageRect).GetComponent<FlashController>();
+			//	flashController.rect.anchoredPosition = new Vector2(laneXDict[i], judgeHeight);
+			//	flashController.rect.sizeDelta = new Vector2(blockWidth, 0);
+			//	flashControllers[i] = flashController;
+			//}
 		}
 
 		public void LoadGameplayConfig(GameplayConfigProto config) {
@@ -138,8 +137,7 @@ namespace TouhouMix.Levels.Gameplay {
 			}, null);
 		}
 
-
-		public void CountScoreForBlock(float timing, Block block, bool isHolding = false) {
+		public void CountScoreForBlock(float timing, GameplayBlock block, bool isHolding = false) {
 			var judgment = GetTimingJudgment(timing + timingOffset);
 			FlashJudgment(judgment);
 
@@ -175,12 +173,12 @@ namespace TouhouMix.Levels.Gameplay {
 			accuracy = accuracyFactor / perfectAccuracyFactor;
 			FlashAccuracy();
 
-			flashControllers[block.lane].Dim(1);
+			//flashControllers[block.lane].Dim(1);
 			anim_.New(backgroundRect).ScaleFromTo(backgroundRect, new Vector3(1.2f, 1.2f, 1), Vector3.one, .4f, EsType.Linear)
 				.RotateFromTo(backgroundRect, -2, 0, .2f, EsType.Linear);
 		}
 
-		public void CountScoreForLongBlockTail(float timing, Block block, bool isHolding = false) {
+		public void CountScoreForLongBlockTail(float timing, GameplayBlock block, bool isHolding = false) {
 			var judgment = GetTimingJudgment(timing + timingOffset);
 			FlashJudgment(judgment);
 
@@ -204,7 +202,7 @@ namespace TouhouMix.Levels.Gameplay {
 				ClearCombo();
 			}
 
-			int noteScore = (int)(scoreBase * GetBlockTypeScoreMultipler(Block.BlockType.Instant) * GetJudgmentScoreMultiplier(judgment) * GetComboScoreMultiplier(combo));
+			int noteScore = (int)(scoreBase * GetBlockTypeScoreMultipler(GameplayBlock.BlockType.Instant) * GetJudgmentScoreMultiplier(judgment) * GetComboScoreMultiplier(combo));
 			if (isHolding) {
 				noteScore = 1;
 			}
@@ -217,7 +215,7 @@ namespace TouhouMix.Levels.Gameplay {
 			FlashAccuracy();
 		}
 
-		public void CountMiss(Block block) {
+		public void CountMiss(GameplayBlock block) {
 			//			Debug.Log("Miss!");
 			FlashJudgment(Judgment.Miss);
 			combo = 0;
@@ -229,11 +227,11 @@ namespace TouhouMix.Levels.Gameplay {
 			FlashAccuracy();
 		}
 
-		float GetBlockTypeScoreMultipler(Block.BlockType type) {
+		float GetBlockTypeScoreMultipler(GameplayBlock.BlockType type) {
 			switch (type) {
-				case Block.BlockType.Instant: return .5f;
-				case Block.BlockType.Short: return 1f;
-				case Block.BlockType.Long: return 1.25f;
+				case GameplayBlock.BlockType.Instant: return .5f;
+				case GameplayBlock.BlockType.Short: return 1f;
+				case GameplayBlock.BlockType.Long: return 1.25f;
 				default: throw new System.NotImplementedException();
 			}
 		}
