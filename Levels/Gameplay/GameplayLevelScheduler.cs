@@ -34,6 +34,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 		[Space]
 		public OneOnlyGameplayManager oneOnlyGameplayManager;
+		public ScanningLineGameplayManager scanningLineGameplayManager;
 		IGameplayManager gameplayManager;
 
 		GameScheduler game_;
@@ -71,7 +72,7 @@ namespace TouhouMix.Levels.Gameplay {
 			game_ = GameScheduler.instance;
 			anim_ = AnimationManager.instance;
 
-			gameplayManager = oneOnlyGameplayManager;
+			gameplayManager = scanningLineGameplayManager;
 
 			if (shouldLoadGameplayConfig) {
 				LoadGameplayConfig();
@@ -146,6 +147,27 @@ namespace TouhouMix.Levels.Gameplay {
 				oneOnlyGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
 				oneOnlyGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
 
+				scanningLineGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : scanningLineGameplayManager.instantBlockPrefab;
+				scanningLineGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : scanningLineGameplayManager.shortBlockPrefab;
+				scanningLineGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : scanningLineGameplayManager.longBlockPrefab;
+
+				scanningLineGameplayManager.laneCount = config.laneCount;
+				scanningLineGameplayManager.blockWidth = config.blockSize;
+				scanningLineGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
+
+				scanningLineGameplayManager.judgeHeight = config.judgeLinePosition;
+				scanningLineGameplayManager.judgeThickness = config.judgeLineThickness;
+
+				cacheBeats = config.cacheTime;
+				scanningLineGameplayManager.scanningBeats = config.cacheTime;
+				scanningLineGameplayManager.cacheBeats = config.cacheTime;
+				scanningLineGameplayManager.cacheEsType = config.cacheEasingType;
+				scanningLineGameplayManager.graceBeats = config.graceTime;
+				scanningLineGameplayManager.graceEsType = config.graceEasingType;
+
+				scanningLineGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
+				scanningLineGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
+
 				scoringManager.LoadGameplayConfig(config);
 			} catch (System.Exception e) {
 				Debug.LogError(e);
@@ -162,15 +184,15 @@ namespace TouhouMix.Levels.Gameplay {
 			anim_.New(this).FadeIn(readyPageGroup, .5f, 0).Then()
 				.RotateFromTo(readyPageText.transform, -180, 0, .8f, EsType.BackOut)
 				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				.Set(readyPageText.GetStringSettable(), "3")
-				.RotateFromTo(readyPageText.transform, 180, 0, .8f, EsType.BackOut)
-				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				.Set(readyPageText.GetStringSettable(), "2")
-				.RotateFromTo(readyPageText.transform, -180, 0, .8f, EsType.BackOut)
-				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				.Set(readyPageText.GetStringSettable(), "1")
-				.RotateFromTo(readyPageText.transform, 180, 0, .8f, EsType.BackOut)
-				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+				//.Set(readyPageText.GetStringSettable(), "3")
+				//.RotateFromTo(readyPageText.transform, 180, 0, .8f, EsType.BackOut)
+				//.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+				//.Set(readyPageText.GetStringSettable(), "2")
+				//.RotateFromTo(readyPageText.transform, -180, 0, .8f, EsType.BackOut)
+				//.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
+				//.Set(readyPageText.GetStringSettable(), "1")
+				//.RotateFromTo(readyPageText.transform, 180, 0, .8f, EsType.BackOut)
+				//.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
 				.Set(readyPageText.GetStringSettable(), "GO")
 				.Set(readyPageText.GetAlphaFloatSettable(), 1)
 				.ScaleTo(readyPageText.transform, new Vector3(2, 2, 1), 1, EsType.CubicIn)

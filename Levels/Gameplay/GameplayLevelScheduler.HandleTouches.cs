@@ -47,16 +47,5 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 			}
 		}
-
-		static void HideAndFreeTouchedBlock(GameplayBlock block, int index, List<GameplayBlock> blocks, ref int freeStartIndex) {
-			freeStartIndex -= 1;
-			var lastActiveBlock = blocks[freeStartIndex];
-			blocks[index] = lastActiveBlock;
-			blocks[freeStartIndex] = block;
-			lastActiveBlock.index = index;
-			block.index = freeStartIndex;
-
-			block.rect.gameObject.SetActive(false);
-		}
 	}
 }

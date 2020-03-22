@@ -83,6 +83,10 @@ namespace TouhouMix.Levels.SongSelect {
       });
     }
 
+    public void OnRegisterButtonClicked() {
+      Application.OpenURL("https://asia.thmix.org");
+    }
+
     void DisplayUserInfo(JsonObj userDict) {
       anim.New(this).FadeOut(loginPopupGroup, .2f, 0)
         .FadeOut(loginButtonGroup, .2f, 0).Then()

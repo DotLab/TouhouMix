@@ -6,7 +6,7 @@ using Jsonf;
 
 namespace TouhouMix.Net {
 	public sealed class TranslationService {
-		const string FILE_PATH = "translation.json";
+		const string FILE_PATH = "Translations.json";
 
 		public string lang = "en";
 		public readonly Dictionary<Tuple<string, string>, string> dict = new Dictionary<Tuple<string, string>, string>();

@@ -3,7 +3,7 @@ using Midif.V3;
 
 namespace TouhouMix.Levels.Gameplay {
 	public interface IGameplayManager {
-		void Init(IGameplayHost level);
+		void Init(IGameplayHost host);
 
 		void AddTentativeBlock(NoteSequenceCollection.Note note);
 		void GenerateBlocks();

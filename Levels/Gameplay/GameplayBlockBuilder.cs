@@ -22,13 +22,13 @@ namespace TouhouMix.Levels.Gameplay {
 		const string CHILD_IMAGE_TOP_NAME = "Top";
 		const string CHILD_IMAGE_FILL_NAME = "Fill";
 
-		[Header("Long Block")]
-		[AssetSelector(Filter = "instant t:Sprite")]
+		[Header("Instant Block")]
+		[AssetSelector(Filter = "gameplay t:Sprite")]
 		public Sprite instantBlockSprite;
 		public BlockSizingType instantBlockSizingType;
 
 		[Header("Short Block")]
-		[AssetSelector(Filter = "short t:Sprite")]
+		[AssetSelector(Filter = "gameplay t:Sprite")]
 		public Sprite shortBlockSprite;
 		public BlockSizingType shortBlockSizingType;
 

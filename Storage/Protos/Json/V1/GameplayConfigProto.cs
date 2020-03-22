@@ -39,12 +39,12 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		
 		public static GameplayConfigProto CreateDefault() {
 			return new GameplayConfigProto {
-				instantBlockPreset = "Squre45/InstantBlock",
-				shortBlockPreset = "Squre45/ShortBlock",
-				longBlockPreset = "Squre45/LongBlock",
+				instantBlockPreset = "",
+				shortBlockPreset = "",
+				longBlockPreset = "",
 
 				laneCount = 12,
-				blockSize = 150,
+				blockSize = 120,
 				blockJudgingWidth = 200,
 
 				judgeLinePosition = 60,

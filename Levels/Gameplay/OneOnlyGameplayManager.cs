@@ -8,7 +8,7 @@ using Uif.Settables.Components;
 
 namespace TouhouMix.Levels.Gameplay {
   [System.Serializable]
-  public sealed class OneOnlyGameplayManager : IGameplayManager {
+  public class OneOnlyGameplayManager : IGameplayManager {
 		public GameObject instantBlockPrefab;
 		public GameObject shortBlockPrefab;
 		public GameObject longBlockPrefab;
@@ -23,39 +23,39 @@ namespace TouhouMix.Levels.Gameplay {
 		public float cacheBeats = 2;
 		public int graceEsType;
 		public float graceBeats = 1;
-		float cacheTicks;
-		float graceTicks;
+		protected float cacheTicks;
+		protected float graceTicks;
 
 		[Space]
 		public RectTransform judgeRect;
 		public float judgeHeight = 80;
 		public float judgeThickness = 2;
-		float cacheHeight;
+		protected float cacheHeight;
 
 		[Space]
 		public int laneCount = 12;
 		public float blockWidth = 100;
 		public float blockJudgingWidth = 120;
-		float[] laneXDict;
-		float blockJudgingHalfWidth;
+		protected float[] laneXDict;
+		protected float blockJudgingHalfWidth;
 
-		IGameplayHost host;
-		ScoringManager scoringManager;
-		MidiFile midiFile;
-		MidiSequencer midiSequencer;
+		protected IGameplayHost host;
+		protected ScoringManager scoringManager;
+		protected MidiFile midiFile;
+		protected MidiSequencer midiSequencer;
 
-		readonly List<Block> instantBlocks = new List<Block>();
-		readonly List<Block> shortBlocks = new List<Block>();
-		readonly List<Block> longBlocks = new List<Block>();
-		int instantBlocksFreeStartIndex;
-		int shortBlocksFreeStartIndex;
-		int longBlocksFreeStartIndex;
+		protected readonly List<Block> instantBlocks = new List<Block>();
+		protected readonly List<Block> shortBlocks = new List<Block>();
+		protected readonly List<Block> longBlocks = new List<Block>();
+		protected int instantBlocksFreeStartIndex;
+		protected int shortBlocksFreeStartIndex;
+		protected int longBlocksFreeStartIndex;
 
-		readonly Dictionary<int, Block> holdingBlockDict = new Dictionary<int, Block>();
-		readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
-		readonly HashSet<int> touchedLaneSet = new HashSet<int>();
+		protected readonly Dictionary<int, Block> holdingBlockDict = new Dictionary<int, Block>();
+		protected readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
+		protected readonly HashSet<int> touchedLaneSet = new HashSet<int>();
 
-		public void Init(IGameplayHost host) {
+		public virtual void Init(IGameplayHost host) {
 			this.host = host;
 
 			scoringManager = host.GetScoringManager();
@@ -85,7 +85,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		#region Block Generation
-		public void AddTentativeBlock(NoteSequenceCollection.Note note) {
+		public virtual void AddTentativeBlock(NoteSequenceCollection.Note note) {
 			//			Debug.LogFormat("tentative ch{0} n{1} {2} {3}", note.channel, note.note, note.start, note.duration);
 			Block overlappingLongBlock = null;
 			for (int i = 0; i < longBlocksFreeStartIndex; i++) {
@@ -179,7 +179,7 @@ namespace TouhouMix.Levels.Gameplay {
 			block.note = newNote;
 		}
 
-		public void GenerateBlocks() {
+		public virtual void GenerateBlocks() {
 			foreach (var pair in tentativeBlockDict) {
 				var lane = pair.Key;
 				var tentativeBlock = pair.Value;
@@ -204,7 +204,7 @@ namespace TouhouMix.Levels.Gameplay {
 			tentativeBlockDict.Clear();
 		}
 
-		Block GetOrCreateBlockFromTentativeBlock(Block tentativeBlock, List<Block> blocks, ref int freeStartIndex, 
+		protected virtual Block GetOrCreateBlockFromTentativeBlock(Block tentativeBlock, List<Block> blocks, ref int freeStartIndex, 
 			GameObject blockPrefab, RectTransform blockPageRect) {
 			Block block;
 			if (freeStartIndex < blocks.Count) {
@@ -278,7 +278,7 @@ namespace TouhouMix.Levels.Gameplay {
 			holdingBlock.holdingX = x + holdingBlock.holdingOffset;
 		}
 
-		void MarkTouchedLanes(float x, float y) {
+		protected virtual void MarkTouchedLanes(float x, float y) {
 			touchedLaneSet.Clear();
 			if (y > 0.5f * host.GetCanvasSize().y) {
 				// only mark lane as touched when touch is in range
@@ -366,7 +366,7 @@ namespace TouhouMix.Levels.Gameplay {
 			host.StartNote(block.note);
 		}
 
-		static void HideAndFreeTouchedBlock(Block block, int index, List<Block> blocks, ref int freeStartIndex) {
+		protected void HideAndFreeTouchedBlock(Block block, int index, List<Block> blocks, ref int freeStartIndex) {
 			freeStartIndex -= 1;
 			var lastActiveBlock = blocks[freeStartIndex];
 			blocks[index] = lastActiveBlock;
@@ -381,13 +381,13 @@ namespace TouhouMix.Levels.Gameplay {
 
 		#region Block Update
 
-		public void UpdateBlocks() {
+		public virtual void UpdateBlocks() {
 			UpdateBlocks(instantBlocks, ref instantBlocksFreeStartIndex);
 			UpdateBlocks(shortBlocks, ref shortBlocksFreeStartIndex);
 			UpdateLongBlocks(longBlocks, ref longBlocksFreeStartIndex);
 		}
 
-		void UpdateBlocks(List<Block> blocks, ref int freeStartIndex) {
+		protected virtual void UpdateBlocks(List<Block> blocks, ref int freeStartIndex) {
 			float ticks = midiSequencer.ticks;
 
 			for (int i = 0; i < freeStartIndex; i++) {
