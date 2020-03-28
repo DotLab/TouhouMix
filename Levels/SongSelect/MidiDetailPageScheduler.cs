@@ -38,6 +38,11 @@ namespace TouhouMix.Levels.SongSelect {
 
 		public string hash;
 
+		public int gameplayLayoutPreset {
+			get { return GameScheduler.instance.gameplayConfig.layoutPreset; }
+			set { GameScheduler.instance.gameplayConfig.layoutPreset = value; }
+		}
+
 		ResourceStorage res_;
 
 		public override void Init(SongSelectLevelScheduler level) {
@@ -56,6 +61,9 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		void InitLocal() {
+			level_.backgroundImage.texture = level_.defaultBackgroundTexture;
+			game_.backgroundTexture = null;
+
 			try {
 				album = res_.albumProtoDict[level_.selectedAlbum];
 				song = res_.songProtoDict[Tuple.Create(level_.selectedAlbum, level_.selectedSong)];
@@ -82,6 +90,16 @@ namespace TouhouMix.Levels.SongSelect {
 
 		void InitDownloaded(bool renderList = true) {
 			var downloadedMidi = level_.selectedDownloadedMidi;
+			if (!string.IsNullOrEmpty(downloadedMidi.coverBlurUrl)) {
+				Net.WebCache.instance.LoadTexture(downloadedMidi.coverBlurUrl, job => {
+					level_.backgroundImage.texture = job.GetData();
+					game_.backgroundTexture = job.GetData();
+				});
+			} else {
+				level_.backgroundImage.texture = level_.defaultBackgroundTexture;
+				game_.backgroundTexture = null;
+			}
+
 			album = new AlbumProto { name = downloadedMidi.sourceAlbumName };
 			song = new SongProto { name = downloadedMidi.sourceSongName };
 			midi = new MidiProto { name = downloadedMidi.name };
@@ -149,9 +167,8 @@ namespace TouhouMix.Levels.SongSelect {
 			item.scoreText.text = string.Format("{0:N0}", trialObj.Get<double>("score"));
 			item.gradeText.text = GetGrade(trialObj.Get<double>("accuracy"));
 			item.rankText.text = rank.ToString();
-			if (trialObj.ContainsKey("userAvatarUrl")) {
+			if (!string.IsNullOrEmpty(trialObj.Get<string>("userAvatarUrl"))) {
 				Net.WebCache.instance.LoadTexture(trialObj.Get<string>("userAvatarUrl"), job => {
-			Debug.Log(trialObj.Get<string>("userAvatarUrl"));
 					game_.ExecuteOnMain(() => { 
 						item.imageCutter.Cut(job.GetData());
 					});

@@ -72,9 +72,9 @@ namespace TouhouMix.Levels.SongSelect.SynthConfigPage {
 			itemFrameImage.color = channelColor;
 
 			if (state.shouldUseInGame) {
-				button1Text.text = "using in game";
+				button1Text.Translate("using in game");
 			} else {
-				button1Text.text = "not using in game";
+				button1Text.Translate("not using in game");
 			}
 
 			muteButtonText.text = state.isMuted ? FA_VOLUME_MUTE : FA_VOLUME_UP;

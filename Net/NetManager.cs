@@ -7,12 +7,19 @@ using System.Threading.Tasks;
 using JsonObj = System.Collections.Generic.Dictionary<string, object>;
 using JsonList = System.Collections.Generic.List<object>;
 using RpcCallback = System.Action<string, object>;
+using SafeRpcCallback = System.Action<object>;
 using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace TouhouMix.Net {
 	public sealed class NetManager {
-		const int RETRY_DELAY = 500;
+		const int RETRY_DELAY = 100;
 		const int RETRY_DELAY_MAX = 1000 * 10;
+
+		public enum NetStatus {
+			ONLINE,
+			OFFLINE,
+			CONNECTING,
+		}
 
 		static string GenerateId() {
 			return System.IO.Path.GetRandomFileName();
@@ -36,13 +43,20 @@ namespace TouhouMix.Net {
 		int retryDelay = RETRY_DELAY;
 
 		Task pingTask;
+		//System.Threading.CancellationTokenSource cancellationToken; 
+
+		public event System.Action<NetStatus> onNetStatusChangedEvent;
 
 		public void Init() {
-#if UNITY_EDITOR
-			websocket = new WebSocket("ws://192.168.1.102:6008");
-#else
-			websocket = new WebSocket("wss://asia.thmix.org/websocket");
-#endif
+//#if UNITY_EDITOR
+//			websocket = new WebSocket("ws://192.168.1.102:6008");
+//#else
+			if (Levels.GameScheduler.instance.appConfig.networkEndpoint == 0) {
+				websocket = new WebSocket("wss://thmix.org/websocket");
+			} else {
+				websocket = new WebSocket("wss://asia.thmix.org/websocket");
+			}
+//#endif
 
 			websocket.OnOpen += OnSocketOpen;
 			websocket.OnClose += OnSocketClose;
@@ -53,6 +67,7 @@ namespace TouhouMix.Net {
 			new Task(() => {
 				try {
 					connecting = true;
+					onNetStatusChangedEvent?.Invoke(NetStatus.CONNECTING);
 					websocket.Connect();
 				} catch(System.Exception ex) {
 					Debug.LogError(ex);
@@ -79,6 +94,7 @@ namespace TouhouMix.Net {
 								}
 
 								rtt = (int)(watch.ElapsedMilliseconds) - (int)(double)data;
+								onNetStatusChangedEvent?.Invoke(NetStatus.ONLINE);
 								Debug.Log("pong " + rtt);
 							});
 						}
@@ -90,24 +106,16 @@ namespace TouhouMix.Net {
 			pingTask.Start();
 		}
 
-		~NetManager() {
-			websocket.Close();
-			pingTask.Dispose();
-		}
-
-		public void Dispose() {
-			websocket.Close();
-		}
-
 		void OnSocketOpen(object sender, System.EventArgs e) {
 			Debug.Log("connected");
 			available = true;
-			retryDelay = RETRY_DELAY;
 			EndReconnect();
 		}
 
 		void OnSocketClose(object sender, CloseEventArgs e) {
-			Debug.LogWarning("closed " + e.Code + " " + e.Reason);
+			if (e != null) {
+				Debug.LogWarning("closed " + e.Code + " " + e.Reason);
+			}
 			available = false;
 			EndReconnect();
 			Reconnect();
@@ -146,23 +154,27 @@ namespace TouhouMix.Net {
 				foreach (var key in callbackDict.Keys) {
 						callbackDict[key].Invoke("Connection closed", null);
 				}
+				callbackDict.Clear();
 			}
 
 			if (connecting) {
 				return;
 			}
-
 			connecting = true;
+
 			int time = (int)retryWatch.ElapsedMilliseconds;
 			if (time < retryDelay) {
 				await Task.Delay(retryDelay - time);
 			}
+
 			retryDelay = retryDelay << 1;
 			if (retryDelay > RETRY_DELAY_MAX) {
 				retryDelay = RETRY_DELAY_MAX;
 			}
-			Debug.Log("retry delay " + retryDelay);
-			new Task(() => { 
+			Debug.Log("next retry delay " + retryDelay);
+
+			onNetStatusChangedEvent?.Invoke(NetStatus.CONNECTING);
+			new Task(() => {
 				websocket.Connect();
 				if (!string.IsNullOrEmpty(Levels.GameScheduler.instance.username)) {
 					ClAppUserLogin(
@@ -172,12 +184,14 @@ namespace TouhouMix.Net {
 		}
 
 		void EndReconnect() {
-			if (!connecting) {
-				return;
+			if (available) {
+				onNetStatusChangedEvent?.Invoke(NetStatus.ONLINE);
+			} else {
+				onNetStatusChangedEvent?.Invoke(NetStatus.OFFLINE);
 			}
 
 			connecting = false;
-			retryWatch.Start();
+			retryWatch.Stop();
 			retryWatch.Reset();
 			retryWatch.Start();
 		}
@@ -305,6 +319,22 @@ namespace TouhouMix.Net {
 			Rpc("ClAppTranslate", new JsonObj() {
 				["src"] = src,
 				["lang"] = lang,
+			}, callback);
+		}
+
+		public void ClAppCheckVersion(RpcCallback callback) {
+			Rpc("ClAppCheckVersion", new JsonObj() {
+				["version"] = Application.version,
+#if UNITY_STANDALONE || UNITY_EDITOR
+				["platform"] = "standalone",
+#elif UNITY_ANDROID
+				["platform"] = "android",
+#elif UNITY_IOS
+				["platform"] = "ios",
+#else
+				["platform"] = "unknown",
+#endif
+				["runtime"] = Application.platform.ToString().ToLower(),
 			}, callback);
 		}
 	}

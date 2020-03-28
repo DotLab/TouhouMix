@@ -97,7 +97,7 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 			}
 
-			float durationInSeconds = note.duration / midiFile.ticksPerBeat / host.GetBeatsPerSecond();
+			float durationInSeconds = (float)note.duration / midiFile.ticksPerBeat / midiSequencer.beatsPerSecond;
 			//Debug.Log(durationInSeconds);
 			if (durationInSeconds <= maxInstantBlockSeconds) {
 				// tentative instant block

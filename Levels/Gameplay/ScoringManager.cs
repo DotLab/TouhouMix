@@ -229,15 +229,16 @@ namespace TouhouMix.Levels.Gameplay {
 
 		float GetBlockTypeScoreMultipler(GameplayBlock.BlockType type) {
 			switch (type) {
-				case GameplayBlock.BlockType.Instant: return .5f;
+				case GameplayBlock.BlockType.Instant: return 1f;
 				case GameplayBlock.BlockType.Short: return 1f;
-				case GameplayBlock.BlockType.Long: return 1.25f;
+				case GameplayBlock.BlockType.Long: return .6f;
 				default: throw new System.NotImplementedException();
 			}
 		}
 
 		float GetComboScoreMultiplier(int count) {
-			if (count <= 50) return 1;
+			if (count <= 25) return .1f;
+			if (count <= 50) return 1f;
 			if (count <= 100) return 1.1f;
 			if (count <= 200) return 1.15f;
 			if (count <= 400) return 1.2f;
@@ -257,9 +258,9 @@ namespace TouhouMix.Levels.Gameplay {
 		float GetJudgmentScoreMultiplier(Judgment judgment) {
 			switch (judgment) {
 				case Judgment.Perfect: return 1f;
-				case Judgment.Great: return .88f;
-				case Judgment.Good: return .8f;
-				case Judgment.Bad: return .4f;
+				case Judgment.Great: return .8f;
+				case Judgment.Good: return .4f;
+				case Judgment.Bad: return .2f;
 				default: return 0;
 			}
 		}

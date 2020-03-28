@@ -13,7 +13,7 @@ namespace TouhouMix.Levels.Welcome {
 			Application.targetFrameRate = Screen.currentResolution.refreshRate;
 			Debug.Log("refresh rate: " + Screen.currentResolution.refreshRate);
 
-			versionText.text = Application.version + " (Ctd 特供版)";
+			versionText.text = Application.version;
 
 			var seq = AnimationManager.instance.New().Wait(.5f);
 			for (int i = 0; i < splashGroups.Length; i++) {

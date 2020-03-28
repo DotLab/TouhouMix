@@ -31,6 +31,8 @@ namespace TouhouMix.Levels {
 		public Storage.Protos.Json.V1.GameplayConfigProto gameplayConfig;
 		public Storage.Protos.Json.V1.AppConfigProto appConfig;
 
+		public Texture2D backgroundTexture;
+
 		public Midif.V3.MidiFile midiFile;
 		public Midif.V3.NoteSequenceCollection noteSequenceCollection;
 
@@ -56,10 +58,11 @@ namespace TouhouMix.Levels {
 		#region LifeHook
 		void Awake () {
 			if (instance == null) {
-				Init();
 				instance = this;
 				DontDestroyOnLoad(gameObject);
 				ImaginationOverflow.UniversalFileAssociation.FileAssociationManager.Instance.FileActivated += FileActivatedHandler;
+
+				Init();
 			} else {
 				Destroy(gameObject);
 			}
@@ -107,6 +110,9 @@ namespace TouhouMix.Levels {
 			translationSevice.Init(netManager);
 			translationSevice.Load();
 			translationSevice.lang = appConfig.displayLang;
+
+			InitAudioConfig();
+			ApplyAppAudioConfig();
 		}
 
 		[ContextMenu("RestoreDefaultGameplayConfig")]
@@ -152,6 +158,34 @@ namespace TouhouMix.Levels {
 
 		public int GetDisplayLanguageIndex() {
 			return resourceStorage.langOptionDictByLang[appConfig.displayLang].index;
+		}
+
+		AudioConfiguration initialAudioConfig;
+
+		public void InitAudioConfig() {
+			initialAudioConfig = AudioSettings.GetConfiguration();
+			AudioSettings.Reset(new AudioConfiguration {
+				speakerMode = AudioSpeakerMode.Stereo,
+				dspBufferSize = initialAudioConfig.dspBufferSize,
+				sampleRate = 96000,  // As high as possible
+				numRealVoices = 0,
+				numVirtualVoices = 0,
+			});
+			initialAudioConfig = AudioSettings.GetConfiguration();
+			Debug.Log("Init " + initialAudioConfig.dspBufferSize + " " + initialAudioConfig.sampleRate);
+		}
+
+		public void ApplyAppAudioConfig() {
+			Debug.Log("Apply " + appConfig.audioBufferUpscale + " " + appConfig.sampleRateDownscale);
+			AudioSettings.Reset(new AudioConfiguration {
+				speakerMode = AudioSpeakerMode.Stereo,
+				dspBufferSize = initialAudioConfig.dspBufferSize << appConfig.audioBufferUpscale,
+				sampleRate = initialAudioConfig.sampleRate >> appConfig.sampleRateDownscale,
+				numRealVoices = initialAudioConfig.numRealVoices,
+				numVirtualVoices = initialAudioConfig.numVirtualVoices,
+			});
+			var audioConfig = AudioSettings.GetConfiguration();
+			Debug.Log("Get " + audioConfig.dspBufferSize + " " + audioConfig.sampleRate);
 		}
 
 		private void Update() {

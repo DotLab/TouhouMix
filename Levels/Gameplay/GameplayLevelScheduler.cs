@@ -12,7 +12,11 @@ namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour, IGameplayHost {
 		const int MOUSE_TOUCH_ID = -100;
 
+		public string testMidiPath;
+
+		[Space]
 		public CanvasSizeWatcher sizeWatcher;
+		public RawImage backgroundImage;
 		public bool shouldLoadGameplayConfig;
 
 		[Space]
@@ -34,6 +38,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 		[Space]
 		public OneOnlyGameplayManager oneOnlyGameplayManager;
+		public OneOnlyGameplayManagerV2 oneOnlyGameplayManagerV2;
 		public ScanningLineGameplayManager scanningLineGameplayManager;
 		IGameplayManager gameplayManager;
 
@@ -72,7 +77,14 @@ namespace TouhouMix.Levels.Gameplay {
 			game_ = GameScheduler.instance;
 			anim_ = AnimationManager.instance;
 
-			gameplayManager = scanningLineGameplayManager;
+			if (game_.backgroundTexture != null) {
+				backgroundImage.texture = game_.backgroundTexture;
+			}
+
+			switch (game_.gameplayConfig.layoutPreset) {
+				case GameplayConfigProto.LAYOUT_PRESET_SCANNING_LINE: gameplayManager = scanningLineGameplayManager; break;
+				default: gameplayManager = oneOnlyGameplayManagerV2; break;
+			}
 
 			if (shouldLoadGameplayConfig) {
 				LoadGameplayConfig();
@@ -87,7 +99,7 @@ namespace TouhouMix.Levels.Gameplay {
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 64);
 			sf2Synth.SetVolume(-10);
 
-			midiFile = game_.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
+			midiFile = game_.midiFile ?? new MidiFile(Resources.Load<TextAsset>(testMidiPath).bytes);
 			sequenceCollection = game_.noteSequenceCollection ?? new NoteSequenceCollection(midiFile);
 
 			midiFileSha256Hash = MiscHelper.GetBase64EncodedSha256Hash(midiFile.bytes);
@@ -147,6 +159,21 @@ namespace TouhouMix.Levels.Gameplay {
 				oneOnlyGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
 				oneOnlyGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
 
+				oneOnlyGameplayManagerV2.laneCount = config.laneCount;
+				oneOnlyGameplayManagerV2.blockWidth = config.blockSize;
+				oneOnlyGameplayManagerV2.blockJudgingWidth = config.blockJudgingWidth;
+
+				oneOnlyGameplayManagerV2.judgeHeight = config.judgeLinePosition;
+				oneOnlyGameplayManagerV2.judgeThickness = config.judgeLineThickness;
+
+				oneOnlyGameplayManagerV2.cacheBeats = config.cacheTime;
+				oneOnlyGameplayManagerV2.cacheEsType = config.cacheEasingType;
+				oneOnlyGameplayManagerV2.graceBeats = config.graceTime;
+				oneOnlyGameplayManagerV2.graceEsType = config.graceEasingType;
+
+				oneOnlyGameplayManagerV2.maxInstantBlockSeconds = config.instantBlockMaxTime;
+				oneOnlyGameplayManagerV2.maxShortBlockSeconds = config.shortBlockMaxTime;
+
 				scanningLineGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : scanningLineGameplayManager.instantBlockPrefab;
 				scanningLineGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : scanningLineGameplayManager.shortBlockPrefab;
 				scanningLineGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : scanningLineGameplayManager.longBlockPrefab;
@@ -158,7 +185,6 @@ namespace TouhouMix.Levels.Gameplay {
 				scanningLineGameplayManager.judgeHeight = config.judgeLinePosition;
 				scanningLineGameplayManager.judgeThickness = config.judgeLineThickness;
 
-				cacheBeats = config.cacheTime;
 				scanningLineGameplayManager.scanningBeats = config.cacheTime;
 				scanningLineGameplayManager.cacheBeats = config.cacheTime;
 				scanningLineGameplayManager.cacheEsType = config.cacheEasingType;

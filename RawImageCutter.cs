@@ -37,7 +37,7 @@ public class RawImageCutter : MonoBehaviour {
 		if (useRuntimeSize) {
 			size = GetComponent<RectTransform>().rect.size;
 		}
-		Debug.Log("Cut " + size + " for " + gameObject.name);
+		//Debug.Log("Cut " + size + " for " + gameObject.name);
 		if (size.x == 0 || size.y == 0) {
 			Debug.LogWarning("Cutter exit, size 0");
 			return;

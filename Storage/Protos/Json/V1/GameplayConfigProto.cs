@@ -3,6 +3,11 @@
 namespace TouhouMix.Storage.Protos.Json.V1 {
 	[System.Serializable]
 	public sealed class GameplayConfigProto {
+		public const int LAYOUT_PRESET_SCANNING_LINE = 6;
+
+		// 0: OneOnly, 6: ScanningLine
+		public int layoutPreset;
+
 		public string instantBlockPreset;
 		public string shortBlockPreset;
 		public string longBlockPreset;
@@ -39,6 +44,8 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		
 		public static GameplayConfigProto CreateDefault() {
 			return new GameplayConfigProto {
+				layoutPreset = 0,
+
 				instantBlockPreset = "",
 				shortBlockPreset = "",
 				longBlockPreset = "",

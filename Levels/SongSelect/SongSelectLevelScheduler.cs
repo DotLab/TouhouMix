@@ -7,6 +7,8 @@ using Uif.Tasks;
 namespace TouhouMix.Levels.SongSelect {
 	public sealed class SongSelectLevelScheduler : MonoBehaviour, ILevelScheduler {
 		public Button backButton;
+		public RawImage backgroundImage;
+		public Texture2D defaultBackgroundTexture;
 
 		[Space]
 		public SongSelectPageScheduler songSelectPage;
@@ -70,6 +72,10 @@ namespace TouhouMix.Levels.SongSelect {
 
 			appConfigPageScheduler.Init(this);
 			appConfigPageScheduler.Disable();
+		}
+
+		private void OnDisable() {
+			StopAllCoroutines();
 		}
 
 		public void OnBackButtonClicked() {

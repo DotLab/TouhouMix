@@ -86,20 +86,20 @@ namespace TouhouMix.Levels.SongSelect {
 			base.Init(level);
 
 			sf2File = new Sf2File(Resources.Load<TextAsset>("sf2/GeneralUser GS v1.471").bytes);
+		}
 
+		public void Init() {
 			var audioConfig = AudioSettings.GetConfiguration();
 			sampleRate = audioConfig.sampleRate;
 			audioConfigText.text = string.Format(
 				"Sample Rate: {0:N0} Hz\n" +
 				"DSP Buffer Size: {1:N0}\n" +
-				"DSP Theoratical Delay: {2:N1} ms\n" +
-				"{3:N0} Channels", sampleRate, audioConfig.dspBufferSize, (float)audioConfig.dspBufferSize / sampleRate * 1000, (int)audioConfig.speakerMode);
+				"DSP Theoratical Delay: {2:N1} ms ({4:N1} Hz)\n" +
+				"{3:N0} Channels", sampleRate, audioConfig.dspBufferSize, (float)audioConfig.dspBufferSize / sampleRate * 1000, (int)audioConfig.speakerMode, sampleRate / (float)audioConfig.dspBufferSize);
 
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 64);
 			sf2Synth.SetVolume(-10);
-		}
 
-		public void Init() {
 			if (midiFile != null && level_.midiDetailPage.midiFile == midiFile) return; 
 			sf2Synth.Reset();
 

@@ -112,10 +112,13 @@ namespace TouhouMix.Net {
 
 			public WwwLoadJob(string path, string url, string filePath, Action<ILoadJob<T>> callback) : base(path, callback) {
 				this.path = path;
-				this.url = url
-					.Replace("https://storage.thmix.org", "https://asia.storage.thmix.org")
-					.Replace("https://storage.googleapis.com/microvolt-bucket-1", "https://asia.storage.thmix.org");
-				Debug.Log(url + " to " + this.url);
+				this.url = url;
+				if (Levels.GameScheduler.instance.appConfig.networkEndpoint == 1) {
+					this.url = url
+						.Replace("https://storage.thmix.org", "https://asia.storage.thmix.org")
+						.Replace("https://storage.googleapis.com/microvolt-bucket-1", "https://asia.storage.thmix.org");
+					Debug.Log(url + " to " + this.url);
+				}
 				this.filePath = filePath;
 
 				instance.wwwLoadJobList.AddFirst(this);
@@ -135,7 +138,7 @@ namespace TouhouMix.Net {
 
 			public override T GetData() {
 				if (!string.IsNullOrEmpty(www.error)) {
-					Debug.LogError(www.error);
+					Debug.LogError(url + " " + www.error);
 					return default;
 				}
 
@@ -305,7 +308,7 @@ namespace TouhouMix.Net {
 					node.Value.ExecuteCallback();
 					pendingLoadJobDict.Remove(node.Value.GetKey());
 					pendingLoadJobList.Remove(node);
-					Debug.LogFormat("Job Finish ({0})", pendingLoadJobList.Count);
+					//Debug.LogFormat("Job Finish ({0})", pendingLoadJobList.Count);
 				}
 			}
 
@@ -315,7 +318,7 @@ namespace TouhouMix.Net {
 					var next = node.Next;
 					if (node.Value.IsFinished()) {
 						activeWwwLoadJobList.Remove(node);
-						Debug.LogFormat("DL Finish ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
+						//Debug.LogFormat("DL Finish ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
 					}
 					node = next;
 				}
@@ -326,7 +329,7 @@ namespace TouhouMix.Net {
 				wwwLoadJobList.RemoveFirst();
 				job.StartDownload();
 				activeWwwLoadJobList.AddLast(job);
-				Debug.LogFormat("DL Start ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
+				//Debug.LogFormat("DL Start ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
 			}
 		}
 	}

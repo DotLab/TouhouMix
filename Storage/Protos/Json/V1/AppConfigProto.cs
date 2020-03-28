@@ -2,11 +2,21 @@
 	[System.Serializable]
 	public sealed class AppConfigProto {
 		public string displayLang;
-		public bool translateAllText;
+		public bool translateUserGeneratedContent;
+
+		public int sampleRateDownscale;
+		public int audioBufferUpscale;
+
+		public int networkEndpoint;
 
 		public static AppConfigProto CreateDefault() {
 			return new AppConfigProto {
 				displayLang = GetDefaultLang(),
+				translateUserGeneratedContent = false,
+
+				sampleRateDownscale = 0,
+				audioBufferUpscale = 0,
+				networkEndpoint = 0,
 			};
 		}
 

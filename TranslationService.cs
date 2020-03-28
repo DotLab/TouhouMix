@@ -41,7 +41,8 @@ namespace TouhouMix.Net {
 						return;
 					}
 					var res = (string)data;
-					dict.Add(key, res);
+					// Possible duplicates, fix later
+					dict[key] = res;
 					callback(res);
 				});
 			}
