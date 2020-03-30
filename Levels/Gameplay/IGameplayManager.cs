@@ -5,7 +5,7 @@ namespace TouhouMix.Levels.Gameplay {
 	public interface IGameplayManager {
 		void Init(IGameplayHost host);
 
-		void AddTentativeBlock(NoteSequenceCollection.Note note);
+		void AddTentativeNote(NoteSequenceCollection.Note note);
 		void GenerateBlocks();
 
 		void UpdateBlocks();
@@ -18,14 +18,13 @@ namespace TouhouMix.Levels.Gameplay {
 	public interface IGameplayHost {
 		ScoringManager GetScoringManager();
 		MidiSequencer GetMidiSequencer();
-		MidiFile GetMidiFile();
 
 		Vector2 GetCanvasSize();
 
-		float GetBeatsPerSecond();
-
 		void StartNote(NoteSequenceCollection.Note note);
 		void StopNote(NoteSequenceCollection.Note note);
-		void AddBackgroundNotes(GameplayBlock block);
+		void PlayBackgroundNotes(Block block);
+		void PlayBackgroundNote(NoteSequenceCollection.Note note);
+		void AddBackgroundNote(NoteSequenceCollection.Note note);
 	}
 }

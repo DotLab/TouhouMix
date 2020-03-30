@@ -59,8 +59,8 @@ namespace TouhouMix.Levels.Gameplay {
 			this.host = host;
 
 			scoringManager = host.GetScoringManager();
-			midiFile = host.GetMidiFile();
 			midiSequencer = host.GetMidiSequencer();
+			midiFile = midiSequencer.file;
 
 			var canvasSize = host.GetCanvasSize();
 
@@ -85,7 +85,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		#region Block Generation
-		public virtual void AddTentativeBlock(NoteSequenceCollection.Note note) {
+		public virtual void AddTentativeNote(NoteSequenceCollection.Note note) {
 			//			Debug.LogFormat("tentative ch{0} n{1} {2} {3}", note.channel, note.note, note.start, note.duration);
 			Block overlappingLongBlock = null;
 			for (int i = 0; i < longBlocksFreeStartIndex; i++) {
@@ -127,7 +127,7 @@ namespace TouhouMix.Levels.Gameplay {
 				existingBlock.backgroundNotes.Add(note);
 			} else {
 				// if no existing block, normal generation
-				AddTentativeBlock(lane, GameplayBlock.BlockType.Instant, note);
+				AddTentativeBlock(lane, BlockType.INSTANT, note);
 			}
 		}
 
@@ -136,16 +136,16 @@ namespace TouhouMix.Levels.Gameplay {
 			int lane = note.note % laneCount;
 			if (tentativeBlockDict.TryGetValue(lane, out Block existingBlock)) {
 				// if has exising block
-				if (existingBlock.type == GameplayBlock.BlockType.Instant) {
+				if (existingBlock.type == BlockType.INSTANT) {
 					// if has existing instant block, override the instant block
-					OverrideTentativeBlock(existingBlock, GameplayBlock.BlockType.Short, note);
+					OverrideTentativeBlock(existingBlock, BlockType.SHORT, note);
 				} else {
 					// if short or long, append as background note
 					existingBlock.backgroundNotes.Add(note);
 				}
 			} else {
 				// if no existing block, normal generation
-				AddTentativeBlock(lane, GameplayBlock.BlockType.Short, note);
+				AddTentativeBlock(lane, BlockType.SHORT, note);
 			}
 		}
 
@@ -154,26 +154,26 @@ namespace TouhouMix.Levels.Gameplay {
 			int lane = note.note % laneCount;
 			if (tentativeBlockDict.TryGetValue(lane, out Block existingBlock)) {
 				// if has exising block
-				if (existingBlock.type != GameplayBlock.BlockType.Long) {
+				if (existingBlock.type != BlockType.LONG) {
 					// if has existing instant or short block, override the instant block
-					OverrideTentativeBlock(existingBlock, GameplayBlock.BlockType.Long, note);
+					OverrideTentativeBlock(existingBlock, BlockType.LONG, note);
 				} else if (existingBlock.note.end < note.end) {
 					// if long and shorter, override
-					OverrideTentativeBlock(existingBlock, GameplayBlock.BlockType.Long, note);
+					OverrideTentativeBlock(existingBlock, BlockType.LONG, note);
 				} else {
 					existingBlock.backgroundNotes.Add(note);
 				}
 			} else {
 				// if no existing block, normal generation
-				AddTentativeBlock(lane, GameplayBlock.BlockType.Long, note);
+				AddTentativeBlock(lane, BlockType.LONG, note);
 			}
 		}
 
-		void AddTentativeBlock(int lane, GameplayBlock.BlockType type, NoteSequenceCollection.Note note) {
+		void AddTentativeBlock(int lane, BlockType type, NoteSequenceCollection.Note note) {
 			tentativeBlockDict.Add(lane, new Block { type = type, note = note });
 		}
 
-		void OverrideTentativeBlock(Block block, GameplayBlock.BlockType newType, NoteSequenceCollection.Note newNote) {
+		void OverrideTentativeBlock(Block block, BlockType newType, NoteSequenceCollection.Note newNote) {
 			block.type = newType;
 			block.backgroundNotes.Add(block.note);
 			block.note = newNote;
@@ -185,10 +185,10 @@ namespace TouhouMix.Levels.Gameplay {
 				var tentativeBlock = pair.Value;
 
 				Block block;
-				if (tentativeBlock.type == GameplayBlock.BlockType.Instant) {
+				if (tentativeBlock.type == BlockType.INSTANT) {
 					block = GetOrCreateBlockFromTentativeBlock(tentativeBlock, instantBlocks, ref instantBlocksFreeStartIndex,
 						instantBlockPrefab, instantBlockPageRect);
-				} else if (tentativeBlock.type == GameplayBlock.BlockType.Short) {
+				} else if (tentativeBlock.type == BlockType.SHORT) {
 					block = GetOrCreateBlockFromTentativeBlock(tentativeBlock, shortBlocks, ref shortBlocksFreeStartIndex,
 						shortBlockPrefab, shortBlockPageRect);
 				} else {  // tentativeBlock.type == GameplayBlock.BlockType.Long
@@ -213,7 +213,7 @@ namespace TouhouMix.Levels.Gameplay {
 				block.backgroundNotes = tentativeBlock.backgroundNotes;
 				block.end = tentativeBlock.note.end;
 			} else {
-				var instant = GameObject.Instantiate(blockPrefab, blockPageRect);
+				var instant = Object.Instantiate(blockPrefab, blockPageRect);
 				tentativeBlock.rect = instant.GetComponent<RectTransform>();
 				tentativeBlock.color = instant.GetComponent<MultiGraphicColorSettable>();
 				tentativeBlock.end = tentativeBlock.note.end;
@@ -222,7 +222,8 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 			freeStartIndex += 1;
 
-			block.Reset();
+			block.rect.gameObject.SetActive(true);
+			block.holdingFingerId = -1;
 			return block;
 		}
 		#endregion
@@ -246,9 +247,9 @@ namespace TouhouMix.Levels.Gameplay {
 			if (bestBlock == null) return;
 
 			switch (bestBlock.type) {
-				case GameplayBlock.BlockType.Instant: TouchInstantBlock(bestBlock, bestBlockIndex); break;
-				case GameplayBlock.BlockType.Short: TouchShortBlock(bestBlock, bestBlockIndex); break;
-				case GameplayBlock.BlockType.Long: TouchLongBlock(bestBlock, bestBlockIndex, id, x); break;
+				case BlockType.INSTANT: TouchInstantBlock(bestBlock, bestBlockIndex); break;
+				case BlockType.SHORT: TouchShortBlock(bestBlock, bestBlockIndex); break;
+				case BlockType.LONG: TouchLongBlock(bestBlock, bestBlockIndex, id, x); break;
 			}
 		}
 
@@ -264,7 +265,7 @@ namespace TouhouMix.Levels.Gameplay {
 			scoringManager.CountScoreForLongBlockTail(GetTiming(holdingBlock.end), holdingBlock);
 
 			// Only check instant block when ending long block
-			CheckAllInstantBlocks(false);
+			//CheckAllInstantBlocks(false);
 		}
 
 		public void ProcessTouchHold(int id, float x, float y) {
@@ -342,14 +343,14 @@ namespace TouhouMix.Levels.Gameplay {
 			block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block, index, instantBlocks, ref instantBlocksFreeStartIndex);
 			scoringManager.CountScoreForBlock(GetTiming(block.note.start), block, isHolding);
-			host.AddBackgroundNotes(block);
+			host.PlayBackgroundNotes(block);
 		}
 
 		void TouchShortBlock(Block block, int index) {
 			block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block, index, shortBlocks, ref shortBlocksFreeStartIndex);
 			scoringManager.CountScoreForBlock(GetTiming(block.note.start), block);
-			host.AddBackgroundNotes(block);
+			host.PlayBackgroundNotes(block);
 		}
 
 		void TouchLongBlock(Block block, int _, int fingerId, float x) {
@@ -362,7 +363,7 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 			holdingBlockDict[fingerId] = block;
 			scoringManager.CountScoreForBlock(GetTiming(block.note.start), block);
-			host.AddBackgroundNotes(block);
+			host.PlayBackgroundNotes(block);
 			host.StartNote(block.note);
 		}
 
@@ -457,7 +458,13 @@ namespace TouhouMix.Levels.Gameplay {
 			return midiSequencer.ToSeconds(timing);
 		}
 
-		public sealed class Block : GameplayBlock {
+		public sealed class Block : Gameplay.Block {
+			public RectTransform rect;
+			public MultiGraphicColorSettable color;
+
+			public override Vector2 Position {
+				get { return rect.anchoredPosition; }
+			}
 		}
 	}
 }

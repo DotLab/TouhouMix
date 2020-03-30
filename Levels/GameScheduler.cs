@@ -82,6 +82,8 @@ namespace TouhouMix.Levels {
 
 		void OnApplicationQuit() {
 			Save();
+
+			netManager.Dispose();
 		}
 		#endregion
 

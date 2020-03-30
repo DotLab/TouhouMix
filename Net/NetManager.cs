@@ -11,7 +11,7 @@ using SafeRpcCallback = System.Action<object>;
 using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace TouhouMix.Net {
-	public sealed class NetManager {
+	public sealed class NetManager : System.IDisposable {
 		const int RETRY_DELAY = 100;
 		const int RETRY_DELAY_MAX = 1000 * 10;
 
@@ -36,6 +36,8 @@ namespace TouhouMix.Net {
 		JsonContext json = new JsonContext();
 
 		WebSocket websocket;
+
+		bool isDisposed = false;
 
 		Dictionary<string, RpcCallback> callbackDict = new Dictionary<string, RpcCallback>();
 
@@ -98,12 +100,20 @@ namespace TouhouMix.Net {
 								Debug.Log("pong " + rtt);
 							});
 						}
+
+						if (isDisposed) {
+							break;
+						}
 					}
 				} catch(System.Exception e) {
 					Debug.LogError(e);
 				}
 			});
 			pingTask.Start();
+		}
+
+		public void Dispose() {
+			isDisposed = true;
 		}
 
 		void OnSocketOpen(object sender, System.EventArgs e) {
@@ -157,7 +167,7 @@ namespace TouhouMix.Net {
 				callbackDict.Clear();
 			}
 
-			if (connecting) {
+			if (connecting || isDisposed) {
 				return;
 			}
 			connecting = true;
@@ -306,6 +316,8 @@ namespace TouhouMix.Net {
 
 				["perfectCount"] = trial.perfectCount, ["greatCount"] = trial.greatCount, 
 				["goodCount"] = trial.goodCount, ["badCount"] = trial.badCount, ["missCount"] = trial.missCount,
+
+				["version"] = 2,
 			}, callback);
 		}
 

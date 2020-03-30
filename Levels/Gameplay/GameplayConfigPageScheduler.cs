@@ -47,8 +47,8 @@ namespace TouhouMix.Levels.Gameplay {
 			set { GameScheduler.instance.gameplayConfig.cacheEasingType = value; }
 		}
 		public int cacheEasingTypeFunc {
-			get { UnityEngine.Debug.Log("read " + cacheEasingType);  return EsType.GetFunc(cacheEasingType) >> 2; }
-			set { UnityEngine.Debug.Log("write" + value); cacheEasingType = EsType.SetFunc(cacheEasingType, value << 2); }
+			get { return EsType.GetFunc(cacheEasingType) >> 2; }
+			set { cacheEasingType = EsType.SetFunc(cacheEasingType, value << 2); }
 		}
 		public int cacheEasingTypePhase {
 			get { return EsType.GetPhase(cacheEasingType); }
@@ -78,6 +78,31 @@ namespace TouhouMix.Levels.Gameplay {
 		public float shortBlockMaxTime { 
 			get { return GameScheduler.instance.gameplayConfig.shortBlockMaxTime; }
 			set { GameScheduler.instance.gameplayConfig.shortBlockMaxTime = value; }
+		}
+
+		public int maxSimultaneousBlocks {
+			get { return GameScheduler.instance.gameplayConfig.maxSimultaneousBlocks; }
+			set { GameScheduler.instance.gameplayConfig.maxSimultaneousBlocks = value; }
+		}
+		public int generateShortConnect {
+			get { return BindingHelper.BoolToInt(GameScheduler.instance.gameplayConfig.generateShortConnect); }
+			set { GameScheduler.instance.gameplayConfig.generateShortConnect = BindingHelper.IntToBool(value); }
+		}
+		public int generateInstantConnect {
+			get { return BindingHelper.BoolToInt(GameScheduler.instance.gameplayConfig.generateInstantConnect); }
+			set { GameScheduler.instance.gameplayConfig.generateInstantConnect = BindingHelper.IntToBool(value); }
+		}
+		public int generateInstantConnectMesh {
+			get { return BindingHelper.BoolToInt(GameScheduler.instance.gameplayConfig.generateInstantConnectMesh); }
+			set { GameScheduler.instance.gameplayConfig.generateInstantConnectMesh = BindingHelper.IntToBool(value); }
+		}
+		public float instantConnectMaxTime {
+			get { return GameScheduler.instance.gameplayConfig.instantConnectMaxTime; }
+			set { GameScheduler.instance.gameplayConfig.instantConnectMaxTime = value; }
+		}
+		public float instantConnectMaxDistance {
+			get { return GameScheduler.instance.gameplayConfig.instantConnectMaxDistance; }
+			set { GameScheduler.instance.gameplayConfig.instantConnectMaxDistance = value; }
 		}
 
 		public float judgeTimeOffset { 

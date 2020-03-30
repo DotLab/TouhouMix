@@ -21,7 +21,7 @@ namespace TouhouMix.Levels.Gameplay {
 				for (; track.seqNoteIndex < seq.notes.Count && seq.notes[track.seqNoteIndex].start <= ticks + cacheTicks; track.seqNoteIndex++) {
 					var seqNote = seq.notes[track.seqNoteIndex];
 					// start game block
-					gameplayManager.AddTentativeBlock(seqNote);
+					gameplayManager.AddTentativeNote(seqNote);
 				}
 			}
 

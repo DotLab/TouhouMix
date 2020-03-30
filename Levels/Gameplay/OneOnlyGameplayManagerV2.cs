@@ -1,11 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using Midif.V3;
 using Uif;
-using Uif.Settables;
-using Uif.Settables.Components;
-using Sirenix.OdinInspector;
 using Systemf;
 using System.Linq;
 
@@ -27,16 +23,20 @@ namespace TouhouMix.Levels.Gameplay {
 		protected readonly Dictionary<string, ActiveFreeContainer<BlockSkinController>> freeSkinContainerDict = new Dictionary<string, ActiveFreeContainer<BlockSkinController>>();
 
 		public RectTransform activeBlockRect;
-		public RectTransform freeBlockRect;
 
 		protected readonly ActiveFreeContainer<Block> blockContainer = new ActiveFreeContainer<Block>(() => new Block());
-		// For instant connect
-		protected readonly OrderedActiveQueue<Block> instantBlockQueue = new OrderedActiveQueue<Block>();
 
+		// For fast generate instant connect
+		protected readonly OrderedActiveQueue<Block> instantBlockQueue = new OrderedActiveQueue<Block>();
 		protected readonly ActiveFreeContainer<Connect> connectContainer = new ActiveFreeContainer<Connect>(() => new Connect());
-		protected readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
+
 		protected readonly Dictionary<int, Block> holdingBlockDict = new Dictionary<int, Block>();
 		protected readonly HashSet<int> touchedLaneSet = new HashSet<int>();
+
+		public int maxSimultaneousBlocks = 2;
+		public bool generateShortConnect = true;
+		public bool generateInstantConnect = true;
+		public bool generateInstantConnectMesh = false;
 
 		public float maxInstantBlockSeconds = .2f;
 		public float maxShortBlockSeconds = .8f;
@@ -67,13 +67,12 @@ namespace TouhouMix.Levels.Gameplay {
 
 		protected IGameplayHost host;
 		protected ScoringManager scoringManager;
-		protected MidiFile midiFile;
 		protected MidiSequencer midiSequencer;
 
 		public virtual void Init(IGameplayHost host) {
 			this.host = host;
 
-			string[] skinNames = new string[] { 
+			string[] skinNames = new string[] {
 				BLOCK_SHORT,
 				BLOCK_SHORT_CONNECT,
 				BLOCK_INSTANT,
@@ -94,7 +93,6 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 
 			scoringManager = host.GetScoringManager();
-			midiFile = host.GetMidiFile();
 			midiSequencer = host.GetMidiSequencer();
 
 			var canvasSize = host.GetCanvasSize();
@@ -112,8 +110,8 @@ namespace TouhouMix.Levels.Gameplay {
 				laneXDict[i] = laneStart + i * laneSpacing;
 			}
 
-			cacheTicks = cacheBeats * midiFile.ticksPerBeat;
-			graceTicks = graceBeats * midiFile.ticksPerBeat;
+			cacheTicks = cacheBeats * midiSequencer.file.ticksPerBeat;
+			graceTicks = graceBeats * midiSequencer.file.ticksPerBeat;
 
 			blockJudgingHalfWidth = blockJudgingWidth * .5f;
 
@@ -122,7 +120,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 		#region Skin Management
 
-		BlockSkinController CreateOrReuseSkin(string skinName) {
+		protected BlockSkinController CreateOrReuseSkin(string skinName) {
 			var skin = freeSkinContainerDict[skinName].CreateOrReuseItem();
 			//skin.rect.SetParent(activeBlockRect, false);
 			skin.group.alpha = 1;
@@ -131,7 +129,7 @@ namespace TouhouMix.Levels.Gameplay {
 			return skin;
 		}
 
-		void FreeSkin(string skinName, BlockSkinController skin) {
+		protected void FreeSkin(string skinName, BlockSkinController skin) {
 			freeSkinContainerDict[skinName].FreeItem(skin);
 			//skin.rect.SetParent(freeBlockRect, false);
 			skin.group.alpha = 0;
@@ -140,39 +138,11 @@ namespace TouhouMix.Levels.Gameplay {
 		#endregion
 
 		#region Block Generation
-		public virtual void AddTentativeBlock(NoteSequenceCollection.Note note) {
-			//			Debug.LogFormat("tentative ch{0} n{1} {2} {3}", note.channel, note.note, note.start, note.duration);
-			Block overlappingLongBlock = null;
-			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
-				var block = blockContainer.itemList[i];
-				if (block.type == GameplayBlock.BlockType.Long && note.start <= block.end) {
-					//					Debug.Log("Overlap!");
-					overlappingLongBlock = block;
-					break;
-				}
-			}
+		protected readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
+		protected readonly List<NoteSequenceCollection.Note> tentativeNotes = new List<NoteSequenceCollection.Note>();
 
-			//float durationInSeconds = (float)note.duration / midiFile.ticksPerBeat / midiSequencer.beatsPerSecond;
-			float durationInSeconds = midiSequencer.ToSeconds(note.duration);
-			//Debug.Log(durationInSeconds);
-			if (durationInSeconds <= maxInstantBlockSeconds) {
-				// tentative instant block
-				AddTentativeInstantBlock(note);
-			} else if (durationInSeconds <= maxShortBlockSeconds) {
-				// tentative short block
-				if (overlappingLongBlock != null) {
-					// if has overlapping long block, change to instant block
-					AddTentativeInstantBlock(note);
-				} else {
-					AddTentativeShortBlock(note);
-				}
-			} else {
-				// tentative long block
-				if (overlappingLongBlock != null) {
-					overlappingLongBlock.end = note.start;
-				}
-				AddTentativeLongBlock(note);
-			}
+		public virtual void AddTentativeNote(NoteSequenceCollection.Note note) {
+			tentativeNotes.Add(note);
 		}
 
 		void AddTentativeInstantBlock(NoteSequenceCollection.Note note) {
@@ -183,7 +153,7 @@ namespace TouhouMix.Levels.Gameplay {
 				existingBlock.backgroundNotes.Add(note);
 			} else {
 				// if no existing block, normal generation
-				AddTentativeBlock(lane, GameplayBlock.BlockType.Instant, note);
+				AddTentativeBlock(lane, BlockType.INSTANT, note);
 			}
 		}
 
@@ -191,17 +161,16 @@ namespace TouhouMix.Levels.Gameplay {
 			//			Debug.Log("tentative short");
 			int lane = note.note % laneCount;
 			if (tentativeBlockDict.TryGetValue(lane, out Block existingBlock)) {
-				// if has exising block
-				if (existingBlock.type == GameplayBlock.BlockType.Instant) {
+				if (existingBlock.type == BlockType.INSTANT) {
 					// if has existing instant block, override the instant block
-					OverrideTentativeBlock(existingBlock, GameplayBlock.BlockType.Short, note);
+					OverrideTentativeBlock(existingBlock, BlockType.SHORT, note);
 				} else {
 					// if short or long, append as background note
 					existingBlock.backgroundNotes.Add(note);
 				}
 			} else {
 				// if no existing block, normal generation
-				AddTentativeBlock(lane, GameplayBlock.BlockType.Short, note);
+				AddTentativeBlock(lane, BlockType.SHORT, note);
 			}
 		}
 
@@ -210,22 +179,29 @@ namespace TouhouMix.Levels.Gameplay {
 			int lane = note.note % laneCount;
 			if (tentativeBlockDict.TryGetValue(lane, out Block existingBlock)) {
 				// if has exising block
-				if (existingBlock.type != GameplayBlock.BlockType.Long) {
+				if (existingBlock.type != BlockType.LONG) {
 					// if has existing instant or short block, override the instant block
-					OverrideTentativeBlock(existingBlock, GameplayBlock.BlockType.Long, note);
+					OverrideTentativeBlock(existingBlock, BlockType.LONG, note);
 				} else if (existingBlock.note.end < note.end) {
 					// if long and shorter, override
-					OverrideTentativeBlock(existingBlock, GameplayBlock.BlockType.Long, note);
+					OverrideTentativeBlock(existingBlock, BlockType.LONG, note);
 				} else {
 					existingBlock.backgroundNotes.Add(note);
 				}
 			} else {
 				// if no existing block, normal generation
-				AddTentativeBlock(lane, GameplayBlock.BlockType.Long, note);
+				AddTentativeBlock(lane, BlockType.LONG, note);
 			}
 		}
 
-		void AddTentativeBlock(int lane, GameplayBlock.BlockType type, NoteSequenceCollection.Note note) {
+		void OverrideTentativeBlock(Block block, BlockType newType, NoteSequenceCollection.Note newNote) {
+			block.type = newType;
+			block.backgroundNotes.Add(block.note);
+			block.note = newNote;
+			block.end = newNote.end;
+		}
+
+		void AddTentativeBlock(int lane, BlockType type, NoteSequenceCollection.Note note) {
 			var block = blockContainer.CreateOrReuseItem();
 			block.isTentative = true;
 			block.active = true;
@@ -237,13 +213,59 @@ namespace TouhouMix.Levels.Gameplay {
 			tentativeBlockDict.Add(lane, block);
 		}
 
-		void OverrideTentativeBlock(Block block, GameplayBlock.BlockType newType, NoteSequenceCollection.Note newNote) {
-			block.type = newType;
-			block.backgroundNotes.Add(block.note);
-			block.note = newNote;
+		sealed class NoteComparer : IComparer<NoteSequenceCollection.Note> {
+			public int Compare(NoteSequenceCollection.Note a, NoteSequenceCollection.Note b) {
+				if (a.note < b.note) {
+					return 1;
+				}
+				return -1;
+			}
 		}
+		readonly NoteComparer noteComparer = new NoteComparer();
 
 		public virtual void GenerateBlocks() {
+			tentativeNotes.Sort(noteComparer);
+			for (int i = 0; i < tentativeNotes.Count; i++) {
+				//Debug.Log(i + " " + tentativeNotes[i].note + " " + tentativeNotes[i].velocity);
+				if (tentativeBlockDict.Count >= maxSimultaneousBlocks) {
+					host.AddBackgroundNote(tentativeNotes[i]);
+					continue;
+				}
+
+				var note = tentativeNotes[i];
+				Block overlappingLongBlock = null;
+				for (int j = 0; j < blockContainer.firstFreeItemIndex; j++) {
+					var block = blockContainer.itemList[j];
+					if (!block.isTentative && block.type == BlockType.LONG && note.start <= block.end) {
+						//					Debug.Log("Overlap!");
+						overlappingLongBlock = block;
+						break;
+					}
+				}
+
+				float durationInSeconds = midiSequencer.ToSeconds(note.duration);
+				//Debug.Log(durationInSeconds);
+				if (durationInSeconds <= maxInstantBlockSeconds) {
+					// tentative instant block
+					AddTentativeInstantBlock(note);
+				} else if (durationInSeconds <= maxShortBlockSeconds) {
+					// tentative short block
+					if (overlappingLongBlock != null) {
+						// if has overlapping long block, change to instant block
+						AddTentativeInstantBlock(note);
+					} else {
+						AddTentativeShortBlock(note);
+					}
+				} else {
+					// tentative long block
+					if (overlappingLongBlock != null) {
+						overlappingLongBlock.end = note.start;
+					}
+					AddTentativeLongBlock(note);
+				}
+			}
+			tentativeNotes.Clear();
+
 			Block minXBlock = null;
 			Block maxXBlock = null;
 			foreach (var pair in tentativeBlockDict) {
@@ -260,27 +282,32 @@ namespace TouhouMix.Levels.Gameplay {
 					maxXBlock = block;
 				}
 
-				if (block.type == GameplayBlock.BlockType.Instant) {
+				if (block.type == BlockType.INSTANT) {
 					// Need to generate InstantConnect
 					bool isInner = false;
-					foreach (var activeBlock in instantBlockQueue.itemQueue.Reverse()) {
-						if (!activeBlock.isTentative) {
-							if (midiSequencer.ToSeconds(block.note.start - activeBlock.note.start) < maxInstantConnectSeconds && Mathf.Abs(activeBlock.x - block.x) < maxInstantConnectX) {
-								isInner = true;
-								GenerateConnect(BLOCK_INSTANT_CONNECT, activeBlock, block, false);
-								break;
+					if (generateInstantConnect) {
+						for (int i = blockContainer.firstFreeItemIndex - 1; i >= 0; i--) {
+							var activeBlock = blockContainer.itemList[i];
+						//for (var activeBlock in instantBlockQueue.itemQueue.Reverse()) {
+							if (!activeBlock.isTentative) {
+								if (midiSequencer.ToSeconds(block.note.start - activeBlock.note.start) < maxInstantConnectSeconds && Mathf.Abs(activeBlock.x - block.x) < maxInstantConnectX) {
+									isInner = true;
+									GenerateConnect(BLOCK_INSTANT_CONNECT, activeBlock, block, false);
+									if (!generateInstantConnectMesh) {
+										break;
+									}
+								}
 							}
 						}
+						instantBlockQueue.Push(block);
 					}
-
-					instantBlockQueue.Push(block);
 
 					block.skinName = isInner ? BLOCK_INSTANT_INNER : BLOCK_INSTANT;
 					block.skin = CreateOrReuseSkin(block.skinName);
-				} else if (block.type == GameplayBlock.BlockType.Short) {
+				} else if (block.type == BlockType.SHORT) {
 					block.skinName = BLOCK_SHORT;
 					block.skin = CreateOrReuseSkin(block.skinName);
-				} else {  // tentativeBlock.type == GameplayBlock.BlockType.Long
+				} else {  // tentativeBlock.type == GameplayBlockType.Long
 					block.skinName = BLOCK_LONG_START;
 					block.skin = CreateOrReuseSkin(block.skinName);
 					block.longFillSkin = CreateOrReuseSkin(BLOCK_LONG_FILL);
@@ -290,10 +317,9 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 
 				block.skin.rect.localScale = Vector3.one * blockScaling;
-				block.rect = block.skin.rect;
 			}
 
-			if (tentativeBlockDict.Count > 1) {
+			if (generateShortConnect && tentativeBlockDict.Count > 1) {
 				// Need to generate ShortConnect
 				GenerateConnect(BLOCK_SHORT_CONNECT, minXBlock, maxXBlock, true);
 			}
@@ -301,8 +327,9 @@ namespace TouhouMix.Levels.Gameplay {
 			tentativeBlockDict.Clear();
 		}
 
-		void GenerateConnect(string skinName, Block from, Block to, bool isFixed) {
+		protected virtual void GenerateConnect(string skinName, Block from, Block to, bool isFixed) {
 			var connect = connectContainer.CreateOrReuseItem();
+			connect.isTentative = true;
 			connect.isFixed = isFixed;
 			connect.skinName = skinName;
 			connect.skin = CreateOrReuseSkin(skinName);
@@ -325,6 +352,83 @@ namespace TouhouMix.Levels.Gameplay {
 
 		#endregion
 
+		#region Block Update
+
+		public virtual void UpdateBlocks() {
+			float ticks = midiSequencer.ticks;
+
+			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
+				var block = blockContainer.itemList[i];
+				block.isTentative = false;
+
+				int start = block.note.start;
+				if (block.end < ticks - graceTicks) {
+					// miss
+					scoringManager.CountMiss(block);
+					HideAndFreeTouchedBlock(block);
+					i -= 1;
+					continue;
+				}
+
+				if (block.type == BlockType.LONG) {
+					float end = block.end;
+					if (block.holdingFingerId != -1 && end <= ticks) {
+						// hold finish
+						holdingBlockDict.Remove(block.holdingFingerId);
+						block.holdingFingerId = -1;
+						scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(block.end), block, true);
+						host.StopNote(block.note);
+						HideAndFreeTouchedBlock(block);
+					} else {
+						float startY = block.holdingFingerId != -1 ? judgeHeight : GetY(start);
+						float endY = GetY(end);
+						float blockX = block.holdingFingerId != -1 ? block.holdingX : block.x;
+						block.skin.rect.anchoredPosition = new Vector2(blockX, startY);
+						block.longFillSkin.rect.anchoredPosition = new Vector2(blockX, startY);
+						block.longFillSkin.rect.sizeDelta = new Vector2(0, endY - startY);
+						block.longEndSkin.rect.anchoredPosition = new Vector2(blockX, endY);
+					}
+				} else {
+					block.skin.rect.anchoredPosition = new Vector2(block.x, GetY(block.note.start));
+				}
+			}
+
+			for (int i = 0; i < connectContainer.firstFreeItemIndex; i++) {
+				var connect = connectContainer.itemList[i];
+				connect.isTentative = false;
+
+				if (connect.startTick <= ticks && connect.endTick <= ticks) {
+					FreeSkin(connect.skinName, connect.skin);
+					connectContainer.FreeItem(connect);
+					i -= 1;
+					continue;
+				}
+
+				float startY = GetY(connect.startTick);
+				connect.skin.rect.anchoredPosition = new Vector2(connect.startX, startY);
+				if (!connect.isFixed) {
+					float endY = GetY(connect.endTick);
+					float length = Vector2.Distance(new Vector2(connect.startX, startY), new Vector2(connect.endX, endY));
+					connect.skin.rect.sizeDelta = new Vector2(connect.skin.rect.sizeDelta.x, length);
+					connect.skin.rect.eulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
+				}
+			}
+		}
+
+		protected virtual float GetY(float start) {
+			float ticks = midiSequencer.ticks;
+			if (ticks < start) {
+				// in cache period
+				return Es.Calc(cacheEsType, Mathf.Clamp01((start - ticks) / cacheTicks)) * cacheHeight + judgeHeight;
+			} else { // start <= ticks
+							 // in grace period
+				return judgeHeight - judgeHeight * Es.Calc(graceEsType, Mathf.Clamp01((ticks - start) / graceTicks));
+			}
+		}
+
+		#endregion
+
+
 		#region Touch
 
 		public void ProcessTouchDown(int id, float x, float y) {
@@ -339,9 +443,9 @@ namespace TouhouMix.Levels.Gameplay {
 			if (bestBlock == null) return;
 
 			switch (bestBlock.type) {
-				case GameplayBlock.BlockType.Instant: TouchInstantBlock(bestBlock, bestBlockIndex); break;
-				case GameplayBlock.BlockType.Short: TouchShortBlock(bestBlock, bestBlockIndex); break;
-				case GameplayBlock.BlockType.Long: TouchLongBlock(bestBlock, bestBlockIndex, id, x); break;
+				case BlockType.INSTANT: TouchInstantBlock(bestBlock, bestBlockIndex); break;
+				case BlockType.SHORT: TouchShortBlock(bestBlock, bestBlockIndex); break;
+				case BlockType.LONG: TouchLongBlock(bestBlock, bestBlockIndex, id, x); break;
 			}
 		}
 
@@ -354,7 +458,7 @@ namespace TouhouMix.Levels.Gameplay {
 			holdingBlock.holdingFingerId = -1;
 			holdingBlockDict.Remove(id);
 			HideAndFreeTouchedBlock(holdingBlock);
-			Debug.Log("Up " + holdingBlock.end + " " + GetOffsetInSeconds(holdingBlock.end));
+			//Debug.Log("Up " + holdingBlock.end + " " + GetOffsetInSeconds(holdingBlock.end));
 			scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(holdingBlock.end), holdingBlock);
 
 			// Only check instant block when ending long block
@@ -392,7 +496,7 @@ namespace TouhouMix.Levels.Gameplay {
 			float perfectTiming = scoringManager.perfectTiming;
 			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
 				var block = blockContainer.itemList[i];
-				if (block.type != GameplayBlock.BlockType.Instant) {
+				if (block.type != BlockType.INSTANT) {
 					continue;
 				}
 				if (!touchedLaneSet.Contains(block.lane)) continue;
@@ -438,14 +542,14 @@ namespace TouhouMix.Levels.Gameplay {
 			//block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block);
 			scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block, isHolding);
-			host.AddBackgroundNotes(block);
+			host.PlayBackgroundNotes(block);
 		}
 
 		void TouchShortBlock(Block block, int index) {
 			//block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block);
 			scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block);
-			host.AddBackgroundNotes(block);
+			host.PlayBackgroundNotes(block);
 		}
 
 		void TouchLongBlock(Block block, int _, int fingerId, float x) {
@@ -458,17 +562,17 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 			holdingBlockDict[fingerId] = block;
 			scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block);
-			host.AddBackgroundNotes(block);
+			host.PlayBackgroundNotes(block);
 			host.StartNote(block.note);
 		}
 
 		protected void HideAndFreeTouchedBlock(Block block) {
 			FreeSkin(block.skinName, block.skin);
-			if (block.type == GameplayBlock.BlockType.Long) {
+			if (block.type == BlockType.LONG) {
 				FreeSkin(BLOCK_LONG_FILL, block.longFillSkin);
 				FreeSkin(BLOCK_LONG_END, block.longEndSkin);
 			}
-			if (block.type == GameplayBlock.BlockType.Instant) {
+			if (block.type == BlockType.INSTANT) {
 				instantBlockQueue.ForceFree(block);
 			}
 			blockContainer.FreeItem(block);
@@ -482,102 +586,9 @@ namespace TouhouMix.Levels.Gameplay {
 
 		#endregion
 
-		#region Block Update
-
-		public virtual void UpdateBlocks() {
-			float ticks = midiSequencer.ticks;
-
-			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
-				var block = blockContainer.itemList[i];
-				block.isTentative = false;
-				int start = block.note.start;
-				if (block.note.end < ticks - graceTicks) {
-					// miss
-					scoringManager.CountMiss(block);
-					HideAndFreeTouchedBlock(block);
-					i -= 1;
-					continue;
-				}
-
-				if (block.type == GameplayBlock.BlockType.Long) {
-					int end = block.note.end;
-					if (block.holdingFingerId != -1 && end <= ticks) {
-						// hold finish
-						holdingBlockDict.Remove(block.holdingFingerId);
-						block.holdingFingerId = -1;
-						scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(block.end), block, true);
-						host.StopNote(block.note);
-						HideAndFreeTouchedBlock(block);
-					} else {
-						float startY = block.holdingFingerId != -1 ? judgeHeight : GetY(start);
-						float endY = GetY(end);
-						float blockX = block.holdingFingerId != -1 ? block.holdingX : block.x;
-						block.skin.rect.anchoredPosition = new Vector2(blockX, startY);
-						block.longFillSkin.rect.anchoredPosition = new Vector2(blockX, startY);
-						block.longFillSkin.rect.sizeDelta = new Vector2(0, endY - startY);
-						block.longEndSkin.rect.anchoredPosition = new Vector2(blockX, endY);
-					}
-				} else {
-					block.skin.rect.anchoredPosition = new Vector2(block.x, GetY(block.note.start));
-				}
-			}
-			for (int i = 0; i < connectContainer.firstFreeItemIndex; i++) {
-				var connect = connectContainer.itemList[i];
-				if (connect.startTick <= ticks - graceTicks && connect.endTick <= ticks - graceTicks) {
-					FreeSkin(connect.skinName, connect.skin);
-					connectContainer.FreeItem(connect);
-					i -= 1;
-					continue;
-				}
-
-				float startY = GetY(connect.startTick);
-				connect.skin.rect.anchoredPosition = new Vector2(connect.startX, startY);
-				if (!connect.isFixed) {
-					float endY = GetY(connect.endTick);
-					float length = Vector2.Distance(new Vector2(connect.startX, startY), new Vector2(connect.endX, endY));
-					connect.skin.rect.sizeDelta = new Vector2(connect.skin.rect.sizeDelta.x, length);
-					connect.skin.rect.eulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
-				}
-			}
-		}
-
-		float GetY(float start) {
-			float ticks = midiSequencer.ticks;
-			if (ticks < start) {
-				// in cache period
-				return Es.Calc(cacheEsType, Mathf.Clamp01((start - ticks) / cacheTicks)) * cacheHeight + judgeHeight;
-			} else { // start <= ticks
-							 // in grace period
-				return judgeHeight - judgeHeight * Es.Calc(graceEsType, Mathf.Clamp01((ticks - start) / graceTicks));
-			}
-		}
-
-		#endregion
-
-		public sealed class Block : GameplayBlock, IActiveCheckable, IIndexable {
-			public bool active;
+		public sealed class Connect : IIndexable {
 			public bool isTentative;
 
-			new public int lane;
-			new public float x;
-			new public int index;
-			public string skinName;
-			public BlockSkinController skin;
-			// For long block
-			public BlockSkinController longFillSkin;
-			public BlockSkinController longEndSkin;
-
-			public bool Active {
-				get { return active; }
-			}
-
-			public int Index {
-				get { return index; }
-				set { index = value; }
-			}
-		}
-
-		public sealed class Connect : IIndexable {
 			public int index;
 
 			public bool isFixed;

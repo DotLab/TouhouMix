@@ -5,6 +5,7 @@ using Uif;
 using Uif.Settables;
 using Uif.Tasks;
 using Midif.V3;
+using Systemf;
 using TouhouMix.Prefabs;
 using TouhouMix.Storage.Protos.Json.V1;
 
@@ -37,9 +38,10 @@ namespace TouhouMix.Levels.Gameplay {
 		public ScoringManager scoringManager;
 
 		[Space]
-		public OneOnlyGameplayManager oneOnlyGameplayManager;
+		//public OneOnlyGameplayManager oneOnlyGameplayManager;
 		public OneOnlyGameplayManagerV2 oneOnlyGameplayManagerV2;
-		public ScanningLineGameplayManager scanningLineGameplayManager;
+		//public ScanningLineGameplayManager scanningLineGameplayManager;
+		public ScanningLineGameplayManagerV2 scanningLineGameplayManagerV2;
 		IGameplayManager gameplayManager;
 
 		GameScheduler game_;
@@ -68,10 +70,10 @@ namespace TouhouMix.Levels.Gameplay {
 		sealed class BackgroundTrack {
 			public int seqNoteIndex;
 		}
-		int backgroundNoteFreeStartIndex;
-		readonly List<NoteSequenceCollection.Note> backgroundNotes = new List<NoteSequenceCollection.Note>();
 		BackgroundTrack[] backgroundTracks;
 		BackgroundTrack[] gameTracks;
+		readonly ActiveSet<NoteSequenceCollection.Note> pendingBackgroundNoteSet = new ActiveSet<NoteSequenceCollection.Note>();
+		readonly ActiveSet<NoteSequenceCollection.Note> activeBackgroundNoteSet = new ActiveSet<NoteSequenceCollection.Note>();
 
 		public void Start() {
 			game_ = GameScheduler.instance;
@@ -82,7 +84,7 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 
 			switch (game_.gameplayConfig.layoutPreset) {
-				case GameplayConfigProto.LAYOUT_PRESET_SCANNING_LINE: gameplayManager = scanningLineGameplayManager; break;
+				case GameplayConfigProto.LAYOUT_PRESET_SCANNING_LINE: gameplayManager = scanningLineGameplayManagerV2; break;
 				default: gameplayManager = oneOnlyGameplayManagerV2; break;
 			}
 
@@ -136,28 +138,29 @@ namespace TouhouMix.Levels.Gameplay {
 		void LoadGameplayConfig() {
 			var config = game_.gameplayConfig;
 			try {
+				cacheBeats = config.cacheTime;
+
 				var instantBlockPrefab = LoadBlockPreset(config.instantBlockPreset);
 				var shortBlockPrefab = LoadBlockPreset(config.shortBlockPreset);
 				var longBlockPrefab = LoadBlockPreset(config.longBlockPreset);
-				oneOnlyGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : oneOnlyGameplayManager.instantBlockPrefab;
-				oneOnlyGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : oneOnlyGameplayManager.shortBlockPrefab;
-				oneOnlyGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : oneOnlyGameplayManager.longBlockPrefab;
+				//oneOnlyGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : oneOnlyGameplayManager.instantBlockPrefab;
+				//oneOnlyGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : oneOnlyGameplayManager.shortBlockPrefab;
+				//oneOnlyGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : oneOnlyGameplayManager.longBlockPrefab;
 
-				oneOnlyGameplayManager.laneCount = config.laneCount;
-				oneOnlyGameplayManager.blockWidth = config.blockSize;
-				oneOnlyGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
+				//oneOnlyGameplayManager.laneCount = config.laneCount;
+				//oneOnlyGameplayManager.blockWidth = config.blockSize;
+				//oneOnlyGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
 
-				oneOnlyGameplayManager.judgeHeight = config.judgeLinePosition;
-				oneOnlyGameplayManager.judgeThickness = config.judgeLineThickness;
+				//oneOnlyGameplayManager.judgeHeight = config.judgeLinePosition;
+				//oneOnlyGameplayManager.judgeThickness = config.judgeLineThickness;
 
-				cacheBeats = config.cacheTime;
-				oneOnlyGameplayManager.cacheBeats = config.cacheTime;
-				oneOnlyGameplayManager.cacheEsType = config.cacheEasingType;
-				oneOnlyGameplayManager.graceBeats = config.graceTime;
-				oneOnlyGameplayManager.graceEsType = config.graceEasingType;
+				//oneOnlyGameplayManager.cacheBeats = config.cacheTime;
+				//oneOnlyGameplayManager.cacheEsType = config.cacheEasingType;
+				//oneOnlyGameplayManager.graceBeats = config.graceTime;
+				//oneOnlyGameplayManager.graceEsType = config.graceEasingType;
 
-				oneOnlyGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
-				oneOnlyGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
+				//oneOnlyGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
+				//oneOnlyGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
 
 				oneOnlyGameplayManagerV2.laneCount = config.laneCount;
 				oneOnlyGameplayManagerV2.blockWidth = config.blockSize;
@@ -174,25 +177,52 @@ namespace TouhouMix.Levels.Gameplay {
 				oneOnlyGameplayManagerV2.maxInstantBlockSeconds = config.instantBlockMaxTime;
 				oneOnlyGameplayManagerV2.maxShortBlockSeconds = config.shortBlockMaxTime;
 
-				scanningLineGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : scanningLineGameplayManager.instantBlockPrefab;
-				scanningLineGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : scanningLineGameplayManager.shortBlockPrefab;
-				scanningLineGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : scanningLineGameplayManager.longBlockPrefab;
+				oneOnlyGameplayManagerV2.maxSimultaneousBlocks = config.maxSimultaneousBlocks;
+				oneOnlyGameplayManagerV2.generateShortConnect = config.generateShortConnect;
+				oneOnlyGameplayManagerV2.generateInstantConnect = config.generateInstantConnect;
+				oneOnlyGameplayManagerV2.maxInstantConnectSeconds = config.instantConnectMaxTime;
+				oneOnlyGameplayManagerV2.maxInstantConnectX = config.instantConnectMaxDistance;
 
-				scanningLineGameplayManager.laneCount = config.laneCount;
-				scanningLineGameplayManager.blockWidth = config.blockSize;
-				scanningLineGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
+				//scanningLineGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : scanningLineGameplayManager.instantBlockPrefab;
+				//scanningLineGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : scanningLineGameplayManager.shortBlockPrefab;
+				//scanningLineGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : scanningLineGameplayManager.longBlockPrefab;
 
-				scanningLineGameplayManager.judgeHeight = config.judgeLinePosition;
-				scanningLineGameplayManager.judgeThickness = config.judgeLineThickness;
+				//scanningLineGameplayManager.laneCount = config.laneCount;
+				//scanningLineGameplayManager.blockWidth = config.blockSize;
+				//scanningLineGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
 
-				scanningLineGameplayManager.scanningBeats = config.cacheTime;
-				scanningLineGameplayManager.cacheBeats = config.cacheTime;
-				scanningLineGameplayManager.cacheEsType = config.cacheEasingType;
-				scanningLineGameplayManager.graceBeats = config.graceTime;
-				scanningLineGameplayManager.graceEsType = config.graceEasingType;
+				//scanningLineGameplayManager.judgeHeight = config.judgeLinePosition;
+				//scanningLineGameplayManager.judgeThickness = config.judgeLineThickness;
 
-				scanningLineGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
-				scanningLineGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
+				//scanningLineGameplayManager.scanningBeats = config.cacheTime;
+				//scanningLineGameplayManager.cacheBeats = config.cacheTime;
+				//scanningLineGameplayManager.cacheEsType = config.cacheEasingType;
+				//scanningLineGameplayManager.graceBeats = config.graceTime;
+				//scanningLineGameplayManager.graceEsType = config.graceEasingType;
+
+				//scanningLineGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
+				//scanningLineGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
+
+				scanningLineGameplayManagerV2.laneCount = config.laneCount;
+				scanningLineGameplayManagerV2.blockWidth = config.blockSize;
+				scanningLineGameplayManagerV2.blockJudgingWidth = config.blockJudgingWidth;
+
+				scanningLineGameplayManagerV2.judgeHeight = config.judgeLinePosition;
+				scanningLineGameplayManagerV2.judgeThickness = config.judgeLineThickness;
+
+				scanningLineGameplayManagerV2.cacheBeats = config.cacheTime;
+				scanningLineGameplayManagerV2.cacheEsType = config.cacheEasingType;
+				scanningLineGameplayManagerV2.graceBeats = config.graceTime;
+				scanningLineGameplayManagerV2.graceEsType = config.graceEasingType;
+
+				scanningLineGameplayManagerV2.maxInstantBlockSeconds = config.instantBlockMaxTime;
+				scanningLineGameplayManagerV2.maxShortBlockSeconds = config.shortBlockMaxTime;
+
+				scanningLineGameplayManagerV2.maxSimultaneousBlocks = config.maxSimultaneousBlocks;
+				scanningLineGameplayManagerV2.generateShortConnect = config.generateShortConnect;
+				scanningLineGameplayManagerV2.generateInstantConnect = config.generateInstantConnect;
+				scanningLineGameplayManagerV2.maxInstantConnectSeconds = config.instantConnectMaxTime;
+				scanningLineGameplayManagerV2.maxInstantConnectX = config.instantConnectMaxDistance;
 
 				scoringManager.LoadGameplayConfig(config);
 			} catch (System.Exception e) {

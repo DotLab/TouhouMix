@@ -24,7 +24,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 		float lastTicks = 0;
 
-		float scannerY {
+		float ScannerY {
 			set { judgeRect.anchoredPosition = new Vector2(0, value); }
 		}
 
@@ -43,19 +43,20 @@ namespace TouhouMix.Levels.Gameplay {
 			scanningSpace = host.GetCanvasSize().y - judgeHeight - judgeHeight;
 		}
 
-		public override void AddTentativeBlock(NoteSequenceCollection.Note note) {
+		public override void AddTentativeNote(NoteSequenceCollection.Note note) {
 			int lane = note.note % laneCount;
 
 			Block block;
-			float durationInSeconds = note.duration / midiFile.ticksPerBeat / host.GetBeatsPerSecond();
+			//float durationInSeconds = note.duration / midiFile.ticksPerBeat / host.GetBeatsPerSecond();
+			float durationInSeconds = midiSequencer.ToSeconds(note.duration);
 			//Debug.Log(durationInSeconds);
 			if (durationInSeconds <= maxInstantBlockSeconds) {
 				// tentative instant block
-				var tentativeBlock = new Block { type = GameplayBlock.BlockType.Instant, note = note };
+				var tentativeBlock = new Block { type = BlockType.INSTANT, note = note };
 				block = GetOrCreateBlockFromTentativeBlock(tentativeBlock, instantBlocks, ref instantBlocksFreeStartIndex, instantBlockPrefab, instantBlockPageRect);
 			} else {
 				// tentative short block
-				var tentativeBlock = new Block { type = GameplayBlock.BlockType.Short, note = note };
+				var tentativeBlock = new Block { type = BlockType.SHORT, note = note };
 				block = GetOrCreateBlockFromTentativeBlock(tentativeBlock, shortBlocks, ref shortBlocksFreeStartIndex, shortBlockPrefab, instantBlockPageRect);
 			}
 
@@ -107,7 +108,7 @@ namespace TouhouMix.Levels.Gameplay {
 		public override void UpdateBlocks() {
 			base.UpdateBlocks();
 
-			scannerY = GetY(midiSequencer.ticks);
+			ScannerY = GetY(midiSequencer.ticks);
 		}
 
 		protected override void UpdateBlocks(List<Block> blocks, ref int freeStartIndex) {

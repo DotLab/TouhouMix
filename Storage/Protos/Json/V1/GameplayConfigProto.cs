@@ -4,6 +4,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 	[System.Serializable]
 	public sealed class GameplayConfigProto {
 		public const int LAYOUT_PRESET_SCANNING_LINE = 6;
+		public const int LAYOUT_PRESET_ONE_ONLY_V2 = 7;
 
 		// 0: OneOnly, 6: ScanningLine
 		public int layoutPreset;
@@ -26,6 +27,13 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 
 		public float instantBlockMaxTime;
 		public float shortBlockMaxTime;
+
+		public int maxSimultaneousBlocks;
+		public bool generateShortConnect;
+		public bool generateInstantConnect;
+		public bool generateInstantConnectMesh;
+		public float instantConnectMaxTime;
+		public float instantConnectMaxDistance;
 
 		public float judgeTimeOffset;
 		public float perfectTime;
@@ -64,6 +72,13 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 
 				instantBlockMaxTime = .2f,
 				shortBlockMaxTime = 1,
+
+				maxSimultaneousBlocks = 2,
+				generateShortConnect = true,
+				generateInstantConnect = true,
+				generateInstantConnectMesh = false,
+				instantConnectMaxTime = .2f,
+				instantConnectMaxDistance = 200,
 
 				judgeTimeOffset = 0,
 				perfectTime = .05f,

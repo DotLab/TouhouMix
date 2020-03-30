@@ -137,7 +137,7 @@ namespace TouhouMix.Levels.Gameplay {
 			}, null);
 		}
 
-		public void CountScoreForBlock(float timing, GameplayBlock block, bool isHolding = false) {
+		public void CountScoreForBlock(float timing, Block block, bool isHolding = false) {
 			var judgment = GetTimingJudgment(timing + timingOffset);
 			FlashJudgment(judgment);
 
@@ -150,7 +150,8 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 
 			var emitter = GetParticleEmitterFromJudgment(judgment);
-			emitter.Emit(block.rect.anchoredPosition);
+			emitter.Emit(block.Position);
+
 
 			bool shouldKeepCombo = CheckShouldKeepComboFromJudgment(judgment);
 			if (shouldKeepCombo) {
@@ -178,7 +179,7 @@ namespace TouhouMix.Levels.Gameplay {
 				.RotateFromTo(backgroundRect, -2, 0, .2f, EsType.Linear);
 		}
 
-		public void CountScoreForLongBlockTail(float timing, GameplayBlock block, bool isHolding = false) {
+		public void CountScoreForLongBlockTail(float timing, Block block, bool isHolding = false) {
 			var judgment = GetTimingJudgment(timing + timingOffset);
 			FlashJudgment(judgment);
 
@@ -191,7 +192,7 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 
 			var emitter = GetParticleEmitterFromJudgment(judgment);
-			emitter.Emit(block.rect.anchoredPosition);
+			emitter.Emit(block.Position);
 
 			bool shouldKeepCombo = CheckShouldKeepComboFromJudgment(judgment);
 			if (shouldKeepCombo) {
@@ -202,7 +203,7 @@ namespace TouhouMix.Levels.Gameplay {
 				ClearCombo();
 			}
 
-			int noteScore = (int)(scoreBase * GetBlockTypeScoreMultipler(GameplayBlock.BlockType.Instant) * GetJudgmentScoreMultiplier(judgment) * GetComboScoreMultiplier(combo));
+			int noteScore = (int)(scoreBase * GetBlockTypeScoreMultipler(BlockType.INSTANT) * GetJudgmentScoreMultiplier(judgment) * GetComboScoreMultiplier(combo));
 			if (isHolding) {
 				noteScore = 1;
 			}
@@ -215,7 +216,7 @@ namespace TouhouMix.Levels.Gameplay {
 			FlashAccuracy();
 		}
 
-		public void CountMiss(GameplayBlock block) {
+		public void CountMiss(Block block) {
 			//			Debug.Log("Miss!");
 			FlashJudgment(Judgment.Miss);
 			combo = 0;
@@ -227,11 +228,11 @@ namespace TouhouMix.Levels.Gameplay {
 			FlashAccuracy();
 		}
 
-		float GetBlockTypeScoreMultipler(GameplayBlock.BlockType type) {
+		float GetBlockTypeScoreMultipler(BlockType type) {
 			switch (type) {
-				case GameplayBlock.BlockType.Instant: return 1f;
-				case GameplayBlock.BlockType.Short: return 1f;
-				case GameplayBlock.BlockType.Long: return .6f;
+				case BlockType.INSTANT: return 1f;
+				case BlockType.SHORT: return 1f;
+				case BlockType.LONG: return .6f;
 				default: throw new System.NotImplementedException();
 			}
 		}
