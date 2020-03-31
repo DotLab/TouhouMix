@@ -115,12 +115,14 @@ namespace TouhouMix.Levels.Gameplay {
 
 			synthConfig = MidiSynthConfigProto.LoadOrCreateDefault(game_, sequenceCollection, midiFileSha256Hash);
 			foreach (var seqConfig in synthConfig.sequenceStateList) {
+				sf2Synth.ProgramChange(seqConfig.channel, (byte)seqConfig.programOverride);
 				if (seqConfig.shouldUseInGame) {
 					gameSequences.Add(sequenceCollection.sequences[seqConfig.sequenceIndex]);
 				} else if (!seqConfig.isMuted) {
 					backgroundSequences.Add(sequenceCollection.sequences[seqConfig.sequenceIndex]);
 				}
 			}
+			sf2Synth.ignoreProgramChange = true;
 			Debug.LogFormat("background tracks: {0}, game tracks: {1}", backgroundSequences.Count, gameSequences.Count);
 
 			backgroundTracks = new BackgroundTrack[backgroundSequences.Count];

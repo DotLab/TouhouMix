@@ -20,6 +20,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 			public int channel;
 			public int channelGroup;
 			public int program;
+			public int programOverride;
 
 			public bool shouldUseInGame;
 
@@ -46,18 +47,19 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 					trackGroupCount = collection.trackGroups.Length,
 					channelGroupCount = collection.channelGroups.Length,
 					soloSequenceIndex = -1,
-					sequenceStateList = new List<MidiSynthConfigProto.SequenceConfigProto>(),
+					sequenceStateList = new List<SequenceConfigProto>(),
 				};
 
 				for (int i = 0; i < collection.sequences.Count; i++) {
 					var seq = collection.sequences[i];
-					state.sequenceStateList.Add(new MidiSynthConfigProto.SequenceConfigProto{
+					state.sequenceStateList.Add(new SequenceConfigProto {
 						sequenceIndex = i,
 						track = seq.track,
 						trackGroup = seq.trackGroup,
 						channel = seq.channel,
 						channelGroup = seq.channelGroup,
 						program = seq.program,
+						programOverride = seq.program,
 						shouldUseInGame = i == 0,
 						isMuted = false,
 					});

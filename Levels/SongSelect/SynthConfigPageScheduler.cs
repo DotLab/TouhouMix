@@ -95,12 +95,23 @@ namespace TouhouMix.Levels.SongSelect {
 				"Sample Rate: {0:N0} Hz\n" +
 				"DSP Buffer Size: {1:N0}\n" +
 				"DSP Theoratical Delay: {2:N1} ms ({4:N1} Hz)\n" +
-				"{3:N0} Channels", sampleRate, audioConfig.dspBufferSize, (float)audioConfig.dspBufferSize / sampleRate * 1000, (int)audioConfig.speakerMode, sampleRate / (float)audioConfig.dspBufferSize);
+				"{3:N0} Channels\n\n", 
+				sampleRate, audioConfig.dspBufferSize, 
+				(float)audioConfig.dspBufferSize / sampleRate * 1000, 
+				(int)audioConfig.speakerMode, sampleRate / (float)audioConfig.dspBufferSize) +
+				string.Format(
+					"Model: {0}\n" +
+					"Name: {1}\n" +
+					"OS: {2}\n" +
+					"CPU: {3}\n" +
+					"GPU: {4}\n",
+					SystemInfo.deviceModel, SystemInfo.deviceName,
+					SystemInfo.operatingSystem, SystemInfo.processorType, SystemInfo.graphicsDeviceType);
 
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 64);
 			sf2Synth.SetVolume(-10);
 
-			if (midiFile != null && level_.midiDetailPage.midiFile == midiFile) return; 
+			if (midiFile != null && level_.midiDetailPage.midiFile == midiFile) return;
 			sf2Synth.Reset();
 
 			midiFile = level_.midiDetailPage.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
@@ -141,6 +152,12 @@ namespace TouhouMix.Levels.SongSelect {
 					}
 					ApplyState();
 				};
+
+				item.onProgramOverrideSelectChanged = value => {
+					sf2Synth.ignoreProgramChange = false;
+					sf2Synth.ProgramChange(item.state.channel, (byte)value);
+					sf2Synth.ignoreProgramChange = true;
+				};
 			}
 
 			for (int i = sequenceCollection.sequences.Count; i < childCount; i++) {
@@ -152,6 +169,9 @@ namespace TouhouMix.Levels.SongSelect {
 
 		void ApplyState() {
 			for (int i = 0; i < sequenceConfigItems.Length; i++) {
+				sf2Synth.ignoreProgramChange = false;
+				sf2Synth.ProgramChange(state.sequenceStateList[i].channel, (byte)state.sequenceStateList[i].programOverride);
+				sf2Synth.ignoreProgramChange = true;
 				sequenceConfigItems[i].ApplyState(state, state.sequenceStateList[i]);
 			}
 		}
@@ -178,7 +198,7 @@ namespace TouhouMix.Levels.SongSelect {
 						note.rect.gameObject.SetActive(true);
 					} else {
 						var instance = Instantiate(previewNotePrefab, item.previewRect);
-						note = new PreviewNote{rect = instance.GetComponent<RectTransform>(), image = instance.GetComponent<Image>()};
+						note = new PreviewNote { rect = instance.GetComponent<RectTransform>(), image = instance.GetComponent<Image>() };
 						track.notes.Add(note);
 					}
 					track.notesFreeStartIndex += 1;
@@ -230,7 +250,7 @@ namespace TouhouMix.Levels.SongSelect {
 			sf2Synth.Panic();
 		}
 
-		void OnAudioFilterRead (float[] buffer, int channel) {
+		void OnAudioFilterRead(float[] buffer, int channel) {
 			if (sf2Synth != null) sf2Synth.Process(buffer);
 		}
 	}

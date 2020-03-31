@@ -337,17 +337,38 @@ namespace TouhouMix.Net {
 		public void ClAppCheckVersion(RpcCallback callback) {
 			Rpc("ClAppCheckVersion", new JsonObj() {
 				["version"] = Application.version,
-#if UNITY_STANDALONE || UNITY_EDITOR
-				["platform"] = "standalone",
-#elif UNITY_ANDROID
-				["platform"] = "android",
-#elif UNITY_IOS
-				["platform"] = "ios",
-#else
-				["platform"] = "unknown",
-#endif
+				["platform"] = GetPlatform(),
 				["runtime"] = Application.platform.ToString().ToLower(),
 			}, callback);
 		}
-	}
+
+		public void ClAppReportDeviceInfo(RpcCallback callback) {
+			var audioConfig = AudioSettings.GetConfiguration();
+			Rpc("ClAppReportDeviceInfo", new JsonObj() {
+				["platform"] = GetPlatform(),
+				["runtime"] = Application.platform.ToString().ToLower(),
+				
+				["sampleRate"] = audioConfig.sampleRate,
+				["bufferSize"] = audioConfig.dspBufferSize,
+
+				["model"] = SystemInfo.deviceModel,
+				["name"] = SystemInfo.deviceName,
+				["os"] = SystemInfo.operatingSystem,
+				["cpu"] = SystemInfo.processorType,
+				["gpu"] = SystemInfo.graphicsDeviceType,
+			}, callback);
+		}
+
+		public static string GetPlatform() {
+#if UNITY_STANDALONE || UNITY_EDITOR
+			return "standalone";
+#elif UNITY_ANDROID
+			return "android";
+#elif UNITY_IOS
+			return "ios";
+#else
+			return "unknown";
+#endif
+		}
+}
 }
