@@ -40,7 +40,9 @@ namespace TouhouMix.Storage {
 		public T Get<T>(string key, T defaultValue) {
 			if (jsonStorage.ContainsKey(key)) {
 				try {
-					return json.Parse<T>(jsonStorage[key]);
+					//return json.Parse<T>(jsonStorage[key]);
+					json.Fill(jsonStorage[key], defaultValue);
+					return defaultValue;
 				} catch (System.Exception ex) {
 					UnityEngine.Debug.LogError(ex);
 					return defaultValue;

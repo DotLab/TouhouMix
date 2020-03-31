@@ -38,6 +38,10 @@ namespace TouhouMix.Levels.Gameplay {
 			set { GameScheduler.instance.gameplayConfig.judgeLineThickness = value; }
 		}
 
+		public float playbackSpeed {
+			get { return GameScheduler.instance.gameplayConfig.playbackSpeed; }
+			set { GameScheduler.instance.gameplayConfig.playbackSpeed = value; }
+		}
 		public float cacheTime { 
 			get { return GameScheduler.instance.gameplayConfig.cacheTime; }
 			set { GameScheduler.instance.gameplayConfig.cacheTime = value; }

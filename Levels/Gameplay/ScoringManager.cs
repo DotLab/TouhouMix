@@ -16,6 +16,8 @@ namespace TouhouMix.Levels.Gameplay {
 		public float badTiming = .5f;
 		// easy 1.6, normal 1.3, hard 1, expert .8
 
+		public bool shouldUploadTrial = true;
+
 		[Space]
 		public ProgressBarPageScheduler progressBar;
 		public Text scoreText;
@@ -83,6 +85,8 @@ namespace TouhouMix.Levels.Gameplay {
 			//	flashController.rect.sizeDelta = new Vector2(blockWidth, 0);
 			//	flashControllers[i] = flashController;
 			//}
+
+			shouldUploadTrial = level.playbackSpeed >= 1;
 		}
 
 		public void LoadGameplayConfig(GameplayConfigProto config) {
@@ -123,18 +127,20 @@ namespace TouhouMix.Levels.Gameplay {
 			game_.accuracy = accuracy;
 			game_.maxComboCount = maxCombo;
 
-			game_.netManager.ClAppTrialUpload(new Net.NetManager.Trial {
-				hash = MiscHelper.GetHexEncodedMd5Hash(game_.midiFile.bytes),
-				score = score,
-				combo = maxCombo,
-				accuracy = accuracy,
+			if (shouldUploadTrial) {
+				game_.netManager.ClAppTrialUpload(new Net.NetManager.Trial {
+					hash = MiscHelper.GetHexEncodedMd5Hash(game_.midiFile.bytes),
+					score = score,
+					combo = maxCombo,
+					accuracy = accuracy,
 
-				perfectCount = perfectCount,
-				greatCount = greatCount,
-				goodCount = goodCount,
-				badCount = badCount,
-				missCount = missCount,
-			}, null);
+					perfectCount = perfectCount,
+					greatCount = greatCount,
+					goodCount = goodCount,
+					badCount = badCount,
+					missCount = missCount,
+				}, null);
+			}
 		}
 
 		public void CountScoreForBlock(float timing, Block block, bool isHolding = false) {

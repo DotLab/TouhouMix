@@ -124,8 +124,6 @@ namespace TouhouMix.Levels.Gameplay {
 			var skin = freeSkinContainerDict[skinName].CreateOrReuseItem();
 			//skin.rect.SetParent(activeBlockRect, false);
 			skin.group.alpha = 1;
-			// Push to front
-			skin.rect.SetAsLastSibling();
 			return skin;
 		}
 
@@ -304,9 +302,11 @@ namespace TouhouMix.Levels.Gameplay {
 
 					block.skinName = isInner ? BLOCK_INSTANT_INNER : BLOCK_INSTANT;
 					block.skin = CreateOrReuseSkin(block.skinName);
+					block.skin.rect.SetAsLastSibling();
 				} else if (block.type == BlockType.SHORT) {
 					block.skinName = BLOCK_SHORT;
 					block.skin = CreateOrReuseSkin(block.skinName);
+					block.skin.rect.SetAsLastSibling();
 				} else {  // tentativeBlock.type == GameplayBlockType.Long
 					block.skinName = BLOCK_LONG_START;
 					block.skin = CreateOrReuseSkin(block.skinName);
@@ -314,6 +314,10 @@ namespace TouhouMix.Levels.Gameplay {
 					block.longEndSkin = CreateOrReuseSkin(BLOCK_LONG_END);
 					block.longFillSkin.rect.localScale = new Vector3(blockScaling, 1, 1);
 					block.longEndSkin.rect.localScale = Vector3.one * blockScaling;
+
+					block.longFillSkin.rect.SetAsLastSibling();
+					block.longEndSkin.rect.SetAsLastSibling();
+					block.skin.rect.SetAsLastSibling();
 				}
 
 				block.skin.rect.localScale = Vector3.one * blockScaling;

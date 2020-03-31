@@ -48,10 +48,54 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 
 				if (block.type == BlockType.LONG) {
-					float progressStart = block.note.start / scanningTicks2;
-					progressStart -= (int)progressStart;
-					float progressEnd = block.note.end / scanningTicks2;
-					progressEnd -= (int)progressEnd;
+					bool superLong = CheckSuperLong(block.note);
+					if (superLong) {
+						block.longFillSkin.rect.anchoredPosition = new Vector2(block.x, 0);
+						block.longFillSkin.rect.sizeDelta = new Vector2(blockWidth, canvasSize.y);
+						float progress = block.note.start / scanningTicks2;
+						progress -= (int)progress;
+						if (progress < .5f) {  // Up
+							block.skin.rect.anchoredPosition = new Vector2(block.x, GetY(block.note.start));
+							block.longEndSkin.group.alpha = 0;
+
+							block.skin.color.Set(Color.red);
+							block.longFillSkin.color.Set(Color.red);
+							block.longEndSkin.color.Set(Color.red);
+						} else {
+							block.longEndSkin.rect.anchoredPosition = new Vector2(block.x, GetY(block.note.start));
+							block.skin.group.alpha = 0;
+
+							block.skin.color.Set(Color.cyan);
+							block.longFillSkin.color.Set(Color.cyan);
+							block.longEndSkin.color.Set(Color.cyan);
+						}
+					} else {
+						float progress = block.note.start / scanningTicks2;
+						progress -= (int)progress;
+						if (progress < .5f) {  // Up
+							float startY = GetY(block.note.start);
+							float endY = GetY(block.note.end);
+							block.skin.rect.anchoredPosition = new Vector2(block.x, startY);
+							block.longFillSkin.rect.anchoredPosition = new Vector2(block.x, startY);
+							block.longFillSkin.rect.sizeDelta = new Vector2(blockWidth, endY - startY);
+							block.longEndSkin.rect.anchoredPosition = new Vector2(block.x, endY);
+
+							block.skin.color.Set(Color.red);
+							block.longFillSkin.color.Set(Color.red);
+							block.longEndSkin.color.Set(Color.red);
+						} else {
+							float startY = GetY(block.note.start);
+							float endY = GetY(block.note.end);
+							block.skin.rect.anchoredPosition = new Vector2(block.x, endY);
+							block.longFillSkin.rect.anchoredPosition = new Vector2(block.x, endY);
+							block.longFillSkin.rect.sizeDelta = new Vector2(blockWidth, startY - endY);
+							block.longEndSkin.rect.anchoredPosition = new Vector2(block.x, startY);
+
+							block.skin.color.Set(Color.cyan);
+							block.longFillSkin.color.Set(Color.cyan);
+							block.longEndSkin.color.Set(Color.cyan);
+						}
+					}
 				} else {
 					float progress = block.note.start / scanningTicks2;
 					progress -= (int)progress;
@@ -89,6 +133,18 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 		}
 
+		bool CheckSuperLong(NoteSequenceCollection.Note note) {
+			if (note.duration >= scanningTicks) {
+				return true;
+			}
+			float progressStart = note.start / scanningTicks2;
+			progressStart -= (int)progressStart;
+			float progressEnd = note.end / scanningTicks2;
+			progressEnd -= (int)progressEnd;
+			// If start and end is not both up or both down, a SuperLong block
+			return progressStart < .5f ^ progressEnd < .5f;
+		}
+
 		protected override float GetY(float ticks) {
 			float progress = ticks / scanningTicks2;
 			progress -= (int)progress;
@@ -121,8 +177,9 @@ namespace TouhouMix.Levels.Gameplay {
 			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
 				var block = blockContainer.itemList[i];
 				block.isTentative = false;
-				float start = block.note.start;
-				if (start <= ticks - graceTicks) {
+
+				int start = block.note.start;
+				if (block.end < ticks - graceTicks) {
 					// miss
 					scoringManager.CountMiss(block);
 					HideAndFreeTouchedBlock(block);
@@ -167,30 +224,8 @@ namespace TouhouMix.Levels.Gameplay {
 			ScannerY = GetY(midiSequencer.ticks);
 		}
 
-		//protected override void UpdateBlocks(List<Block> blocks, ref int freeStartIndex) {
-		//	float ticks = midiSequencer.ticks;
-
-		//	for (int i = 0; i < freeStartIndex; i++) {
-		//		var block = blocks[i];
-		//		float start = block.note.start;
-		//		if (start <= ticks - graceTicks) {
-		//			// miss
-		//			scoringManager.CountMiss(block);
-		//			HideAndFreeTouchedBlock(block, i, blocks, ref freeStartIndex);
-		//			i -= 1;
-		//		} else {
-		//			if (ticks < start) {
-		//				// in cache period
-		//				float t = Mathf.Clamp01(Es.Calc(blockShowEsType, 1 - (start - ticks) / cacheTicks));
-		//				block.rect.eulerAngles = new Vector3(0, 0, 10f * (1f - t));
-		//				block.rect.localScale = Vector3.one * blockScaling * t;
-		//			} else { // in grace period
-		//				float t = Mathf.Clamp01(Es.Calc(blockHideEsType, 1 - (ticks - start) / graceTicks));
-		//				block.rect.eulerAngles = new Vector3(0, 0, -30f * (1f - t));
-		//				block.rect.localScale = Vector3.one * blockScaling * t;
-		//			}
-		//		}
-		//	}
-		//}
+		sealed class Block : Gameplay.Block {
+			public bool superLong;
+		}
 	}
 }

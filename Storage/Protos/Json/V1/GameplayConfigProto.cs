@@ -20,6 +20,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		public float judgeLinePosition;
 		public float judgeLineThickness;
 
+		public float playbackSpeed;
 		public float cacheTime;
 		public int cacheEasingType;
 		public float graceTime;
@@ -65,6 +66,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 				judgeLinePosition = 60,
 				judgeLineThickness = 2,
 
+				playbackSpeed = 1,
 				cacheTime = 2,
 				cacheEasingType = 10,
 				graceTime = 1,

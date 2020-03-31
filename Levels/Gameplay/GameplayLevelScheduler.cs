@@ -29,6 +29,7 @@ namespace TouhouMix.Levels.Gameplay {
 		public CanvasGroup pausePageGroup;
 
 		[Space]
+		public float playbackSpeed = 1;
 		public float cacheBeats = 2;
 		public float endDelayBeats = 2;
 		float cacheTicks;
@@ -139,6 +140,7 @@ namespace TouhouMix.Levels.Gameplay {
 			var config = game_.gameplayConfig;
 			try {
 				cacheBeats = config.cacheTime;
+				playbackSpeed = config.playbackSpeed;
 
 				var instantBlockPrefab = LoadBlockPreset(config.instantBlockPreset);
 				var shortBlockPrefab = LoadBlockPreset(config.shortBlockPreset);
@@ -273,16 +275,21 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		void StartGame() {
-			#if UNITY_ANDROID
+#if UNITY_ANDROID
 			Screen.autorotateToLandscapeLeft = false;
 			Screen.autorotateToLandscapeRight = false;
-			#endif
+#endif
 
 			readyPageGroup.gameObject.SetActive(false);
 			hasStarted = true;
 		}
 
 		void EndGame() {
+#if UNITY_ANDROID
+			Screen.autorotateToLandscapeLeft = true;
+			Screen.autorotateToLandscapeRight = true;
+#endif
+
 			Debug.Log("game end");
 			anim_.New()
 				.FadeOut(gameplayPageGroup, 1, 0).Then()
@@ -301,7 +308,7 @@ namespace TouhouMix.Levels.Gameplay {
 		void Update() {
 			if (!hasStarted || isPaused || hasEnded) return;
 
-			midiSequencer.AdvanceTime(Time.deltaTime);
+			midiSequencer.AdvanceTime(Time.deltaTime * playbackSpeed);
 			ticks = midiSequencer.ticks;
 
 			if (ticks >= endTicks) {
@@ -320,7 +327,7 @@ namespace TouhouMix.Levels.Gameplay {
 			ProcessTouches();
 #endif
 
-			UpdateBlocks();
+			gameplayManager.UpdateBlocks();
 
 			scoringManager.SetProgress(ticks / sequenceCollection.end);
 
@@ -361,20 +368,12 @@ namespace TouhouMix.Levels.Gameplay {
 			return sizeWatcher.canvasSize;
 		}
 
-		public float GetBeatsPerSecond() {
-			return midiSequencer.beatsPerSecond;
-		}
-
 		public ScoringManager GetScoringManager() {
 			return scoringManager;
 		}
 
 		public MidiSequencer GetMidiSequencer() {
 			return midiSequencer;
-		}
-
-		public MidiFile GetMidiFile() {
-			return midiFile;
 		}
 	}
 }
