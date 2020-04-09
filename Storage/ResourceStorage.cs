@@ -38,6 +38,8 @@ namespace TouhouMix.Storage {
 		public readonly Dictionary<int, LangOptionProto> langOptionDictByIndex = new Dictionary<int, LangOptionProto>();
 
 		public void Load() {
+			DecompressMidiBundle();
+
 			authorProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AuthorsProto>(LoadText(AUTHORS_FILE_PATH)).authorList);
 			albumProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AlbumsProto>(LoadText(ALBUMS_FILE_PATH)).albumList);
 			songProtoList.AddRange(UnityEngine.JsonUtility.FromJson<SongsProto>(LoadText(SONGS_FILE_PATH)).songList);
@@ -103,6 +105,22 @@ namespace TouhouMix.Storage {
 				albumProtoDict[midiProto.album].midiCount += 1;
 				songProtoDict[Tuple.Create(midiProto.album, midiProto.song)].midiCount += 1;
 			}
+		}
+
+		void DecompressMidiBundle() {
+			string bundleId = "20200409";
+			if (UnityEngine.PlayerPrefs.GetString("installedMidiBundleId", "") == bundleId) {
+				return;
+			}
+			UnityEngine.PlayerPrefs.SetString("installedMidiBundleId", bundleId);
+
+			UnityEngine.Debug.Log("Decompressing MidiBundle " + bundleId);
+			string dataPath = UnityEngine.Application.persistentDataPath;
+			byte[] bytes = UnityEngine.Resources.Load<UnityEngine.TextAsset>("MidiBundle").bytes;
+			using (var stream = new System.IO.MemoryStream(bytes)) {
+				new ICSharpCode.SharpZipLib.Zip.FastZip().ExtractZip(stream, dataPath, ICSharpCode.SharpZipLib.Zip.FastZip.Overwrite.Always, null, null, null, true, true);
+			}
+			UnityEngine.Debug.Log("MidiBundle decompressed");
 		}
 
 		public IEnumerable<object> QueryAlbums() {
