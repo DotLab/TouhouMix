@@ -33,6 +33,7 @@ namespace TouhouMix.Levels {
 
 		public Texture2D backgroundTexture;
 
+		public string midiId;
 		public Midif.V3.MidiFile midiFile;
 		public Midif.V3.NoteSequenceCollection noteSequenceCollection;
 

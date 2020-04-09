@@ -50,15 +50,15 @@ namespace TouhouMix.Net {
 		public event System.Action<NetStatus> onNetStatusChangedEvent;
 
 		public void Init() {
-//#if UNITY_EDITOR
-//			websocket = new WebSocket("ws://192.168.1.102:6008");
-//#else
+#if UNITY_EDITOR
+			websocket = new WebSocket("ws://192.168.1.102:6008");
+#else
 			if (Levels.GameScheduler.instance.appConfig.networkEndpoint == 0) {
 				websocket = new WebSocket("wss://thmix.org/websocket");
 			} else {
 				websocket = new WebSocket("wss://asia.thmix.org/websocket");
 			}
-//#endif
+#endif
 
 			websocket.OnOpen += OnSocketOpen;
 			websocket.OnClose += OnSocketClose;
@@ -317,7 +317,7 @@ namespace TouhouMix.Net {
 				["perfectCount"] = trial.perfectCount, ["greatCount"] = trial.greatCount, 
 				["goodCount"] = trial.goodCount, ["badCount"] = trial.badCount, ["missCount"] = trial.missCount,
 
-				["version"] = 2,
+				["version"] = 3,
 			}, callback);
 		}
 
@@ -359,6 +359,12 @@ namespace TouhouMix.Net {
 			}, callback);
 		}
 
+		public void ClAppMidiBundleBuild(RpcCallback callback) {
+			var audioConfig = AudioSettings.GetConfiguration();
+			Rpc("ClAppMidiBundleBuild", new JsonObj() {
+			}, callback);
+		}
+
 		public static string GetPlatform() {
 #if UNITY_STANDALONE || UNITY_EDITOR
 			return "standalone";
@@ -370,5 +376,14 @@ namespace TouhouMix.Net {
 			return "unknown";
 #endif
 		}
-}
+
+		public void ClAppDocAction(string collection, string docId, string action, int value, RpcCallback callback) {
+			Rpc("ClAppDocAction", new JsonObj() {
+				["col"] = collection,
+				["docId"] = docId,
+				["action"] = action,
+				["value"] = value,
+			}, callback);
+		}
+	}
 }

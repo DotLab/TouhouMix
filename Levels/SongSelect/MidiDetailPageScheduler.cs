@@ -31,6 +31,7 @@ namespace TouhouMix.Levels.SongSelect {
 		public MidiProto midi;
 		public AuthorProto author;
 
+		public string midiId;
 		public MidiFile midiFile;
 		public NoteSequenceCollection sequenceCollection;
 
@@ -63,6 +64,7 @@ namespace TouhouMix.Levels.SongSelect {
 		void InitLocal() {
 			level_.backgroundImage.texture = level_.defaultBackgroundTexture;
 			game_.backgroundTexture = null;
+			midiId = null;
 
 			try {
 				album = res_.albumProtoDict[level_.selectedAlbum];
@@ -105,6 +107,7 @@ namespace TouhouMix.Levels.SongSelect {
 			midi = new MidiProto { name = downloadedMidi.name };
 
 			byte[] bytes = System.IO.File.ReadAllBytes(System.IO.Path.Combine(Net.WebCache.instance.rootPath, downloadedMidi.hash));
+			midiId = downloadedMidi.id;
 			midiFile = new MidiFile(bytes);
 			sequenceCollection = new NoteSequenceCollection(midiFile);
 
@@ -233,6 +236,7 @@ namespace TouhouMix.Levels.SongSelect {
 
 		public void OnPlayButtonClicked() {
 			Debug.Log("Loading Gameplay");
+			game_.midiId = midiId;
 			game_.midiFile = midiFile;
 			game_.noteSequenceCollection = sequenceCollection;
 			game_.title = midi.name;

@@ -23,7 +23,7 @@ namespace TouhouMix.Net {
 			StartCoroutine(CheckJobsHandler());
 		}
 
-		const int MaxConcurrentJobCount = 4;
+		const int MaxConcurrentJobCount = 8;
 
 		public readonly Dictionary<string, Texture2D> textureDict = new Dictionary<string, Texture2D>();
 		public readonly Dictionary<string, AudioClip> audioClipDict = new Dictionary<string, AudioClip>();
@@ -318,7 +318,7 @@ namespace TouhouMix.Net {
 					var next = node.Next;
 					if (node.Value.IsFinished()) {
 						activeWwwLoadJobList.Remove(node);
-						//Debug.LogFormat("DL Finish ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
+						Debug.LogFormat("DL Finish ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
 					}
 					node = next;
 				}
@@ -329,7 +329,7 @@ namespace TouhouMix.Net {
 				wwwLoadJobList.RemoveFirst();
 				job.StartDownload();
 				activeWwwLoadJobList.AddLast(job);
-				//Debug.LogFormat("DL Start ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
+				Debug.LogFormat("DL Start ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
 			}
 		}
 	}

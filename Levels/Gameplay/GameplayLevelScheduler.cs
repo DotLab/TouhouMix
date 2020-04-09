@@ -187,6 +187,8 @@ namespace TouhouMix.Levels.Gameplay {
 				oneOnlyGameplayManagerV2.maxInstantConnectSeconds = config.instantConnectMaxTime;
 				oneOnlyGameplayManagerV2.maxInstantConnectX = config.instantConnectMaxDistance;
 
+				oneOnlyGameplayManagerV2.judgeTimeOffset = config.judgeTimeOffset;
+
 				//scanningLineGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : scanningLineGameplayManager.instantBlockPrefab;
 				//scanningLineGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : scanningLineGameplayManager.shortBlockPrefab;
 				//scanningLineGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : scanningLineGameplayManager.longBlockPrefab;

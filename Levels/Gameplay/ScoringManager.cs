@@ -9,7 +9,6 @@ using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed class ScoringManager : MonoBehaviour {
-		public float timingOffset = 0;
 		public float perfectTiming = .05f;
 		public float greatTiming = .15f;
 		public float goodTiming = .2f;
@@ -25,7 +24,7 @@ namespace TouhouMix.Levels.Gameplay {
 		public Text comboText;
 		public Text judgmentText;
 		public Text accuracyText;
-		public float scoreBase = 125;
+		public float scoreBase = 100;
 		public Color perfectColor;
 		public Color greatColor;
 		public Color goodColor;
@@ -86,12 +85,14 @@ namespace TouhouMix.Levels.Gameplay {
 			//	flashControllers[i] = flashController;
 			//}
 
-			shouldUploadTrial = level.playbackSpeed >= 1;
+			shouldUploadTrial = 1 <= level.playbackSpeed && level.playbackSpeed <= 2;
+#if UNITY_EDITOR
+			shouldUploadTrial = true;
+#endif
 		}
 
 		public void LoadGameplayConfig(GameplayConfigProto config) {
 			try {
-				timingOffset = config.judgeTimeOffset;
 				//perfectTiming = config.perfectTime;
 				//greatTiming = config.greatTime;
 				//goodTiming = config.goodTime;
@@ -144,7 +145,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void CountScoreForBlock(float timing, Block block, bool isHolding = false) {
-			var judgment = GetTimingJudgment(timing + timingOffset);
+			var judgment = GetTimingJudgment(timing);
 			FlashJudgment(judgment);
 
 			switch (judgment) {
@@ -168,7 +169,10 @@ namespace TouhouMix.Levels.Gameplay {
 				ClearCombo();
 			}
 
-			int noteScore = (int)(scoreBase * GetBlockTypeScoreMultipler(block.type) * GetJudgmentScoreMultiplier(judgment) * GetComboScoreMultiplier(combo));
+			int noteScore = (int)(scoreBase * 
+				GetBlockTypeScoreMultipler(block.type) *
+				GetTimingScoreMultiplier(timing) * 
+				GetComboScoreMultiplier(combo));
 			if (isHolding) {
 				noteScore = 1;
 			}
@@ -186,7 +190,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void CountScoreForLongBlockTail(float timing, Block block, bool isHolding = false) {
-			var judgment = GetTimingJudgment(timing + timingOffset);
+			var judgment = GetTimingJudgment(timing);
 			FlashJudgment(judgment);
 
 			switch (judgment) {
@@ -209,7 +213,10 @@ namespace TouhouMix.Levels.Gameplay {
 				ClearCombo();
 			}
 
-			int noteScore = (int)(scoreBase * GetBlockTypeScoreMultipler(BlockType.INSTANT) * GetJudgmentScoreMultiplier(judgment) * GetComboScoreMultiplier(combo));
+			int noteScore = (int)(scoreBase * 
+				GetBlockTypeScoreMultipler(BlockType.INSTANT) *
+				GetTimingScoreMultiplier(timing) * 
+				GetComboScoreMultiplier(combo));
 			if (isHolding) {
 				noteScore = 1;
 			}
@@ -244,14 +251,18 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		float GetComboScoreMultiplier(int count) {
-			if (count <= 25) return .1f;
-			if (count <= 50) return 1f;
-			if (count <= 100) return 1.1f;
-			if (count <= 200) return 1.15f;
-			if (count <= 400) return 1.2f;
-			if (count <= 600) return 1.25f;
-			if (count <= 800) return 1.3f;
-			return 1.35f;
+			if (count <= 0) {
+				count = 1;
+			}
+			return .0809f + .199f * Mathf.Log(count);
+			//if (count <= 25) return .1f;
+			//if (count <= 50) return 1f;
+			//if (count <= 100) return 1.1f;
+			//if (count <= 200) return 1.15f;
+			//if (count <= 400) return 1.2f;
+			//if (count <= 600) return 1.25f;
+			//if (count <= 800) return 1.3f;
+			//return 1.35f;
 		}
 
 		Judgment GetTimingJudgment(float timing) {
@@ -262,15 +273,19 @@ namespace TouhouMix.Levels.Gameplay {
 			return Judgment.Miss;
 		}
 
-		float GetJudgmentScoreMultiplier(Judgment judgment) {
-			switch (judgment) {
-				case Judgment.Perfect: return 1f;
-				case Judgment.Great: return .8f;
-				case Judgment.Good: return .4f;
-				case Judgment.Bad: return .2f;
-				default: return 0;
-			}
+		float GetTimingScoreMultiplier(float timing) {
+			return 1.06f * Mathf.Exp(-7.16f * timing);
 		}
+
+		//float GetJudgmentScoreMultiplier(Judgment judgment) {
+		//	switch (judgment) {
+		//		case Judgment.Perfect: return 1f;
+		//		case Judgment.Great: return .8f;
+		//		case Judgment.Good: return .4f;
+		//		case Judgment.Bad: return .2f;
+		//		default: return 0;
+		//	}
+		//}
 
 		float GetJudgmentAccuracyContribution(Judgment judgment) {
 			switch (judgment) {

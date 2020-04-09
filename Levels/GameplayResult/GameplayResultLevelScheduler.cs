@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using Uif;
 using Uif.Settables;
+using Uif.Settables.Components;
 
 namespace TouhouMix.Levels {
 	public sealed class GameplayResultLevelScheduler : MonoBehaviour {
@@ -21,6 +22,15 @@ namespace TouhouMix.Levels {
 		public Text accuracyText;
 
 		public Text gradeText;
+
+		public int love;
+		public int vote;
+		public MultiGraphicColorSettable loveButtonColor;
+		public MultiGraphicColorSettable upButtonColor;
+		public MultiGraphicColorSettable downButtonColor;
+		public Color loveColor;
+		public Color upColor;
+		public Color downColor;
 
 		[Space]
 		public Cutoff[] gradeCutoffs;
@@ -68,6 +78,47 @@ namespace TouhouMix.Levels {
 
 		public void OnAgainButtonClicked() {
 			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
+		}
+
+		public void OnLoveButtonClicked() {
+			if (love == 0) {
+				love = 1;
+			} else {
+				love = 0;
+			}
+			GameScheduler.instance.netManager.ClAppDocAction("midis", GameScheduler.instance.midiId, "love", love, (err, res) => {
+				if (err != null) {
+					Debug.LogError(err);
+					return;
+				}
+				GameScheduler.instance.ExecuteOnMain(() => loveButtonColor.Set(love == 1 ? loveColor : Color.white));
+			});
+		}
+
+		public void OnUpButtonClicked() {
+			GameScheduler.instance.netManager.ClAppDocAction("midis", GameScheduler.instance.midiId, "vote", 1, (err, res) => {
+				if (err != null) {
+					Debug.LogError(err);
+					return;
+				}
+				GameScheduler.instance.ExecuteOnMain(() => {
+					upButtonColor.Set(upColor);
+					downButtonColor.Set(Color.white);
+				});
+			});
+		}
+
+		public void OnDownButtonClicked() {
+			GameScheduler.instance.netManager.ClAppDocAction("midis", GameScheduler.instance.midiId, "vote", -1, (err, res) => {
+				if (err != null) {
+					Debug.LogError(err);
+					return;
+				}
+				GameScheduler.instance.ExecuteOnMain(() => {
+					upButtonColor.Set(Color.white);
+					downButtonColor.Set(downColor);
+				});
+			});
 		}
 	}
 }

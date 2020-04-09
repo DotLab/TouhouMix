@@ -58,6 +58,7 @@ namespace TouhouMix.Levels.Gameplay {
 		protected float cacheHeight;
 
 		[Space]
+		public float judgeTimeOffset = 0;
 		public int laneCount = 12;
 		public float blockWidth = 100;
 		public float blockJudgingWidth = 120;
@@ -584,8 +585,9 @@ namespace TouhouMix.Levels.Gameplay {
 
 		float GetOffsetInSeconds(float timingTicks) {
 			float timing = midiSequencer.ticks - timingTicks;
-			if (timing < 0) timing = -timing;
-			return midiSequencer.ToSeconds(timing);
+			float seconds = midiSequencer.ToSeconds(timing) + judgeTimeOffset;
+			if (seconds < 0) seconds = -seconds;
+			return seconds;
 		}
 
 		#endregion
