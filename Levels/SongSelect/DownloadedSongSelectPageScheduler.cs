@@ -86,7 +86,6 @@ namespace TouhouMix.Levels.SongSelect {
 		LocalDb db;
 		ResourceStorage res;
 		WebCache web;
-		GameScheduler game;
 
 		public override void Init(SongSelectLevelScheduler levelScheduler) {
 			base.Init(levelScheduler);
@@ -94,16 +93,11 @@ namespace TouhouMix.Levels.SongSelect {
 			db = GameScheduler.instance.localDb;
 			res = GameScheduler.instance.resourceStorage;
 			web = WebCache.instance;
-			game = GameScheduler.instance;
 		}
 
-		public override void Back() {
-			level_.Pop();
-		}
-
-		public override AnimationSequence Show(AnimationSequence seq) {
-			Debug.Log("SongSelectPageScheduler Show");
-			return seq.Call(LoadMidis).Append(base.Show);
+		public override void Enable() {
+			base.Enable();
+			LoadMidis();
 		}
 
 		public void LoadMidis() {
@@ -227,8 +221,8 @@ namespace TouhouMix.Levels.SongSelect {
 			item.line2Text.text = " 0   0x   0%";
 			item.action = () => {
 				Debug.Log("ShowMidiDetail");
-				level_.selectedDownloadedMidi = midi;
-				level_.Push(level_.midiDetailPage);
+				level.selectedDownloadedMidi = midi;
+				level.Push(level.midiDetailPage);
 			};
 
 			var coverUrl = midi.coverUrl;

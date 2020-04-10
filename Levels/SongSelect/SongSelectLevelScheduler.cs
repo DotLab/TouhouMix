@@ -19,41 +19,41 @@ namespace TouhouMix.Levels.SongSelect {
 		public AppConfigPageScheduler appConfigPageScheduler;
 
 		public float albumSelectScrollViewPositionY { 
-			get { return game_.uiState.albumSelectScrollViewPositionY; } 
-			set { game_.uiState.albumSelectScrollViewPositionY = value; } 
+			get { return game.uiState.albumSelectScrollViewPositionY; } 
+			set { game.uiState.albumSelectScrollViewPositionY = value; } 
 		}
 		public int selectedAlbum { 
-			get { return game_.uiState.selectedAlbum; }
-			set { game_.uiState.selectedAlbum = value; } 
+			get { return game.uiState.selectedAlbum; }
+			set { game.uiState.selectedAlbum = value; } 
 		}
 		public float songSelectScrollViewPositionY { 
-			get { return game_.uiState.songSelectScrollViewPositionY; } 
-			set { game_.uiState.songSelectScrollViewPositionY = value; } 
+			get { return game.uiState.songSelectScrollViewPositionY; } 
+			set { game.uiState.songSelectScrollViewPositionY = value; } 
 		}
 		public int selectedSong { 
-			get { return game_.uiState.selectedSong; }
-			set { game_.uiState.selectedSong = value; } 
+			get { return game.uiState.selectedSong; }
+			set { game.uiState.selectedSong = value; } 
 		}
 		public float midiSelectScrollViewPositionY { 
-			get { return game_.uiState.midiSelectScrollViewPositionY; } 
-			set { game_.uiState.midiSelectScrollViewPositionY = value; } 
+			get { return game.uiState.midiSelectScrollViewPositionY; } 
+			set { game.uiState.midiSelectScrollViewPositionY = value; } 
 		}
 		public string selectedMidi { 
-			get { return game_.uiState.selectedMidi; }
-			set { game_.uiState.selectedMidi = value; } 
+			get { return game.uiState.selectedMidi; }
+			set { game.uiState.selectedMidi = value; } 
 		}
 
 		public DownloadedSongSelectPageScheduler.Midi selectedDownloadedMidi;
 
-		readonly Stack<IPageScheduler<SongSelectLevelScheduler>> pageStack_ = new Stack<IPageScheduler<SongSelectLevelScheduler>>();
-		GameScheduler game_;
-		AnimationManager anim_;
+		readonly Stack<IPageScheduler<SongSelectLevelScheduler>> pageStack = new Stack<IPageScheduler<SongSelectLevelScheduler>>();
+		GameScheduler game;
+		AnimationManager anim;
 
 		void Start() {
-			game_ = GameScheduler.instance;
-			anim_ = AnimationManager.instance;
+			game = GameScheduler.instance;
+			anim = AnimationManager.instance;
 
-			pageStack_.Push(songSelectPage);
+			pageStack.Push(songSelectPage);
 
 			synthConfigPage.Init(this);
 			synthConfigPage.Disable();
@@ -79,7 +79,7 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		public void OnBackButtonClicked() {
-			pageStack_.Peek().Back();
+			pageStack.Peek().Back();
 		}
 
 		public void OpenMidiDirectPage() {
@@ -103,24 +103,24 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		public void Push(IPageScheduler<SongSelectLevelScheduler> page) {
-			var topPage = pageStack_.Peek();
-
 			DisableBackButton();
-			pageStack_.Push(page);
-			anim_.New()
-				.Append(topPage.Hide)
-				.Append(page.Show).Then()
+
+			var topPage = pageStack.Peek();
+			pageStack.Push(page);
+			anim.New()
+				.Append(page.Show)
+				.Append(topPage.Hide).Then()
 				.Call(EnableBackButton);
 		}
 
 		public void Pop() {
-			var topPage = pageStack_.Peek();
-
 			DisableBackButton();
-			pageStack_.Pop();
-			anim_.New()
-				.Append(topPage.Hide)
-				.Append(pageStack_.Peek().Show).Then()
+
+			var topPage = pageStack.Peek();
+			pageStack.Pop();
+			anim.New()
+				.Append(pageStack.Peek().Show)
+				.Append(topPage.Hide).Then()
 				.Call(EnableBackButton);
 		}
 	}

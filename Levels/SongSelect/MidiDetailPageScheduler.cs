@@ -49,11 +49,13 @@ namespace TouhouMix.Levels.SongSelect {
 		public override void Init(SongSelectLevelScheduler level) {
 			base.Init(level);
 
-			res_ = game_.resourceStorage;
+			res_ = game.resourceStorage;
 		}
 
-		public void Init() {
-			if (level_.selectedDownloadedMidi == null) {
+		public override void Enable() {
+			base.Enable();
+
+			if (level.selectedDownloadedMidi == null) {
 				InitLocal();
 			} else {
 				InitDownloaded();
@@ -61,21 +63,27 @@ namespace TouhouMix.Levels.SongSelect {
 			InitRank();
 		}
 
+		public override void Back() {
+			base.Back();
+			level.selectedMidi = null;
+			level.selectedDownloadedMidi = null;
+		}
+
 		void InitLocal() {
-			level_.backgroundImage.texture = level_.defaultBackgroundTexture;
-			game_.backgroundTexture = null;
+			level.backgroundImage.texture = level.defaultBackgroundTexture;
+			game.backgroundTexture = null;
 			midiId = null;
 
 			try {
-				album = res_.albumProtoDict[level_.selectedAlbum];
-				song = res_.songProtoDict[Tuple.Create(level_.selectedAlbum, level_.selectedSong)];
-				midi = res_.midiProtoDict[Tuple.Create(level_.selectedAlbum, level_.selectedSong, level_.selectedMidi)];
+				album = res_.albumProtoDict[level.selectedAlbum];
+				song = res_.songProtoDict[Tuple.Create(level.selectedAlbum, level.selectedSong)];
+				midi = res_.midiProtoDict[Tuple.Create(level.selectedAlbum, level.selectedSong, level.selectedMidi)];
 			} catch (System.Exception e) {
 				Debug.LogError(e);
 
-				album = res_.albumProtoDict[level_.selectedAlbum = 6];
-				song = res_.songProtoDict[Tuple.Create(level_.selectedAlbum, level_.selectedSong = 1)];
-				midi = res_.midiProtoDict[Tuple.Create(level_.selectedAlbum, level_.selectedSong, level_.selectedMidi = "aka_easy")];
+				album = res_.albumProtoDict[level.selectedAlbum = 6];
+				song = res_.songProtoDict[Tuple.Create(level.selectedAlbum, level.selectedSong = 1)];
+				midi = res_.midiProtoDict[Tuple.Create(level.selectedAlbum, level.selectedSong, level.selectedMidi = "aka_easy")];
 			}
 			author = res_.authorProtoDict[midi.author];
 
@@ -91,15 +99,15 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		void InitDownloaded(bool renderList = true) {
-			var downloadedMidi = level_.selectedDownloadedMidi;
+			var downloadedMidi = level.selectedDownloadedMidi;
 			if (!string.IsNullOrEmpty(downloadedMidi.coverBlurUrl)) {
 				Net.WebCache.instance.LoadTexture(downloadedMidi.coverBlurUrl, job => {
-					level_.backgroundImage.texture = job.GetData();
-					game_.backgroundTexture = job.GetData();
+					level.backgroundImage.texture = job.GetData();
+					game.backgroundTexture = job.GetData();
 				});
 			} else {
-				level_.backgroundImage.texture = level_.defaultBackgroundTexture;
-				game_.backgroundTexture = null;
+				level.backgroundImage.texture = level.defaultBackgroundTexture;
+				game.backgroundTexture = null;
 			}
 
 			album = new AlbumProto { name = downloadedMidi.sourceAlbumName };
@@ -131,13 +139,13 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		void InitRank() {
-			game_.netManager.ClAppMidiRecordList(hash, 0, (error, data) => {
+			game.netManager.ClAppMidiRecordList(hash, 0, (error, data) => {
 				if (!string.IsNullOrEmpty(error)) {
 					Debug.LogWarning(error);
 					return;
 				}
 				
-				game_.ExecuteOnMain(() => {
+				game.ExecuteOnMain(() => {
 					var recordList = (JsonList)data;
 					int childCount = rankContentRect.childCount;
 					int i = 0;
@@ -172,7 +180,7 @@ namespace TouhouMix.Levels.SongSelect {
 			item.rankText.text = rank.ToString();
 			if (!string.IsNullOrEmpty(trialObj.Get<string>("userAvatarUrl"))) {
 				Net.WebCache.instance.LoadTexture(trialObj.Get<string>("userAvatarUrl"), job => {
-					game_.ExecuteOnMain(() => { 
+					game.ExecuteOnMain(() => { 
 						item.imageCutter.Cut(job.GetData());
 					});
 				});
@@ -182,7 +190,7 @@ namespace TouhouMix.Levels.SongSelect {
 		void RenderDownloadedMidiList() {
 			int childCount = midiContentRect.childCount;
 			int i = 0;
-			foreach (var midi in level_.selectedDownloadedMidi.song.midiList) {
+			foreach (var midi in level.selectedDownloadedMidi.song.midiList) {
 				SongSelectItemController item;
 				if (i < childCount) {
 					item = midiContentRect.GetChild(i).GetComponent<SongSelectItemController>();
@@ -205,7 +213,7 @@ namespace TouhouMix.Levels.SongSelect {
 			item.line1Text.text = "by " + DownloadedSongSelectPageScheduler.GetStringOrUnkonwn(midi.artistName);
 			item.line2Text.text = " 0   0x   0%";
 			item.action = () => {
-				level_.selectedDownloadedMidi = midi;
+				level.selectedDownloadedMidi = midi;
 				InitDownloaded(false);
 			};
 
@@ -220,27 +228,17 @@ namespace TouhouMix.Levels.SongSelect {
 			}
 		}
 
-		public override AnimationSequence Show(AnimationSequence seq) {
-			return seq.Call(Init).Append(base.Show);
-		}
-
-		public override void Back() {
-			level_.selectedMidi = null;
-			level_.selectedDownloadedMidi = null;
-			level_.Pop();
-		}
-
 		public void OnMusicButtonClicked() {
-			level_.Push(level_.synthConfigPage);
+			level.Push(level.synthConfigPage);
 		}
 
 		public void OnPlayButtonClicked() {
 			Debug.Log("Loading Gameplay");
-			game_.midiId = midiId;
-			game_.midiFile = midiFile;
-			game_.noteSequenceCollection = sequenceCollection;
-			game_.title = midi.name;
-			game_.subtitle = string.Format(
+			game.midiId = midiId;
+			game.midiFile = midiFile;
+			game.noteSequenceCollection = sequenceCollection;
+			game.title = midi.name;
+			game.subtitle = string.Format(
 				"{0} • {1}", album.name, song.name);
 			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
 		}

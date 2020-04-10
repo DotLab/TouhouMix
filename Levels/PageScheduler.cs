@@ -5,23 +5,24 @@ using Uif.Tasks;
 
 namespace TouhouMix.Levels {
 	public abstract class PageScheduler<T> : MonoBehaviour, IPageScheduler<T> where T : ILevelScheduler {
-		protected AnimationManager anim_;
-		protected GameScheduler game_;
+		protected AnimationManager anim;
+		protected GameScheduler game;
 
-		protected T level_;
+		protected T level;
 
-		public CanvasGroup group_;
+		public CanvasGroup group;
 
 		public virtual void Init(T level) {
-			anim_ = AnimationManager.instance;
-			game_ = GameScheduler.instance;
+			anim = AnimationManager.instance;
+			game = GameScheduler.instance;
 
-			level_ = level;
+			this.level = level;
 
-			group_ = GetComponent<CanvasGroup>();	
+			group = GetComponent<CanvasGroup>();	
 		}
 
 		public virtual void Back() {
+			level.Pop();
 		}
 
 		public virtual void Enable() {
@@ -32,14 +33,14 @@ namespace TouhouMix.Levels {
 			gameObject.SetActive(false);
 		}
 
-		public virtual AnimationSequence Hide(AnimationSequence seq) {
-			return seq.FadeOut(group_, .25f, EsType.CubicOut)
-				.ScaleTo(transform, Vector3.zero, .25f, EsType.CubicOut).Then().Call(Disable);
+		public AnimationSequence Hide(AnimationSequence seq) {
+			return seq.FadeOut(group, .25f, EsType.CubicOut)
+				.ScaleTo(transform, Vector3.one * 2, .25f, EsType.CubicOut).Then().Call(Disable);
 		}
 
-		public virtual AnimationSequence Show(AnimationSequence seq) {
-			return seq.Call(Enable).FadeInFromZero(group_, .25f, EsType.CubicOut)
-				.ScaleFromTo(transform, Vector3.one * 2f, Vector3.one, .25f, EsType.CubicOut);
+		public AnimationSequence Show(AnimationSequence seq) {
+			return seq.Call(Enable).FadeInFromZero(group, .25f, EsType.CubicOut)
+				.ScaleFromTo(transform, Vector3.zero, Vector3.one, .25f, EsType.CubicOut);
 		}
 	}
 }

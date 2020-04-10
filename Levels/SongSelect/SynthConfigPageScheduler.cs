@@ -72,14 +72,10 @@ namespace TouhouMix.Levels.SongSelect {
 		Sf2Synth sf2Synth;
 		MidiSequencer midiSequencer;
 
-		public override Uif.AnimationSequence Show(Uif.AnimationSequence seq) {
-			return seq.Call(Init).Append(base.Show);
-		}
-
 		public override void Back() {
-			game_.midiSynthConfigs.synthConfigDict[midiFileSha256Hash] = state;
+			game.midiSynthConfigs.synthConfigDict[midiFileSha256Hash] = state;
 
-			level_.Pop();
+			level.Pop();
 		}
 
 		public override void Init(SongSelectLevelScheduler level) {
@@ -88,7 +84,8 @@ namespace TouhouMix.Levels.SongSelect {
 			sf2File = new Sf2File(Resources.Load<TextAsset>("sf2/GeneralUser GS v1.471").bytes);
 		}
 
-		public void Init() {
+		public override void Enable() {
+			base.Enable();
 			var audioConfig = AudioSettings.GetConfiguration();
 			sampleRate = audioConfig.sampleRate;
 			audioConfigText.text = string.Format(
@@ -111,11 +108,11 @@ namespace TouhouMix.Levels.SongSelect {
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 64);
 			sf2Synth.SetVolume(-10);
 
-			if (midiFile != null && level_.midiDetailPage.midiFile == midiFile) return;
+			if (midiFile != null && level.midiDetailPage.midiFile == midiFile) return;
 			sf2Synth.Reset();
 
-			midiFile = level_.midiDetailPage.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
-			sequenceCollection = level_.midiDetailPage.sequenceCollection ?? new NoteSequenceCollection(midiFile);
+			midiFile = level.midiDetailPage.midiFile ?? new MidiFile(Resources.Load<TextAsset>("test").bytes);
+			sequenceCollection = level.midiDetailPage.sequenceCollection ?? new NoteSequenceCollection(midiFile);
 			midiFileSha256Hash = MiscHelper.GetBase64EncodedSha256Hash(midiFile.bytes);
 
 			previewTicks = previewBeats * midiFile.ticksPerBeat;
@@ -123,7 +120,7 @@ namespace TouhouMix.Levels.SongSelect {
 			midiSequencer = new MidiSequencer(midiFile, sf2Synth);
 			midiSequencer.isMuted = true;
 
-			state = MidiSynthConfigProto.LoadOrCreateDefault(game_, sequenceCollection, midiFileSha256Hash);
+			state = MidiSynthConfigProto.LoadOrCreateDefault(game, sequenceCollection, midiFileSha256Hash);
 
 			sequenceConfigItems = new SequenceConfigItemController[sequenceCollection.sequences.Count];
 			int childCount = scrollViewContentRect.childCount;

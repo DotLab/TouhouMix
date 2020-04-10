@@ -27,25 +27,29 @@ namespace TouhouMix.Levels.SongSelect {
     public string currentQuery;
     public int currentPage;
 
-    GameScheduler game;
     NetManager net;
     WebCache web;
     ResourceStorage res;
-    AnimationManager anim;
     LocalDb db;
 
-    public void Start() {
-      game = GameScheduler.instance;
+    public override void Init(SongSelectLevelScheduler level) {
+      base.Init(level);
       net = game.netManager;
       web = WebCache.instance;
       res = game.resourceStorage;
-      anim = AnimationManager.instance;
       db = game.localDb;
+    }
 
+    public override void Enable() {
+      base.Enable();
       pageControlInputField.text = currentPage.ToString();
       searchInputField.text = currentQuery.ToString();
-
       Fetch();
+    }
+
+    public override void Back() {
+      base.Back();
+      res.LoadCustomMidis();
     }
 
     void Fetch() {
@@ -187,11 +191,6 @@ namespace TouhouMix.Levels.SongSelect {
       Fetch();
       pageControlInputField.text = currentPage.ToString();
       scrollContentRect.anchoredPosition = new Vector2(0, 0);
-    }
-
-    public override void Back() {
-      level_.Pop();
-      res.LoadCustomMidis();
     }
   }
 }

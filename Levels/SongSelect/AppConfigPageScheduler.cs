@@ -22,33 +22,26 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		public int sampleRateDownscale {
-			get { Debug.Log("get " + GameScheduler.instance.appConfig.sampleRateDownscale); return GameScheduler.instance.appConfig.sampleRateDownscale; }
-			set { Debug.Log("set " + value);  GameScheduler.instance.appConfig.sampleRateDownscale = value; GameScheduler.instance.ApplyAppAudioConfig(); RefreshAudioRefresh();}
+			get { return GameScheduler.instance.appConfig.sampleRateDownscale; }
+			set { GameScheduler.instance.appConfig.sampleRateDownscale = value; GameScheduler.instance.ApplyAppAudioConfig(); RefreshAudioInfo();}
 		}
 
 		public int audioBufferUpscale {
 			get { return GameScheduler.instance.appConfig.audioBufferUpscale; }
-			set { GameScheduler.instance.appConfig.audioBufferUpscale = value; GameScheduler.instance.ApplyAppAudioConfig(); RefreshAudioRefresh();}
+			set { GameScheduler.instance.appConfig.audioBufferUpscale = value; GameScheduler.instance.ApplyAppAudioConfig(); RefreshAudioInfo();}
 		}
 
 		public int networkEndpoint {
 			get { return GameScheduler.instance.appConfig.networkEndpoint; }
-			set { GameScheduler.instance.appConfig.networkEndpoint = value; GameScheduler.instance.ApplyAppAudioConfig(); RefreshAudioRefresh();}
+			set { GameScheduler.instance.appConfig.networkEndpoint = value; GameScheduler.instance.ApplyAppAudioConfig(); RefreshAudioInfo();}
 		}
 
-		public override Uif.AnimationSequence Show(Uif.AnimationSequence seq) {
-			return seq.Call(Init).Append(base.Show);
+		public override void Enable() {
+			base.Enable();
+			RefreshAudioInfo();
 		}
 
-		private void Init() {
-			RefreshAudioRefresh();
-		}
-
-		public override void Back() {
-			level_.Pop();
-		}
-
-		public void RefreshAudioRefresh() {
+		void RefreshAudioInfo() {
 			var audioConfig = AudioSettings.GetConfiguration();
 			sampleRateText.text = string.Format("{0:N0} Hz", audioConfig.sampleRate);
 			audioBufferText.text = string.Format("{0:N0} Samples", audioConfig.dspBufferSize);
