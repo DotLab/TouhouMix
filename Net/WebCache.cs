@@ -23,7 +23,7 @@ namespace TouhouMix.Net {
 			StartCoroutine(CheckJobsHandler());
 		}
 
-		const int MaxConcurrentJobCount = 8;
+		const int MaxConcurrentJobCount = 4;
 
 		public readonly Dictionary<string, Texture2D> textureDict = new Dictionary<string, Texture2D>();
 		public readonly Dictionary<string, AudioClip> audioClipDict = new Dictionary<string, AudioClip>();
@@ -305,7 +305,7 @@ namespace TouhouMix.Net {
 		public System.Collections.IEnumerator CheckJobsHandler() {
 			while (true) {
 				CheckJobs();
-				yield return new WaitForSeconds(.04f);
+				yield return new WaitForSeconds(.1f);
 			}
 		}
 

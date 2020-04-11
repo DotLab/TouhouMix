@@ -114,7 +114,9 @@ namespace TouhouMix.Levels.SongSelect {
 			song = res.QuerySongById(midi.songId);
 			album = res.QueryAlbumById(song.albumId);
 			
-			byte[] bytes = System.IO.File.ReadAllBytes(System.IO.Path.Combine(Net.WebCache.instance.rootPath, midi.hash));
+			// _id is path for custom midis
+			byte[] bytes = System.IO.File.Exists(midi._id) ? System.IO.File.ReadAllBytes(midi._id) : 
+				System.IO.File.ReadAllBytes(System.IO.Path.Combine(Net.WebCache.instance.rootPath, midi.hash));
 			midiId = midi._id;
 			midiFile = new MidiFile(bytes);
 			sequenceCollection = new NoteSequenceCollection(midiFile);

@@ -100,9 +100,6 @@ namespace TouhouMix.Levels {
 			localDb = new LocalDb();
 			localDb.Init();
 
-			resourceStorage = new ResourceStorage();
-			resourceStorage.Init(this);
-
 			username = PlayerPrefs.GetString("TEMP_USERNAME", null);
 			password = PlayerPrefs.GetString("TEMP_PASSWORD", null);
 
@@ -113,6 +110,9 @@ namespace TouhouMix.Levels {
 			translationSevice.Init(netManager);
 			translationSevice.Load();
 			translationSevice.lang = appConfig.displayLang;
+
+			resourceStorage = new ResourceStorage();
+			resourceStorage.Init(this);
 
 			InitAudioConfig();
 			ApplyAppAudioConfig();
@@ -144,7 +144,7 @@ namespace TouhouMix.Levels {
 				fileInfo.Stream.CopyTo(fileStream);
 			}
 			Debug.Log("File " + fileInfo.Name + " written");
-			resourceStorage.LoadCustomMidis();
+			resourceStorage.LoadMidis();
 		}
 
 		public void ExecuteOnMain(System.Action action) {

@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using ICSharpCode.SharpZipLib.Core;
+using ICSharpCode.SharpZipLib.Zip;
+using System.Collections.Generic;
 using System.Linq;
 using Systemf;
 //using TouhouMix.Storage.Protos.Resource;
+using TouhouMix.Net;
 
 namespace TouhouMix.Storage {
 	public sealed class ResourceStorage {
@@ -36,6 +39,7 @@ namespace TouhouMix.Storage {
 		public readonly List<Protos.Api.SongProto> songProtoList = new List<Protos.Api.SongProto>();
 		public readonly List<Protos.Api.AlbumProto> albumProtoList = new List<Protos.Api.AlbumProto>();
 		public readonly List<Protos.Api.PersonProto> personProtoList = new List<Protos.Api.PersonProto>();
+		public readonly Dictionary<string, string> coverUrlById = new Dictionary<string, string>();
 
 		public readonly List<Protos.Resource.LangOptionProto> langOptionList = new List<Protos.Resource.LangOptionProto>();
 		public readonly Dictionary<string, Protos.Resource.LangOptionProto> langOptionDictByLang = new Dictionary<string, Protos.Resource.LangOptionProto>();
@@ -74,15 +78,60 @@ namespace TouhouMix.Storage {
 
 			//LoadCustomMidis();
 
-			LoadDownloadedMidis(game.localDb);
+			LoadMidis();
 			LoadLangOptions();
 		}
 
-		void LoadDownloadedMidis(Net.LocalDb db) {
-			midiProtoList.AddRange(db.ReadAllDocs<Protos.Api.MidiProto>(Net.LocalDb.COLLECTION_MIDIS));
-			songProtoList.AddRange(db.ReadAllDocs<Protos.Api.SongProto>(Net.LocalDb.COLLECTION_SONGS));
-			albumProtoList.AddRange(db.ReadAllDocs<Protos.Api.AlbumProto>(Net.LocalDb.COLLECTION_ALBUMS));
-			personProtoList.AddRange(db.ReadAllDocs<Protos.Api.PersonProto>(Net.LocalDb.COLLECTION_PERSONS));
+		/// <summary>
+		/// Need localDb and translationService
+		/// </summary>
+		public void LoadMidis() {
+			var db = Levels.GameScheduler.instance.localDb;
+			midiProtoList.Clear();  midiProtoList.AddRange(db.ReadAllDocs<Protos.Api.MidiProto>(Net.LocalDb.COLLECTION_MIDIS));
+			songProtoList.Clear(); songProtoList.AddRange(db.ReadAllDocs<Protos.Api.SongProto>(Net.LocalDb.COLLECTION_SONGS));
+			albumProtoList.Clear(); albumProtoList.AddRange(db.ReadAllDocs<Protos.Api.AlbumProto>(Net.LocalDb.COLLECTION_ALBUMS));
+			personProtoList.Clear(); personProtoList.AddRange(db.ReadAllDocs<Protos.Api.PersonProto>(Net.LocalDb.COLLECTION_PERSONS));
+			LoadCustomMidis();
+			GenerateFakeAlbums();
+		}
+
+		void GenerateFakeAlbums() {
+			var albumDict = new Dictionary<string, Protos.Api.AlbumProto>();
+			var songDict = new Dictionary<string, Protos.Api.SongProto>();
+
+			foreach (var midi in midiProtoList) {
+				if (midi.songId != null) {
+					continue;
+				}
+
+				string albumName = midi.sourceAlbumName == null ? "Unknown".Translate() : midi.sourceAlbumName;
+				string songName = midi.sourceSongName == null ? "Unknown".Translate() : midi.sourceSongName;
+				string songId = GetFakeSongId(albumName, songName);
+				
+				if (midi.coverUrl != null) {
+					coverUrlById[albumName] = midi.coverUrl;
+					coverUrlById[songId] = midi.coverUrl;
+				}
+
+				if (!albumDict.TryGetValue(albumName, out _)) {
+					Protos.Api.AlbumProto album = new Protos.Api.AlbumProto { _id = albumName, name = albumName, date = System.DateTime.Now.ToString() };
+					albumDict.Add(album.name, album);
+					albumProtoList.Add(album);
+				}
+
+				if (!songDict.TryGetValue(songId, out _)) {
+					Protos.Api.SongProto song = new Protos.Api.SongProto { _id = songId, albumId = albumName, name = songName, track = 0 };
+					songDict.Add(songId, song);
+					songProtoList.Add(song);
+				}
+
+				midi.songId = songId;
+			}
+		}
+
+		string GetFakeSongId(string albumName, string songName) {
+			UnityEngine.Debug.Log(songName);
+			return string.Format("{0}/{1}", albumName, songName);
 		}
 
 		void LoadLangOptions() {
@@ -96,36 +145,24 @@ namespace TouhouMix.Storage {
 			}
 		}
 
-		public void LoadCustomMidis() {
-			//string[] paths = System.IO.Directory.GetFiles(UnityEngine.Application.persistentDataPath, "*.mid");
-			//if (paths.Length == 0) return;
+		void LoadCustomMidis() {
+			string[] paths = System.IO.Directory.GetFiles(UnityEngine.Application.persistentDataPath, "*.mid");
+			if (paths.Length == 0) return;
 
-			//foreach (string path in paths) {
-			//	if (customMidiPathSet.Contains(path)) {
-			//		continue;
-			//	}
-
-			//	var fileName = System.IO.Path.GetFileName(path);
-			//	var midiProto = new MidiProto {
-			//		author = 0,
-			//		album = 0,
-			//		song = 1,
-			//		name = fileName,
-			//		path = path,
-			//		isFile = true
-			//	};
-			//	midiProtoList.Add(midiProto);
-			//	customMidiPathSet.Add(path);
-
-			//	midiProtoDict.Add(Tuple.Create(midiProto.album, midiProto.song, midiProto.name), midiProto);
-			//	authorProtoDict[midiProto.author].midiCount += 1;
-			//	albumProtoDict[midiProto.album].midiCount += 1;
-			//	songProtoDict[Tuple.Create(midiProto.album, midiProto.song)].midiCount += 1;
-			//}
+			foreach (string path in paths) {
+				var fileName = System.IO.Path.GetFileName(path);
+				var midiProto = new Protos.Api.MidiProto {
+					_id = path,
+					name = fileName,
+					sourceSongName = "Unknown".Translate(),
+					sourceAlbumName = "Custom Midis".Translate(),
+				};
+				midiProtoList.Add(midiProto);
+			}
 		}
 
 		void DecompressMidiBundle() {
-			string bundleId = "20200409";
+			string bundleId = "20200411";
 			if (UnityEngine.PlayerPrefs.GetString("installedMidiBundleId", "") == bundleId) {
 				return;
 			}
@@ -135,10 +172,39 @@ namespace TouhouMix.Storage {
 			string dataPath = UnityEngine.Application.persistentDataPath;
 			byte[] bytes = UnityEngine.Resources.Load<UnityEngine.TextAsset>("MidiBundle").bytes;
 			using (var stream = new System.IO.MemoryStream(bytes)) {
-				new ICSharpCode.SharpZipLib.Zip.FastZip().ExtractZip(stream, dataPath, 
-					ICSharpCode.SharpZipLib.Zip.FastZip.Overwrite.Always, null, null, null, true, true);
+				new UnityFastZip().ExtractZip(stream, dataPath, UnityFastZip.Overwrite.Always, null, null, null, true, true);
 			}
 			UnityEngine.Debug.Log("MidiBundle decompressed");
+		}
+
+		class Test : ICSharpCode.SharpZipLib.Zip.IEntryFactory {
+			public INameTransform NameTransform { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+
+			public ZipEntry MakeDirectoryEntry(string directoryName) {
+				throw new System.NotImplementedException();
+			}
+
+			public ZipEntry MakeDirectoryEntry(string directoryName, bool useFileSystem) {
+				throw new System.NotImplementedException();
+			}
+
+			public ZipEntry MakeFileEntry(string fileName) {
+				throw new System.NotImplementedException();
+			}
+
+			public ZipEntry MakeFileEntry(string fileName, bool useFileSystem) {
+				throw new System.NotImplementedException();
+			}
+
+			public string TransformDirectory(string name) {
+				UnityEngine.Debug.Log(name);
+				return name;
+			}
+
+			public string TransformFile(string name) {
+				UnityEngine.Debug.Log(name);
+				return name;
+			}
 		}
 
 		public Protos.Api.AlbumProto QueryAlbumById(string albumId) {
@@ -163,6 +229,14 @@ namespace TouhouMix.Storage {
 
 		public IEnumerable<Protos.Api.MidiProto> QueryMidisBySongId(string songId) {
 			return midiProtoList.Where(x => x.songId == songId).OrderBy(x => x.name);
+		}
+
+		public string QueryCoverUrlById(string docId) {
+			if (coverUrlById.TryGetValue(docId, out string url)) {
+				return url;
+			} else {
+				return null;
+			}
 		}
 
 		//public IEnumerable<object> QueryAlbums() {

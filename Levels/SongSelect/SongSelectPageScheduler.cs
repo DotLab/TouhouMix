@@ -124,6 +124,9 @@ namespace TouhouMix.Levels.SongSelect {
 				};
 
 				var coverUrl = album.coverUrl;
+				if (coverUrl == null) {
+					coverUrl = res.QueryCoverUrlById(album._id);
+				}
 				if (coverUrl != null) {
 					Net.WebCache.instance.LoadTexture(coverUrl, job => {
 						var texture = job.GetData();
@@ -160,6 +163,9 @@ namespace TouhouMix.Levels.SongSelect {
 				};
 
 				var coverUrl = res.QueryAlbumById(song.albumId).coverUrl;
+				if (coverUrl == null) {
+					coverUrl = res.QueryCoverUrlById(song._id);
+				}
 				if (coverUrl != null) {
 					Net.WebCache.instance.LoadTexture(coverUrl, job => {
 						var texture = job.GetData();
@@ -171,15 +177,15 @@ namespace TouhouMix.Levels.SongSelect {
 			});
 		}
 
-		void PopulateMidis() {
-			PopulateScrollViewContent(res.QueryMidisBySongId(level.selectedSongId), (controller, data) => {
-				var midi = data as Storage.Protos.Api.MidiProto;
-				var song = res.QuerySongById(midi.songId);
-				controller.Init(midi.artistName, "", midi.name, () => {
-					OnScrollViewItemClicked(song.albumId, midi.songId, midi._id);
-				});
-			});
-		}
+		//void PopulateMidis() {
+		//	PopulateScrollViewContent(res.QueryMidisBySongId(level.selectedSongId), (controller, data) => {
+		//		var midi = data as Storage.Protos.Api.MidiProto;
+		//		var song = res.QuerySongById(midi.songId);
+		//		controller.Init(midi.artistName, "", midi.name, () => {
+		//			OnScrollViewItemClicked(song.albumId, midi.songId, midi._id);
+		//		});
+		//	});
+		//}
 
 		void ShowMidiDetail() {
 			Debug.Log("ShowMidiDetail");
