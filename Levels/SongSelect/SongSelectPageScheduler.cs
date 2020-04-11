@@ -112,7 +112,11 @@ namespace TouhouMix.Levels.SongSelect {
 			PopulateScrollViewContent(res.QueryAllAlbums(), (controller, data) => {
 				var album = data as Storage.Protos.Api.AlbumProto;
 
-				controller.titleText.text = GetStringOrUnkonwn(album.name).TranslateArtifact();
+				if (album.abbr != null) {
+					controller.titleText.text = string.Format("<b>[{0}]</b> {1}", album.abbr, GetStringOrUnkonwn(album.name).TranslateArtifact());
+				} else {
+					controller.titleText.text = GetStringOrUnkonwn(album.name).TranslateArtifact();
+				}
 				controller.line1Text.text = string.Format("{0:N0} songs", res.QuerySongsByAlbumId(album._id).Count());
 				controller.line2Text.text = System.DateTime.Parse(album.date).ToLongDateString();
 				controller.action = () => {
@@ -148,7 +152,7 @@ namespace TouhouMix.Levels.SongSelect {
 			PopulateScrollViewContent(res.QuerySongsByAlbumId(level.selectedAlbumId), (controller, data) => {
 				var song = data as Storage.Protos.Api.SongProto;
 
-				controller.titleText.text = string.Format("{0:N0}: {1}", song.track, song.name.TranslateArtifact());
+				controller.titleText.text = string.Format("<b>{0:N0}:</b> {1}", song.track, song.name.TranslateArtifact());
 				controller.line1Text.text = string.Format("{0:N0} midis", res.QueryMidisBySongId(song._id).Count());
 				controller.line2Text.text = "";
 				controller.action = () => {

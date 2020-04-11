@@ -109,8 +109,8 @@ namespace TouhouMix.Levels.SongSelect {
       item.nameText.text = midi.name;
       item.authorText.text = midi.artistName;
       item.uploaderText.text = "upload by " + midi.uploaderName;
-      item.albumText.text = midi.sourceAlbumName;
-      item.songText.text = midi.sourceSongName;
+      item.albumText.text = midi.album == null ? midi.sourceAlbumName : midi.album.name.TranslateArtifact();
+      item.songText.text = midi.song == null ? midi.sourceSongName : midi.song.name.TranslateArtifact();
 
       if (midi.coverUrl != null) {
         web.LoadTexture(midi.coverUrl, textureJob => {
