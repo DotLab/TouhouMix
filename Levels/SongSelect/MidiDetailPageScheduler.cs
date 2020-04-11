@@ -10,6 +10,7 @@ using JsonList = System.Collections.Generic.List<object>;
 using Midif.V3;
 using Jsonf;
 using TouhouMix.Levels.SongSelect.MidiDetailPage;
+using TouhouMix.Net;
 
 namespace TouhouMix.Levels.SongSelect {
 	public class MidiDetailPageScheduler : PageScheduler<SongSelectLevelScheduler> {
@@ -65,6 +66,7 @@ namespace TouhouMix.Levels.SongSelect {
 		public override void Back() {
 			base.Back();
 			level.selectedMidiId = null;
+			level.selectedSongId = null;
 			//level.selectedDownloadedMidi = null;
 		}
 
@@ -117,7 +119,7 @@ namespace TouhouMix.Levels.SongSelect {
 			midiFile = new MidiFile(bytes);
 			sequenceCollection = new NoteSequenceCollection(midiFile);
 
-			sourceText.text = string.Format("{0} • {1}", album.name, song.name);
+			sourceText.text = string.Format("{0} • {1}", album.name.TranslateArtifact(), song.name.TranslateArtifact());
 			titleText.text = midi.name;
 			artistText.text = string.Format("by {0}", author.name);
 			infoText.text = string.Format("{0:N0} Sequences • {1:N0} Notes • {2}",

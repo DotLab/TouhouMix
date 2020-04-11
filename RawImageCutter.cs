@@ -78,6 +78,7 @@ public class RawImageCutter : MonoBehaviour {
 
 			cuttedTexture.Apply();
 			image.texture = cuttedTexture;
+			image.color = Color.white;
 		}
 	}
 

@@ -327,10 +327,11 @@ namespace TouhouMix.Net {
 			}, callback);
 		}
 
-		public void ClAppTranslate(string src, string lang, RpcCallback callback) {
+		public void ClAppTranslate(string src, string lang, string ns, RpcCallback callback) {
 			Rpc("ClAppTranslate", new JsonObj() {
 				["src"] = src,
 				["lang"] = lang,
+				["namespace"] = ns,
 			}, callback);
 		}
 

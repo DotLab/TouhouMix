@@ -46,6 +46,11 @@ namespace TouhouMix.Levels.BuildTool {
 				foreach (var person in bundle.persons) {
 					GameScheduler.instance.localDb.WriteDoc(LocalDb.COLLECTION_PERSONS, person._id, person);
 				}
+
+				foreach (var translation in bundle.translations) {
+					GameScheduler.instance.translationSevice.Set(translation.src, translation.lang, translation.ns, translation.text);
+				}
+				GameScheduler.instance.translationSevice.Flush();
 			});
 		}
 

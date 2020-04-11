@@ -5,5 +5,6 @@
 		public AlbumProto[] albums;
 		public SongProto[] songs;
 		public PersonProto[] persons;
+		public TranslationProto[] translations;
 	}
 }

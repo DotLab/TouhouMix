@@ -135,7 +135,8 @@ namespace TouhouMix.Storage {
 			string dataPath = UnityEngine.Application.persistentDataPath;
 			byte[] bytes = UnityEngine.Resources.Load<UnityEngine.TextAsset>("MidiBundle").bytes;
 			using (var stream = new System.IO.MemoryStream(bytes)) {
-				new ICSharpCode.SharpZipLib.Zip.FastZip().ExtractZip(stream, dataPath, ICSharpCode.SharpZipLib.Zip.FastZip.Overwrite.Always, null, null, null, true, true);
+				new ICSharpCode.SharpZipLib.Zip.FastZip().ExtractZip(stream, dataPath, 
+					ICSharpCode.SharpZipLib.Zip.FastZip.Overwrite.Always, null, null, null, true, true);
 			}
 			UnityEngine.Debug.Log("MidiBundle decompressed");
 		}
@@ -153,15 +154,15 @@ namespace TouhouMix.Storage {
 		}
 
 		public IEnumerable<Protos.Api.AlbumProto> QueryAllAlbums() {
-		return albumProtoList;
+		return albumProtoList.OrderBy(x => System.DateTime.Parse(x.date));
 	}
 
 	public IEnumerable<Protos.Api.SongProto> QuerySongsByAlbumId(string albumId) {
-		return songProtoList.Where(x => x.albumId == albumId);
+		return songProtoList.Where(x => x.albumId == albumId).OrderBy(x => x.track);
 		}
 
 		public IEnumerable<Protos.Api.MidiProto> QueryMidisBySongId(string songId) {
-			return midiProtoList.Where(x => x.songId == songId);
+			return midiProtoList.Where(x => x.songId == songId).OrderBy(x => x.name);
 		}
 
 		//public IEnumerable<object> QueryAlbums() {

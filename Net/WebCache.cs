@@ -305,7 +305,7 @@ namespace TouhouMix.Net {
 		public System.Collections.IEnumerator CheckJobsHandler() {
 			while (true) {
 				CheckJobs();
-				yield return new WaitForSeconds(.1f);
+				yield return new WaitForSeconds(.04f);
 			}
 		}
 
