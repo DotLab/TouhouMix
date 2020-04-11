@@ -58,21 +58,27 @@ namespace TouhouMix.Levels.SongSelect {
 
 			synthConfigPage.Init(this);
 			synthConfigPage.Disable();
+			synthConfigPage.group.interactable = false;
 
 			midiDetailPage.Init(this);
 			midiDetailPage.Disable();
+			midiDetailPage.group.interactable = false;
 
 			songSelectPage.Init(this);
 			songSelectPage.Enable();
+			midiDetailPage.group.interactable = true;
 
 			midiDirectPage.Init(this);
 			midiDirectPage.Disable();
+			midiDirectPage.group.interactable = false;
 
 			downloadedSongSelectPage.Init(this);
 			downloadedSongSelectPage.Disable();
+			downloadedSongSelectPage.group.interactable = false;
 
 			appConfigPageScheduler.Init(this);
 			appConfigPageScheduler.Disable();
+			appConfigPageScheduler.group.interactable = false;
 		}
 
 		private void OnDisable() {
@@ -103,6 +109,8 @@ namespace TouhouMix.Levels.SongSelect {
 			backButton.interactable = false;
 		}
 
+		const float PAGE_TRANSITION_DURATION = .25f;
+
 		public void Push(PageScheduler<SongSelectLevelScheduler> page) {
 			DisableBackButton();
 			var topPage = pageStack.Peek();
@@ -111,15 +119,17 @@ namespace TouhouMix.Levels.SongSelect {
 			//	.Append(page.Show)
 			//	.Append(topPage.Hide).Then()
 			//	.Call(EnableBackButton);
+			topPage.group.interactable = false;
 			page.Enable();
 			anim.New(this)
-				.FadeOut(topPage.group, .25f, EsType.CubicOut)
-				.ScaleTo(topPage.transform, Vector3.one * 2, .25f, EsType.CubicOut)
-				.FadeInFromZero(page.group, .25f, EsType.CubicOut)
-				.ScaleFromTo(page.transform, Vector3.zero , Vector3.one, .25f, EsType.CubicOut)
+				.FadeOut(topPage.group, PAGE_TRANSITION_DURATION, EsType.CubicOut)
+				.ScaleTo(topPage.transform, Vector3.one * 2, PAGE_TRANSITION_DURATION, EsType.CubicOut)
+				.FadeInFromZero(page.group, PAGE_TRANSITION_DURATION, EsType.CubicOut)
+				.ScaleFromTo(page.transform, Vector3.zero , Vector3.one, PAGE_TRANSITION_DURATION, EsType.CubicOut)
 				.Then().Call(() => {
 					topPage.Disable();
 					EnableBackButton();
+					page.group.interactable = true;
 				});
 		}
 
@@ -132,15 +142,17 @@ namespace TouhouMix.Levels.SongSelect {
 			//	.Append(pageStack.Peek().Show)
 			//	.Append(topPage.Hide).Then()
 			//	.Call(EnableBackButton);
+			topPage.group.interactable = false;
 			page.Enable();
 			anim.New(this)
-				.FadeOut(topPage.group, .25f, EsType.CubicOut)
-				.ScaleTo(topPage.transform, Vector3.zero, .25f, EsType.CubicOut)
-				.FadeInFromZero(page.group, .25f, EsType.CubicOut)
-				.ScaleFromTo(page.transform, Vector3.one * 2, Vector3.one, .25f, EsType.CubicOut)
+				.FadeOut(topPage.group, PAGE_TRANSITION_DURATION, EsType.CubicOut)
+				.ScaleTo(topPage.transform, Vector3.zero, PAGE_TRANSITION_DURATION, EsType.CubicOut)
+				.FadeInFromZero(page.group, PAGE_TRANSITION_DURATION, EsType.CubicOut)
+				.ScaleFromTo(page.transform, Vector3.one * 2, Vector3.one, PAGE_TRANSITION_DURATION, EsType.CubicOut)
 				.Then().Call(() => {
 					topPage.Disable();
 					EnableBackButton();
+					page.group.interactable = true;
 				});
 		}
 	}

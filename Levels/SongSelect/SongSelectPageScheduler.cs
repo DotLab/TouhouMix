@@ -65,30 +65,26 @@ namespace TouhouMix.Levels.SongSelect {
 			}
 		}
 
+		const float TRANSITION_DURATION = .1f;
+
 		void OnScrollViewItemClicked(string albumId, string songId, string midi) {
-			Debug.Log("OnScrollViewItemClicked " + midi);
-			if (midi == null) {
-				RefreshScrollView(-200, 400, () => {
-					if (songId != null) {  // select song
-						//anim.New().EditTo(titleText, res.QueryAlbumById(albumId).name + " • " + res.QuerySongById(songId).name, .2f, 0);
-						level.selectedSongId = songId;
-						level.selectedMidiId = res.QueryMidisBySongId(songId).First()._id;
-						level.songSelectScrollViewPositionY = scrollViewPositionY;
-						ShowMidiDetail();
-						//PopulateMidis();
-						//scrollViewPositionY = 0;
-					} else if (albumId != null) {  // select album
-						anim.New().EditTo(titleText, res.QueryAlbumById(albumId).name.TranslateArtifact(), .2f, 0);
-						level.selectedAlbumId = albumId;
-						level.albumSelectScrollViewPositionY = scrollViewPositionY;
-						PopulateSongs();
-						scrollViewPositionY = 0;
-					}
-				});
-			} else {  // select midi
-				level.selectedMidiId = midi;
-				level.midiSelectScrollViewPositionY = scrollViewPositionY;
+			Debug.LogFormat("OnScrollViewItemClicked {0} {1}", albumId, songId);
+			
+			if (songId != null) {
+				// select song
+				level.selectedSongId = songId;
+				level.selectedMidiId = res.QueryMidisBySongId(songId).First()._id;
+				level.songSelectScrollViewPositionY = scrollViewPositionY;
 				ShowMidiDetail();
+			} else {
+				RefreshScrollView(-200, 400, () => {
+					// select album
+					anim.New().EditTo(titleText, res.QueryAlbumById(albumId).name.TranslateArtifact(), TRANSITION_DURATION, 0);
+					level.selectedAlbumId = albumId;
+					level.albumSelectScrollViewPositionY = scrollViewPositionY;
+					PopulateSongs();
+					scrollViewPositionY = 0;
+				});
 			}
 		}
 
@@ -175,16 +171,6 @@ namespace TouhouMix.Levels.SongSelect {
 			});
 		}
 
-		//void PopulateMidis() {
-		//	PopulateScrollViewContent(res.QueryMidisBySongId(level.selectedSongId), (controller, data) => {
-		//		var midi = data as Storage.Protos.Api.MidiProto;
-		//		var song = res.QuerySongById(midi.songId);
-		//		controller.Init(midi.artistName, "", midi.name, () => {
-		//			OnScrollViewItemClicked(song.albumId, midi.songId, midi._id);
-		//		});
-		//	});
-		//}
-
 		void ShowMidiDetail() {
 			Debug.Log("ShowMidiDetail");
 			level.Push(level.midiDetailPage);
@@ -205,19 +191,19 @@ namespace TouhouMix.Levels.SongSelect {
 
 		void RefreshScrollView(float hideShift, float showShift, System.Action action) {
 			var pos = scrollViewRect.anchoredPosition;
-			scrollViewGroup.interactable = false;
+			group.interactable = false;
 			level.DisableBackButton();
 			AnimationManager.instance.New()
-				.FadeOut(scrollViewGroup, .1f, 0)
-				.ShiftTo(scrollViewRect, new Vector2(hideShift, 0), .1f, EsType.CubicIn).Then()
+				.FadeOut(scrollViewGroup, TRANSITION_DURATION, 0)
+				.ShiftTo(scrollViewRect, new Vector2(hideShift, 0), TRANSITION_DURATION, EsType.CubicIn).Then()
 				.Call(() => {
 					action(); 
 					scrollViewRect.anchoredPosition = new Vector2(pos.x + showShift, pos.y);
 				})
-				.FadeIn(scrollViewGroup, .1f, 0)
-				.MoveTo(scrollViewRect, pos, .1f, EsType.CubicOut).Then()
+				.FadeIn(scrollViewGroup, TRANSITION_DURATION, 0)
+				.MoveTo(scrollViewRect, pos, TRANSITION_DURATION, EsType.CubicOut).Then()
 				.Call(() => {
-					scrollViewGroup.interactable = true;
+					group.interactable = true;
 					level.EnableBackButton();
 				});
 		}
