@@ -23,7 +23,8 @@ namespace TouhouMix.Net {
 			StartCoroutine(CheckJobsHandler());
 		}
 
-		const int MaxConcurrentJobCount = 4;
+		const int MAX_CONCURRENT_DOWNLOAD_COUNT = 5;
+		const int MAX_CONCURRENT_CALLBACK_COUNT = 20;
 
 		public readonly Dictionary<string, Texture2D> textureDict = new Dictionary<string, Texture2D>();
 		public readonly Dictionary<string, AudioClip> audioClipDict = new Dictionary<string, AudioClip>();
@@ -39,6 +40,8 @@ namespace TouhouMix.Net {
 			string GetKey();
 			float GetProgress();
 			bool IsFinished();
+			void Abort();
+			bool IsAborted();
 
 			void ExecuteCallback();
 		}
@@ -46,6 +49,7 @@ namespace TouhouMix.Net {
 		public interface ILoadJob<T> : ILoadJob {
 			T GetData();
 
+			IEnumerable<Action<ILoadJob<T>>> GetCallbacks();
 			void AddCallback(Action<ILoadJob<T>> callback);
 		}
 
@@ -57,6 +61,7 @@ namespace TouhouMix.Net {
 			readonly List<Action<ILoadJob<T>>> callbackList = new List<Action<ILoadJob<T>>>();
 			readonly string key;
 			bool isCallbackCalled;
+			bool isAborted;
 
 			public LoadJob(string key, Action<ILoadJob<T>> callback) {
 				callbackList.Add(callback);
@@ -64,6 +69,10 @@ namespace TouhouMix.Net {
 
 				instance.pendingLoadJobList.AddLast(this);
 				instance.pendingLoadJobDict.Add(key, this);
+			}
+
+			public IEnumerable<Action<ILoadJob<T>>> GetCallbacks() {
+				return callbackList;
 			}
 
 			public void AddCallback(Action<ILoadJob<T>> callback) {
@@ -85,6 +94,14 @@ namespace TouhouMix.Net {
 			public abstract float GetProgress();
 			public abstract bool IsFinished();
 			public abstract T GetData();
+
+			public void Abort() {
+				isAborted = true;
+			}
+
+			public bool IsAborted() {
+				return isAborted;
+			}
 		}
 
 		public class SimpleLoadJob<T> : LoadJob<T> {
@@ -92,7 +109,7 @@ namespace TouhouMix.Net {
 			readonly int delay;
 			int counter;
 
-			public SimpleLoadJob(string key, T data, Action<ILoadJob<T>> callback, int delay = 2) : base(key, callback) {
+			public SimpleLoadJob(string key, T data, Action<ILoadJob<T>> callback, int delay = 0) : base(key, callback) {
 				this.data = data;
 				this.delay = delay;
 			}
@@ -109,6 +126,32 @@ namespace TouhouMix.Net {
 			public override T GetData() {
 				return data;
 			}
+		}
+
+		public abstract class SavedLoadJob<T> : LoadJob<T> {
+			protected T data;
+			protected byte[] bytes;
+
+			protected readonly string key;
+			protected readonly string filePath;
+
+			public SavedLoadJob(string key, string filePath, Action<ILoadJob<T>> callback) : base(key, callback) {
+				this.key = key;
+				this.filePath = filePath;
+			}
+
+			public override T GetData() {
+				if (!IsFinished()) throw new Exception("Job not finished!");
+
+				if (data != null) return data;
+				new FileInfo(filePath).Directory.Create();
+				//Debug.Log(filePath + " " + path);
+				LoadDataAndBytes();
+				File.WriteAllBytes(instance.GetLocalFilePath(key), bytes);
+				return data;
+			}
+
+			protected abstract void LoadDataAndBytes();
 		}
 
 		public abstract class WwwLoadJob<T> : LoadJob<T>, IWwwLoadJob {
@@ -161,7 +204,7 @@ namespace TouhouMix.Net {
 			protected abstract T LoadData();
 		}
 
-		public class WwwLoadTextureJob : WwwLoadJob<Texture2D> {
+		public sealed class WwwLoadTextureJob : WwwLoadJob<Texture2D> {
 			public WwwLoadTextureJob(string path, string url, string filePath, Action<ILoadJob<Texture2D>> callback) : base(path, url, filePath, callback) {
 			}
 
@@ -172,7 +215,7 @@ namespace TouhouMix.Net {
 			}
 		}
 
-		public class WwwLoadAudioClipJob : WwwLoadJob<AudioClip> {
+		public sealed class WwwLoadAudioClipJob : WwwLoadJob<AudioClip> {
 			public WwwLoadAudioClipJob(string path, string url, string filePath, Action<ILoadJob<AudioClip>> callback) : base(path, url, filePath, callback) {
 			}
 
@@ -183,7 +226,7 @@ namespace TouhouMix.Net {
 			}
 		}
 
-		public class WwwLoadTextJob : WwwLoadJob<string> {
+		public sealed class WwwLoadTextJob : WwwLoadJob<string> {
 			public WwwLoadTextJob(string path, string url, string filePath, Action<ILoadJob<string>> callback) : base(path, url, filePath, callback) {
 			}
 
@@ -194,12 +237,42 @@ namespace TouhouMix.Net {
 			}
 		}
 
-		public class WwwLoadNullJob : WwwLoadJob<object> {
+		public sealed class WwwLoadNullJob : WwwLoadJob<object> {
 			public WwwLoadNullJob(string path, string url, string filePath, Action<ILoadJob<object>> callback) : base(path, url, filePath, callback) {
 			}
 
 			protected override object LoadData() {
 				return null;
+			}
+		}
+
+		public sealed class CutTextureJob : SavedLoadJob<Texture2D> {
+			readonly Texture2D texture; 
+			readonly Vector2 size; 
+			readonly float borderRadius;
+
+			public CutTextureJob(string key, string filePath, Texture2D texture, Vector2 size, float borderRadius, Action<ILoadJob<Texture2D>> callback) : base(key, filePath, callback) {
+				this.texture = texture;
+				this.size = size;
+				this.borderRadius = borderRadius;
+			}
+
+			protected override void LoadDataAndBytes() {
+				data = RawImageCutter.CutImage(texture, size, borderRadius);
+				instance.textureDict.Add(key, data);
+				bytes = data.EncodeToPNG();
+			}
+
+			public override float GetProgress() {
+				return 1;
+			}
+
+			public override bool IsFinished() {
+				return true;
+			}
+
+			public static string BuildKey(string textureKey, Vector2 size, float borderRadius) {
+				return string.Format("{0}-cut{1}x{2}-{3}.png", textureKey, (int)size.x, (int)size.y, (int)borderRadius);
 			}
 		}
 
@@ -228,21 +301,41 @@ namespace TouhouMix.Net {
 			return LoadTexture(GetLocalFileNameFromUrl(url), url, callback);
 		}
 
-		public ILoadJob<Texture2D> LoadTexture(string path, string url, Action<ILoadJob<Texture2D>> callback = null) {
-			if (pendingLoadJobDict.ContainsKey(path)) {  // Duplicated job
-				var pendingJob = (ILoadJob<Texture2D>)pendingLoadJobDict[path];
+		public ILoadJob<Texture2D> LoadTexture(string key, string url, Action<ILoadJob<Texture2D>> callback = null) {
+			if (pendingLoadJobDict.ContainsKey(key)) {  // Duplicated job
+				var pendingJob = (ILoadJob<Texture2D>)pendingLoadJobDict[key];
 				pendingJob.AddCallback(callback);
 				return pendingJob;
-			} else if (textureDict.ContainsKey(path)) {  // From memory
-				return new SimpleLoadJob<Texture2D>(path, textureDict[path], callback);
-			} else if (CheckFileExists(path)) {  // From disk
-				byte[] bytes = File.ReadAllBytes(GetLocalFilePath(path));
+			} else if (textureDict.ContainsKey(key)) {  // From memory
+				return new SimpleLoadJob<Texture2D>(key, textureDict[key], callback);
+			} else if (CheckFileExists(key)) {  // From disk
+				byte[] bytes = File.ReadAllBytes(GetLocalFilePath(key));
 				var texture = new Texture2D(4, 4);
 				texture.LoadImage(bytes);
-				textureDict.Add(path, texture);
-				return new SimpleLoadJob<Texture2D>(path, texture, callback);
+				textureDict.Add(key, texture);
+				return new SimpleLoadJob<Texture2D>(key, texture, callback);
 			} else {  // Create new
-				return new WwwLoadTextureJob(path, url, GetLocalFilePath(path), callback);
+				return new WwwLoadTextureJob(key, url, GetLocalFilePath(key), callback);
+			}
+		}
+
+		public ILoadJob<Texture2D> CutTexture(string sourceKey, Texture2D source, Vector2 size, float borderRadius, Action<ILoadJob<Texture2D>> callback = null) {
+			string key = CutTextureJob.BuildKey(sourceKey, size, borderRadius);
+
+			if (pendingLoadJobDict.ContainsKey(key)) {  // Duplicated job
+				var pendingJob = (ILoadJob<Texture2D>)pendingLoadJobDict[key];
+				pendingJob.AddCallback(callback);
+				return pendingJob;
+			} else if (textureDict.ContainsKey(key)) {  // From memory
+				return new SimpleLoadJob<Texture2D>(key, textureDict[key], callback);
+			} else if (CheckFileExists(key)) {  // From disk
+				byte[] bytes = File.ReadAllBytes(GetLocalFilePath(key));
+				var texture = new Texture2D(4, 4);
+				texture.LoadImage(bytes);
+				textureDict.Add(key, texture);
+				return new SimpleLoadJob<Texture2D>(key, texture, callback);
+			} else {  // Create new
+				return new CutTextureJob(key, GetLocalFilePath(key), source, size, borderRadius, callback);
 			}
 		}
 
@@ -305,40 +398,80 @@ namespace TouhouMix.Net {
 		public System.Collections.IEnumerator CheckJobsHandler() {
 			while (true) {
 				CheckJobs();
-				yield return new WaitForSeconds(.1f);
+				yield return new WaitForSeconds(.05f);
 			}
 		}
 
+		//readonly System.Text.StringBuilder sb = new System.Text.StringBuilder();
+
 		public void CheckJobs() {
 			if (pendingLoadJobList.Count > 0) {
+				int finishCount = 0;
+				int abortCount = 0;
+
 				var node = pendingLoadJobList.First;
-				while (node != null && !node.Value.IsFinished()) node = node.Next;
-				if (node != null) {
-					node.Value.ExecuteCallback();
-					pendingLoadJobDict.Remove(node.Value.GetKey());
-					pendingLoadJobList.Remove(node);
-					Debug.LogFormat("Job Finish ({0})", pendingLoadJobList.Count);
+				for (int i = 0; node != null && i < MAX_CONCURRENT_CALLBACK_COUNT;) {
+					while (node != null && !node.Value.IsFinished()) node = node.Next;
+					if (node != null) {
+						if (!node.Value.IsAborted()) {
+							i += 1;
+							finishCount += 1;
+							node.Value.ExecuteCallback();
+#if UNITY_EDITOR
+							node.Value.ExecuteCallback();
+#else
+							try {
+								node.Value.ExecuteCallback();
+							} catch(System.Exception ex) {
+								Debug.LogError(ex);
+							}
+#endif
+							//Debug.LogFormat("Job Finish ({0})", pendingLoadJobList.Count);
+						} else {
+							abortCount += 1;
+							//Debug.LogFormat("Job aborted ({0})", pendingLoadJobList.Count);
+						}
+						var next = node.Next;
+						pendingLoadJobDict.Remove(node.Value.GetKey());
+						pendingLoadJobList.Remove(node);
+						node = next;
+					}
+				}
+				if (finishCount != 0 || abortCount != 0) {
+					Debug.LogFormat("Job finish {0} abort {1}", finishCount, abortCount);
 				}
 			}
 
 			if (activeWwwLoadJobList.Count > 0) {
+				int finishCount = 0;
 				var node = activeWwwLoadJobList.First;
 				while (node != null) {
 					var next = node.Next;
 					if (node.Value.IsFinished()) {
 						activeWwwLoadJobList.Remove(node);
-						Debug.LogFormat("DL Finish ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
+						finishCount += 1;
+						//Debug.LogFormat("DL Finish ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
 					}
 					node = next;
 				}
+				if (finishCount != 0) {
+					Debug.LogFormat("DL finish {0}", finishCount);
+				}
 			}
 
-			while (wwwLoadJobList.Count > 0 && activeWwwLoadJobList.Count < MaxConcurrentJobCount) {
-				var job = wwwLoadJobList.First.Value;
-				wwwLoadJobList.RemoveFirst();
-				job.StartDownload();
-				activeWwwLoadJobList.AddLast(job);
-				Debug.LogFormat("DL Start ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
+			if (wwwLoadJobList.Count > 0) {
+				int startCount = 0;
+				while (wwwLoadJobList.Count > 0 && activeWwwLoadJobList.Count < MAX_CONCURRENT_DOWNLOAD_COUNT) {
+					var job = wwwLoadJobList.First.Value;
+					wwwLoadJobList.RemoveFirst();
+					job.StartDownload();
+					activeWwwLoadJobList.AddLast(job);
+					startCount += 1;
+					//Debug.LogFormat("DL Start ({0} / {1})", activeWwwLoadJobList.Count, activeWwwLoadJobList.Count + wwwLoadJobList.Count);
+				}
+				if (startCount != 0) {
+					Debug.LogFormat("DL start {0}", startCount);
+				}
 			}
 		}
 	}

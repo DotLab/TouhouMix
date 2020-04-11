@@ -128,10 +128,10 @@ namespace TouhouMix.Levels.SongSelect {
 				sequenceCollection.sequences.Count, sequenceCollection.noteCount, hash = MiscHelper.GetHexEncodedMd5Hash(bytes));
 
 			if (string.IsNullOrWhiteSpace(midi.coverUrl)) {
-				coverCutter.Cut(defaultTexture);
+				coverCutter.Cut(defaultTexture.name, defaultTexture);
 			} else {
 				Net.WebCache.instance.LoadTexture(midi.coverUrl, job => {
-					coverCutter.Cut(job.GetData());
+					coverCutter.Cut(job.GetKey(), job.GetData());
 				});
 			}
 
@@ -183,7 +183,7 @@ namespace TouhouMix.Levels.SongSelect {
 			if (!string.IsNullOrEmpty(trialObj.Get<string>("userAvatarUrl"))) {
 				Net.WebCache.instance.LoadTexture(trialObj.Get<string>("userAvatarUrl"), job => {
 					game.ExecuteOnMain(() => { 
-						item.imageCutter.Cut(job.GetData());
+						item.imageCutter.Cut(job.GetKey(), job.GetData());
 					});
 				});
 			}
@@ -226,16 +226,11 @@ namespace TouhouMix.Levels.SongSelect {
 			if (coverUrl != null) {
 				Debug.Log("Midi cover url");
 				Net.WebCache.instance.LoadTexture(coverUrl, job => {
-					Debug.Log("Midi cover url downloaded");
-					var texture = job.GetData();
-					game.ExecuteOnMain(() => {
-						Debug.Log("Cut midi");
-						item.imageCutter.Cut(texture);
-					});
+					item.imageCutter.Cut(job.GetKey(), job.GetData());
 				});
 			} else {
 				Debug.Log("Cut midi default");
-				item.imageCutter.Cut(defaultTexture);
+				item.imageCutter.Cut(defaultTexture.name, defaultTexture);
 			}
 		}
 

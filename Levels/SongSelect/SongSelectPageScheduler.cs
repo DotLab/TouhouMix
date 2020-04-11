@@ -129,11 +129,10 @@ namespace TouhouMix.Levels.SongSelect {
 				}
 				if (coverUrl != null) {
 					Net.WebCache.instance.LoadTexture(coverUrl, job => {
-						var texture = job.GetData();
-						controller.imageCutter.Cut(texture);
+						controller.imageCutter.Cut(job.GetKey(), job.GetData());
 					});
 				} else {
-					controller.imageCutter.Cut(defaultTexture);
+					controller.imageCutter.Cut(defaultTexture.name, defaultTexture);
 				}
 			});
 		}
@@ -168,11 +167,10 @@ namespace TouhouMix.Levels.SongSelect {
 				}
 				if (coverUrl != null) {
 					Net.WebCache.instance.LoadTexture(coverUrl, job => {
-						var texture = job.GetData();
-						controller.imageCutter.Cut(texture);
+						controller.imageCutter.Cut(job.GetKey(), job.GetData());
 					});
 				} else {
-					controller.imageCutter.Cut(defaultTexture);
+					controller.imageCutter.Cut(defaultTexture.name, defaultTexture);
 				}
 			});
 		}

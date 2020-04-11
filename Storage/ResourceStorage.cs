@@ -47,8 +47,6 @@ namespace TouhouMix.Storage {
 		public readonly Dictionary<int, Protos.Resource.LangOptionProto> langOptionDictByIndex = new Dictionary<int, Protos.Resource.LangOptionProto>();
 
 		public void Init(Levels.GameScheduler game) {
-			DecompressMidiBundle();
-
 			//authorProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AuthorsProto>(LoadText(AUTHORS_FILE_PATH)).authorList);
 			//albumProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AlbumsProto>(LoadText(ALBUMS_FILE_PATH)).albumList);
 			//songProtoList.AddRange(UnityEngine.JsonUtility.FromJson<SongsProto>(LoadText(SONGS_FILE_PATH)).songList);
@@ -161,7 +159,7 @@ namespace TouhouMix.Storage {
 			}
 		}
 
-		void DecompressMidiBundle() {
+		public static void DecompressMidiBundle() {
 			string bundleId = "20200411";
 			if (UnityEngine.PlayerPrefs.GetString("installedMidiBundleId", "") == bundleId) {
 				return;

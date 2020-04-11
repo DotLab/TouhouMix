@@ -123,7 +123,6 @@ namespace TouhouMix {
 			} else {
 				name = string.Empty;
 			}
-			UnityEngine.Debug.Log(name);
 			return name;
 		}
 

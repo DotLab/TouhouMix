@@ -113,11 +113,11 @@ namespace TouhouMix.Levels.SongSelect {
       item.songText.text = midi.song == null ? midi.sourceSongName : midi.song.name.TranslateArtifact();
 
       if (midi.coverUrl != null) {
-        web.LoadTexture(midi.coverUrl, textureJob => {
-          item.coverImageCutter.Cut(textureJob.GetData());
+        web.LoadTexture(midi.coverUrl, job => {
+          item.coverImageCutter.Cut(job.GetKey(), job.GetData());
         });
       } else {
-        item.coverImageCutter.Cut(item.defaultTexture);
+        item.coverImageCutter.Cut(item.defaultTexture.name, item.defaultTexture);
       }
 
       item.downloadButton.onClick.RemoveAllListeners();

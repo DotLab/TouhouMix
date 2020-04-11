@@ -89,6 +89,8 @@ namespace TouhouMix.Levels {
 		#endregion
 
 		public void Init() {
+			ResourceStorage.DecompressMidiBundle();
+
 			jsonStorage = new JsonStorage();
 			jsonStorage.Load();
 
@@ -124,11 +126,12 @@ namespace TouhouMix.Levels {
 		}
 
 		public void Save() {
+			Debug.Log("Save");
+
 			jsonStorage.Set(JsonStorageKeys.V1.UI_STATE, uiState);
 			jsonStorage.Set(JsonStorageKeys.V1.MIDI_SYNTH_CONFIGS, midiSynthConfigs);
 			jsonStorage.Set(JsonStorageKeys.V1.GAMEPLAY_CONFIG, gameplayConfig);
 			jsonStorage.Set(JsonStorageKeys.V1.APP_CONFIG, appConfig);
-
 			jsonStorage.Flush();
 
 			translationSevice.Flush();

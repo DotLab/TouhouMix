@@ -8,7 +8,7 @@ namespace TouhouMix.Net {
 	public static class TranslationServiceExtension {
 		public static string TranslateArtifact(this string self) {
 			var game = Levels.GameScheduler.instance;
-				UnityEngine.Debug.Log("translate " + self);
+				//UnityEngine.Debug.Log("translate " + self);
 			if (game.appConfig.translateUserGeneratedContent) {
 				return game.translationSevice.Translate(self, TranslationService.NAME_ARTIFACT);
 			} else {
@@ -104,30 +104,25 @@ namespace TouhouMix.Net {
 			}
 		}
 
-		public sealed class Translation {
-			public string src;
-			public string lang;
-			public string ns;
-			public string text;
-		}
-
 		public void Set(string src, string lang, string ns, string text) {
 			dict[Tuple.Create(src, lang, ns)] = text;
 		}
 
 		public void Flush() {
 			var dictList = dict
-				.Select(pair => new Translation {src = pair.Key.item1, lang = pair.Key.item2, ns = pair.Key.item3, text = pair.Value})
+				.Select(pair => new Storage.Protos.Api.TranslationProto {src = pair.Key.item1, lang = pair.Key.item2, ns = pair.Key.item3, text = pair.Value})
 				.ToList();
 			System.IO.File.WriteAllText(filePath, json.Stringify(dictList));
+			UnityEngine.Debug.Log("Translation flushed");
 		}
 
 		public void Load() {
 			if (System.IO.File.Exists(filePath)) {
 				var jsonText = System.IO.File.ReadAllText(filePath);
-				var dictList = json.Parse<List<Translation>>(jsonText);
+				var dictList = json.Parse<List<Storage.Protos.Api.TranslationProto>>(jsonText);
 				dictList.ForEach(x => dict[Tuple.Create(x.src, x.lang, x.ns)] = x.text);
 			}
+			UnityEngine.Debug.Log("Translation loaded");
 		}
 	}
 }
