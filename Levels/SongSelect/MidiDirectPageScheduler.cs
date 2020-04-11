@@ -48,8 +48,8 @@ namespace TouhouMix.Levels.SongSelect {
     }
 
     public override void Back() {
-      base.Back();
       res.LoadMidis();
+      base.Back();
     }
 
     void Fetch() {

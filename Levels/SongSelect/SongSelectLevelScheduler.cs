@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using Uif;
 using Uif.Tasks;
+using Uif.Settables;
 
 namespace TouhouMix.Levels.SongSelect {
 	public sealed class SongSelectLevelScheduler : MonoBehaviour, ILevelScheduler {
@@ -45,7 +46,7 @@ namespace TouhouMix.Levels.SongSelect {
 
 		//public DownloadedSongSelectPageScheduler.Midi selectedDownloadedMidi;
 
-		readonly Stack<IPageScheduler<SongSelectLevelScheduler>> pageStack = new Stack<IPageScheduler<SongSelectLevelScheduler>>();
+		readonly Stack<PageScheduler<SongSelectLevelScheduler>> pageStack = new Stack<PageScheduler<SongSelectLevelScheduler>>();
 		GameScheduler game;
 		AnimationManager anim;
 
@@ -102,26 +103,45 @@ namespace TouhouMix.Levels.SongSelect {
 			backButton.interactable = false;
 		}
 
-		public void Push(IPageScheduler<SongSelectLevelScheduler> page) {
+		public void Push(PageScheduler<SongSelectLevelScheduler> page) {
 			DisableBackButton();
-
 			var topPage = pageStack.Peek();
 			pageStack.Push(page);
-			anim.New()
-				.Append(page.Show)
-				.Append(topPage.Hide).Then()
-				.Call(EnableBackButton);
+			//anim.New()
+			//	.Append(page.Show)
+			//	.Append(topPage.Hide).Then()
+			//	.Call(EnableBackButton);
+			page.Enable();
+			anim.New(this)
+				.FadeOut(topPage.group, .25f, EsType.CubicOut)
+				.ScaleTo(topPage.transform, Vector3.one * 2, .25f, EsType.CubicOut)
+				.FadeInFromZero(page.group, .25f, EsType.CubicOut)
+				.ScaleFromTo(page.transform, Vector3.zero , Vector3.one, .25f, EsType.CubicOut)
+				.Then().Call(() => {
+					topPage.Disable();
+					EnableBackButton();
+				});
 		}
 
 		public void Pop() {
 			DisableBackButton();
-
 			var topPage = pageStack.Peek();
 			pageStack.Pop();
-			anim.New()
-				.Append(pageStack.Peek().Show)
-				.Append(topPage.Hide).Then()
-				.Call(EnableBackButton);
+			var page = pageStack.Peek();
+			//anim.New()
+			//	.Append(pageStack.Peek().Show)
+			//	.Append(topPage.Hide).Then()
+			//	.Call(EnableBackButton);
+			page.Enable();
+			anim.New(this)
+				.FadeOut(topPage.group, .25f, EsType.CubicOut)
+				.ScaleTo(topPage.transform, Vector3.zero, .25f, EsType.CubicOut)
+				.FadeInFromZero(page.group, .25f, EsType.CubicOut)
+				.ScaleFromTo(page.transform, Vector3.one * 2, Vector3.one, .25f, EsType.CubicOut)
+				.Then().Call(() => {
+					topPage.Disable();
+					EnableBackButton();
+				});
 		}
 	}
 }

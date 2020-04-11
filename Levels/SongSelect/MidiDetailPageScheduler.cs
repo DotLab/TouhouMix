@@ -64,10 +64,10 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		public override void Back() {
-			base.Back();
 			level.selectedMidiId = null;
 			level.selectedSongId = null;
 			//level.selectedDownloadedMidi = null;
+			base.Back();
 		}
 
 		//void InitLocal() {

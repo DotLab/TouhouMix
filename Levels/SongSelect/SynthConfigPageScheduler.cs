@@ -74,8 +74,7 @@ namespace TouhouMix.Levels.SongSelect {
 
 		public override void Back() {
 			game.midiSynthConfigs.synthConfigDict[midiFileSha256Hash] = state;
-
-			level.Pop();
+			base.Back();
 		}
 
 		public override void Init(SongSelectLevelScheduler level) {
