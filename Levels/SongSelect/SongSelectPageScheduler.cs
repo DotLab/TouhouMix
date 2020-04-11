@@ -152,7 +152,9 @@ namespace TouhouMix.Levels.SongSelect {
 
 				controller.titleText.text = string.Format("<b>{0:N0}:</b> {1}", song.track, song.name.TranslateArtifact());
 				controller.line1Text.text = string.Format("{0:N0} midis", res.QueryMidisBySongId(song._id).Count());
-				controller.line2Text.text = "";
+
+				string composerName = res.QueryPersonById(song.composerId)?.name;
+				controller.line2Text.text = composerName == null ? "" : string.Format("composed by {0}", composerName);
 				controller.action = () => {
 					OnScrollViewItemClicked(song.albumId, song._id, null);
 				};

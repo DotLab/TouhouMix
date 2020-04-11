@@ -17,6 +17,7 @@
 		public string artistUrl;
 		
 		public string songId;
+		public string authorId;
 		public SongProto song;
 		public AlbumProto album;
 		public PersonProto author;

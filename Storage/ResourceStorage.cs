@@ -217,6 +217,10 @@ namespace TouhouMix.Storage {
 			return midiProtoList.Find(x => x._id == midiId);
 		}
 
+		public Protos.Api.PersonProto QueryPersonById(string personId) {
+			return personProtoList.Find(x => x._id == personId);
+		}
+
 		public IEnumerable<Protos.Api.AlbumProto> QueryAllAlbums() {
 		return albumProtoList.OrderBy(x => System.DateTime.Parse(x.date));
 	}

@@ -100,7 +100,7 @@ namespace TouhouMix.Levels.Gameplay {
 			var audioConfig = AudioSettings.GetConfiguration();
 			sampleRate = audioConfig.sampleRate;
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 64);
-			sf2Synth.SetVolume(-10);
+			sf2Synth.SetVolume(0);
 
 			midiFile = game_.midiFile ?? new MidiFile(Resources.Load<TextAsset>(testMidiPath).bytes);
 			sequenceCollection = game_.noteSequenceCollection ?? new NoteSequenceCollection(midiFile);

@@ -105,7 +105,7 @@ namespace TouhouMix.Levels.SongSelect {
 					SystemInfo.operatingSystem, SystemInfo.processorType, SystemInfo.graphicsDeviceType);
 
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 64);
-			sf2Synth.SetVolume(-10);
+			sf2Synth.SetVolume(0);
 
 			if (midiFile != null && level.midiDetailPage.midiFile == midiFile) return;
 			sf2Synth.Reset();

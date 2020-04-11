@@ -113,6 +113,7 @@ namespace TouhouMix.Levels.SongSelect {
 
 			song = res.QuerySongById(midi.songId);
 			album = res.QueryAlbumById(song.albumId);
+			author = res.QueryPersonById(midi.authorId);
 			
 			// _id is path for custom midis
 			byte[] bytes = System.IO.File.Exists(midi._id) ? System.IO.File.ReadAllBytes(midi._id) : 
@@ -123,7 +124,7 @@ namespace TouhouMix.Levels.SongSelect {
 
 			sourceText.text = string.Format("{0} • {1}", album.name.TranslateArtifact(), song.name.TranslateArtifact());
 			titleText.text = midi.name;
-			artistText.text = string.Format("by {0}", author.name);
+			artistText.text = string.Format("by {0}", author?.name ?? midi.artistName);
 			infoText.text = string.Format("{0:N0} Sequences • {1:N0} Notes • {2}",
 				sequenceCollection.sequences.Count, sequenceCollection.noteCount, hash = MiscHelper.GetHexEncodedMd5Hash(bytes));
 
