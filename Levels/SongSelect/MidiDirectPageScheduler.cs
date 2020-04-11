@@ -59,14 +59,14 @@ namespace TouhouMix.Levels.SongSelect {
           return;
         }
 
-        var list = (JsonList)data;
+        var list = net.json.Parse<Storage.Protos.Api.MidiProto[]>(data);
 
         game.ExecuteOnMain(() => Render(list));
       });
     }
 
-    void Render(JsonList midiList) {
-      int count = midiList.Count;
+    void Render(Storage.Protos.Api.MidiProto[] midiList) {
+      int count = midiList.Length;
       int rows = count / itemsPerRow;
       if (count % itemsPerRow != 0) {
         rows += 1;
@@ -83,7 +83,7 @@ namespace TouhouMix.Levels.SongSelect {
             if (i < count) {
               var itemController = rowTrans.GetChild(j).GetComponent<MidiDirectScrollItemController>();
               itemController.gameObject.SetActive(true);
-              RenderItem(itemController, (JsonObj)midiList[i]);
+              RenderItem(itemController, midiList[i]);
             } else {
               rowTrans.GetChild(j).gameObject.SetActive(false);
             }
@@ -93,7 +93,7 @@ namespace TouhouMix.Levels.SongSelect {
           var rowTrans = Instantiate(scrollRowPrefab, scrollContentRect).transform;
           for (int j = 0; j < itemsPerRow; j++) {
             var itemController = Instantiate(scrollItemPrefab, rowTrans).GetComponent<MidiDirectScrollItemController>();
-            RenderItem(itemController, (JsonObj)midiList[currentRow * itemsPerRow + j]);
+            RenderItem(itemController, midiList[currentRow * itemsPerRow + j]);
           }
         }
       }
@@ -105,24 +105,15 @@ namespace TouhouMix.Levels.SongSelect {
       pageControlRowRect.SetAsLastSibling();
     }
 
-    void RenderItem(MidiDirectScrollItemController item, JsonObj midi) {
-      item.nameText.text = (string)midi["name"];
-      item.authorText.text = (string)midi["artistName"];
-      item.uploaderText.text = "upload by " + (string)midi["uploaderName"];
-      int touhouAlbumIndex = (int)(double)midi["touhouAlbumIndex"];
-      int touhouSongIndex = (int)(double)midi["touhouSongIndex"];
-      if (touhouAlbumIndex >= 0 && touhouSongIndex >= 0) {
-        item.albumText.text = game.resourceStorage.albumProtoDict[touhouAlbumIndex].name;
-        item.songText.text = game.resourceStorage.songProtoDict[
-          new Systemf.Tuple<int, int>(touhouAlbumIndex, touhouSongIndex)].name;
-      } else {
-        item.albumText.text = (string)midi["sourceAlbumName"];
-        item.songText.text = (string)midi["sourceSongName"];
-      }
+    void RenderItem(MidiDirectScrollItemController item, Storage.Protos.Api.MidiProto midi) {
+      item.nameText.text = midi.name;
+      item.authorText.text = midi.artistName;
+      item.uploaderText.text = "upload by " + midi.uploaderName;
+      item.albumText.text = midi.sourceAlbumName;
+      item.songText.text = midi.sourceSongName;
 
-      if (midi.ContainsKey("coverUrl")) {
-        string coverUrl = (string)midi["coverUrl"];
-        web.LoadTexture(coverUrl, textureJob => {
+      if (midi.coverUrl != null) {
+        web.LoadTexture(midi.coverUrl, textureJob => {
           item.coverImageCutter.Cut(textureJob.GetData());
         });
       } else {
@@ -132,8 +123,7 @@ namespace TouhouMix.Levels.SongSelect {
       item.downloadButton.onClick.RemoveAllListeners();
       item.downloadButton.onClick.AddListener(() => DownloadMidi(item, midi));
 
-      string hash = JsonHelper.Get<string>(midi, "hash");
-      if (web.CheckUrlFileExists(hash) || res.midiHashSet.Contains(hash)) {
+      if (web.CheckUrlFileExists(midi.hash)) {
         item.coverImageCutter.image.color = new Color(1, 1, 1, .5f);
         item.iconText.text = FontAwesome.Solid.CheckCircle;
       } else {
@@ -142,9 +132,9 @@ namespace TouhouMix.Levels.SongSelect {
       }
     }
 
-    public void DownloadMidi(MidiDirectScrollItemController item, JsonObj midiInfo) {
-      string hash = midiInfo.Get<string>("hash");
-      if (web.CheckUrlFileExists(hash) || res.midiHashSet.Contains(hash)) {
+    public void DownloadMidi(MidiDirectScrollItemController item, Storage.Protos.Api.MidiProto midiProto) {
+      string hash = midiProto.hash;
+      if (web.CheckUrlFileExists(hash)) {
         return;
       }
 
@@ -155,7 +145,19 @@ namespace TouhouMix.Levels.SongSelect {
 
       net.ClAppMidiDownload(hash, (error, data) => {
         web.LoadNull(hash, (string)data, job => {
-          db.WriteDoc(LocalDb.COLLECTION_MIDIS, midiInfo.Get<string>("id"), midiInfo);
+          db.WriteDoc(LocalDb.COLLECTION_MIDIS, midiProto._id, midiProto);
+          if (midiProto.song != null) {
+            db.WriteDoc(LocalDb.COLLECTION_SONGS, midiProto.song._id, midiProto.song);
+          }
+          if (midiProto.album != null) {
+            db.WriteDoc(LocalDb.COLLECTION_ALBUMS, midiProto.album._id, midiProto.album);
+          }
+          if (midiProto.author != null) {
+            db.WriteDoc(LocalDb.COLLECTION_PERSONS, midiProto.author._id, midiProto.author);
+          }
+          if (midiProto.composer != null) {
+            db.WriteDoc(LocalDb.COLLECTION_PERSONS, midiProto.composer._id, midiProto.composer);
+          }
           job.GetData();
           anim.Clear(item);
           item.coverImageCutter.image.color = new Color(1, 1, 1, .5f);

@@ -45,6 +45,8 @@ namespace TouhouMix.Net {
 
 		public interface ILoadJob<T> : ILoadJob {
 			T GetData();
+
+			void AddCallback(Action<ILoadJob<T>> callback);
 		}
 
 		public interface IWwwLoadJob : ILoadJob {
@@ -52,22 +54,27 @@ namespace TouhouMix.Net {
 		}
 
 		public abstract class LoadJob<T> : ILoadJob<T> {
-			readonly Action<ILoadJob<T>> callback;
+			readonly List<Action<ILoadJob<T>>> callbackList = new List<Action<ILoadJob<T>>>();
 			readonly string key;
 			bool isCallbackCalled;
 
 			public LoadJob(string key, Action<ILoadJob<T>> callback) {
-				this.callback = callback;
+				callbackList.Add(callback);
 				this.key = key;
 
 				instance.pendingLoadJobList.AddLast(this);
 				instance.pendingLoadJobDict.Add(key, this);
 			}
 
-			public void ExecuteCallback() {
-				if (isCallbackCalled || callback == null) return;
+			public void AddCallback(Action<ILoadJob<T>> callback) {
+				if (callback != null) callbackList.Add(callback);
+			}
 
-				callback(this);
+			public void ExecuteCallback() {
+				if (isCallbackCalled) return;
+				foreach (var callback in callbackList) {
+					callback(this);
+				}
 				isCallbackCalled = true;
 			}
 
@@ -223,7 +230,9 @@ namespace TouhouMix.Net {
 
 		public ILoadJob<Texture2D> LoadTexture(string path, string url, Action<ILoadJob<Texture2D>> callback = null) {
 			if (pendingLoadJobDict.ContainsKey(path)) {  // Duplicated job
-				return (ILoadJob<Texture2D>)pendingLoadJobDict[path];
+				var pendingJob = (ILoadJob<Texture2D>)pendingLoadJobDict[path];
+				pendingJob.AddCallback(callback);
+				return pendingJob;
 			} else if (textureDict.ContainsKey(path)) {  // From memory
 				return new SimpleLoadJob<Texture2D>(path, textureDict[path], callback);
 			} else if (CheckFileExists(path)) {  // From disk
@@ -308,7 +317,7 @@ namespace TouhouMix.Net {
 					node.Value.ExecuteCallback();
 					pendingLoadJobDict.Remove(node.Value.GetKey());
 					pendingLoadJobList.Remove(node);
-					//Debug.LogFormat("Job Finish ({0})", pendingLoadJobList.Count);
+					Debug.LogFormat("Job Finish ({0})", pendingLoadJobList.Count);
 				}
 			}
 

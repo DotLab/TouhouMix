@@ -104,35 +104,35 @@ namespace TouhouMix.Levels.SongSelect {
 			albumDict.Clear();
 			songDict.Clear();
 
-			string[] docIds = db.GetAllDocIds(LocalDb.COLLECTION_MIDIS);
-			foreach (var docId in docIds) {
-				var midiObj = db.ReadDoc(LocalDb.COLLECTION_MIDIS, docId);
-				var midi = json.Parse<Midi>(midiObj);
+			//string[] docIds = db.ReadAllDocIds(LocalDb.COLLECTION_MIDIS);
+			//foreach (var docId in docIds) {
+			//	var midiObj = db.ReadDoc(LocalDb.COLLECTION_MIDIS, docId);
+			//	var midi = json.Parse<Midi>(midiObj);
 
-				if (midi.touhouAlbumIndex > 0) {
-					midi.sourceAlbumName = res.albumProtoDict[midi.touhouAlbumIndex].name;
-					midi.sourceSongName = res.songProtoDict[
-						Tuple.Create(midi.touhouAlbumIndex, midi.touhouSongIndex)].name;
-				}
+			//	if (midi.touhouAlbumIndex > 0) {
+			//		midi.sourceAlbumName = res.albumProtoDict[midi.touhouAlbumIndex].name;
+			//		midi.sourceSongName = res.songProtoDict[
+			//			Tuple.Create(midi.touhouAlbumIndex, midi.touhouSongIndex)].name;
+			//	}
 
-				string albumName = midi.sourceAlbumName;
-				string songName = midi.sourceSongName;
+			//	string albumName = midi.sourceAlbumName;
+			//	string songName = midi.sourceSongName;
 
-				if (!albumDict.TryGetValue(albumName, out Album album)) {
-					album = new Album { name = albumName };
-					albumDict.Add(album.name, album);
-				}
-				album.midiList.Add(midi);
-				midi.album = album;
+			//	if (!albumDict.TryGetValue(albumName, out Album album)) {
+			//		album = new Album { name = albumName };
+			//		albumDict.Add(album.name, album);
+			//	}
+			//	album.midiList.Add(midi);
+			//	midi.album = album;
 
-				Song song;
-				if (!songDict.TryGetValue(Tuple.Create(albumName, songName), out song)) {
-					song = new Song { name = songName };
-					songDict.Add(Tuple.Create(albumName, songName), song);
-				}
-				song.midiList.Add(midi);
-				midi.song = song;
-			}
+			//	Song song;
+			//	if (!songDict.TryGetValue(Tuple.Create(albumName, songName), out song)) {
+			//		song = new Song { name = songName };
+			//		songDict.Add(Tuple.Create(albumName, songName), song);
+			//	}
+			//	song.midiList.Add(midi);
+			//	midi.song = song;
+			//}
 
 			selectedAlbum = GetFirstAlbum();
 
@@ -221,7 +221,8 @@ namespace TouhouMix.Levels.SongSelect {
 			item.line2Text.text = " 0   0x   0%";
 			item.action = () => {
 				Debug.Log("ShowMidiDetail");
-				level.selectedDownloadedMidi = midi;
+				//level.selectedDownloadedMidi = midi;
+				level.selectedMidiId = midi.id;
 				level.Push(level.midiDetailPage);
 			};
 

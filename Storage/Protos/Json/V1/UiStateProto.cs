@@ -2,20 +2,20 @@
 	[System.Serializable]
 	public sealed class UiStateProto {
 		public float albumSelectScrollViewPositionY;
-		public int selectedAlbum;
+		public string selectedAlbumId;
 		public float songSelectScrollViewPositionY;
-		public int selectedSong;
+		public string selectedSongId;
 		public float midiSelectScrollViewPositionY;
-		public string selectedMidi;
+		public string selectedMidiId;
 
 		public static UiStateProto CreateDefault() {
 			return new UiStateProto{
 				albumSelectScrollViewPositionY = 0,
-				selectedAlbum = -1, 
+				selectedAlbumId = null, 
 				songSelectScrollViewPositionY = 0,
-				selectedSong = -1, 
+				selectedSongId = null, 
 				midiSelectScrollViewPositionY = 0,
-				selectedMidi = null, 
+				selectedMidiId = null, 
 			};
 		}
 	}

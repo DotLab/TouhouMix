@@ -92,22 +92,22 @@ namespace TouhouMix.Levels {
 			jsonStorage = new JsonStorage();
 			jsonStorage.Load();
 
-			resourceStorage = new ResourceStorage();
-			resourceStorage.Load();
-
 			uiState = jsonStorage.Get(JsonStorageKeys.V1.UI_STATE, Storage.Protos.Json.V1.UiStateProto.CreateDefault());
 			midiSynthConfigs = jsonStorage.Get(JsonStorageKeys.V1.MIDI_SYNTH_CONFIGS, Storage.Protos.Json.V1.MidiSynthConfigsProto.CreateDefault());
 			gameplayConfig = jsonStorage.Get(JsonStorageKeys.V1.GAMEPLAY_CONFIG, Storage.Protos.Json.V1.GameplayConfigProto.CreateDefault());
 			appConfig = jsonStorage.Get(JsonStorageKeys.V1.APP_CONFIG, Storage.Protos.Json.V1.AppConfigProto.CreateDefault());
 
+			localDb = new LocalDb();
+			localDb.Init();
+
+			resourceStorage = new ResourceStorage();
+			resourceStorage.Init(this);
+
 			username = PlayerPrefs.GetString("TEMP_USERNAME", null);
 			password = PlayerPrefs.GetString("TEMP_PASSWORD", null);
 
 			netManager = new NetManager();
-			netManager.Init();
-
-			localDb = new LocalDb();
-			localDb.Init();
+			netManager.Init(this);
 
 			translationSevice = new TranslationService();
 			translationSevice.Init(netManager);

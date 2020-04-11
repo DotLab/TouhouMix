@@ -22,28 +22,28 @@ namespace TouhouMix.Levels.SongSelect {
 			get { return game.uiState.albumSelectScrollViewPositionY; } 
 			set { game.uiState.albumSelectScrollViewPositionY = value; } 
 		}
-		public int selectedAlbum { 
-			get { return game.uiState.selectedAlbum; }
-			set { game.uiState.selectedAlbum = value; } 
+		public string selectedAlbumId { 
+			get { return game.uiState.selectedAlbumId; }
+			set { game.uiState.selectedAlbumId = value; } 
 		}
 		public float songSelectScrollViewPositionY { 
 			get { return game.uiState.songSelectScrollViewPositionY; } 
 			set { game.uiState.songSelectScrollViewPositionY = value; } 
 		}
-		public int selectedSong { 
-			get { return game.uiState.selectedSong; }
-			set { game.uiState.selectedSong = value; } 
+		public string selectedSongId { 
+			get { return game.uiState.selectedSongId; }
+			set { game.uiState.selectedSongId = value; } 
 		}
 		public float midiSelectScrollViewPositionY { 
 			get { return game.uiState.midiSelectScrollViewPositionY; } 
 			set { game.uiState.midiSelectScrollViewPositionY = value; } 
 		}
-		public string selectedMidi { 
-			get { return game.uiState.selectedMidi; }
-			set { game.uiState.selectedMidi = value; } 
+		public string selectedMidiId { 
+			get { return game.uiState.selectedMidiId; }
+			set { game.uiState.selectedMidiId = value; } 
 		}
 
-		public DownloadedSongSelectPageScheduler.Midi selectedDownloadedMidi;
+		//public DownloadedSongSelectPageScheduler.Midi selectedDownloadedMidi;
 
 		readonly Stack<IPageScheduler<SongSelectLevelScheduler>> pageStack = new Stack<IPageScheduler<SongSelectLevelScheduler>>();
 		GameScheduler game;

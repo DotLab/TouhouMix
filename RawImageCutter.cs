@@ -37,18 +37,25 @@ public class RawImageCutter : MonoBehaviour {
 		if (useRuntimeSize) {
 			size = GetComponent<RectTransform>().rect.size;
 		}
-		//Debug.Log("Cut " + size + " for " + gameObject.name);
+		Debug.Log("Cut " + size + " for " + gameObject.name);
 		if (size.x == 0 || size.y == 0) {
 			Debug.LogWarning("Cutter exit, size 0");
 			return;
 		}
 		float aspect = size.x / size.y;
-		int pixelWidth = texture.width;
-		int pixelHeight = (int)(texture.width / aspect);
+		int pixelWidth;
+		int pixelHeight;
+		if (texture.width / (float)texture.height < aspect) {
+			pixelWidth = texture.width;
+			pixelHeight = (int)(texture.width / aspect);
+		} else {
+			pixelHeight = texture.height;
+			pixelWidth = (int)(texture.height * aspect);
+		}
 		cuttedTexture = new Texture2D(pixelWidth, pixelHeight);
 		cuttedTexture.wrapMode = TextureWrapMode.Mirror;
 		cuttedTexture.SetPixels(
-			texture.GetPixels(0, (texture.height - pixelHeight) >> 1, pixelWidth, pixelHeight));
+			texture.GetPixels((texture.width - pixelWidth) >> 1, (texture.height - pixelHeight) >> 1, pixelWidth, pixelHeight));
 
 		if (borderRadius != 0) {
 			float pixelRadius = borderRadius * pixelWidth / size.x;

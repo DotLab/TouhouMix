@@ -33,7 +33,7 @@ namespace TouhouMix.Net {
 
 		public int rtt;
 
-		JsonContext json = new JsonContext();
+		public readonly JsonContext json = new JsonContext();
 
 		WebSocket websocket;
 
@@ -49,11 +49,11 @@ namespace TouhouMix.Net {
 
 		public event System.Action<NetStatus> onNetStatusChangedEvent;
 
-		public void Init() {
+		public void Init(Levels.GameScheduler game) {
 #if UNITY_EDITOR
 			websocket = new WebSocket("ws://192.168.1.102:6008");
 #else
-			if (Levels.GameScheduler.instance.appConfig.networkEndpoint == 0) {
+			if (game.appConfig.networkEndpoint == 0) {
 				websocket = new WebSocket("wss://thmix.org/websocket");
 			} else {
 				websocket = new WebSocket("wss://asia.thmix.org/websocket");

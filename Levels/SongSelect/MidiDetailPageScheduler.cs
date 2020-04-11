@@ -1,7 +1,7 @@
 ﻿using UnityEngine.UI;
 using UnityEngine;
 using TouhouMix.Storage;
-using TouhouMix.Storage.Protos.Resource;
+//using TouhouMix.Storage.Protos.Resource;
 using Systemf;
 using Uif;
 using Uif.Tasks;
@@ -26,82 +26,81 @@ namespace TouhouMix.Levels.SongSelect {
 		public RectTransform rankContentRect;
 		public GameObject rankItemPrefab;
 
-		public AlbumProto album;
-		public SongProto song;
-		public MidiProto midi;
-		public AuthorProto author;
-
 		public string midiId;
+		public string hash;
+		public Storage.Protos.Api.MidiProto midi;
+		public Storage.Protos.Api.SongProto song;
+		public Storage.Protos.Api.AlbumProto album;
+		public Storage.Protos.Api.PersonProto author;
+
 		public MidiFile midiFile;
 		public NoteSequenceCollection sequenceCollection;
 
 		public Texture2D defaultTexture;
-
-		public string hash;
 
 		public int gameplayLayoutPreset {
 			get { return GameScheduler.instance.gameplayConfig.layoutPreset; }
 			set { GameScheduler.instance.gameplayConfig.layoutPreset = value; }
 		}
 
-		ResourceStorage res_;
+		ResourceStorage res;
 
 		public override void Init(SongSelectLevelScheduler level) {
 			base.Init(level);
 
-			res_ = game.resourceStorage;
+			res = game.resourceStorage;
 		}
 
 		public override void Enable() {
 			base.Enable();
 
-			if (level.selectedDownloadedMidi == null) {
-				InitLocal();
-			} else {
-				InitDownloaded();
-			}
-			InitRank();
+			//if (level.selectedDownloadedMidi == null) {
+			//	InitLocal();
+			//} else {
+				InitMidiDetail();
+			//}
+			InitMidiRank();
 		}
 
 		public override void Back() {
 			base.Back();
-			level.selectedMidi = null;
-			level.selectedDownloadedMidi = null;
+			level.selectedMidiId = null;
+			//level.selectedDownloadedMidi = null;
 		}
 
-		void InitLocal() {
-			level.backgroundImage.texture = level.defaultBackgroundTexture;
-			game.backgroundTexture = null;
-			midiId = null;
+		//void InitLocal() {
+		//	level.backgroundImage.texture = level.defaultBackgroundTexture;
+		//	game.backgroundTexture = null;
+		//	midiId = null;
 
-			try {
-				album = res_.albumProtoDict[level.selectedAlbum];
-				song = res_.songProtoDict[Tuple.Create(level.selectedAlbum, level.selectedSong)];
-				midi = res_.midiProtoDict[Tuple.Create(level.selectedAlbum, level.selectedSong, level.selectedMidi)];
-			} catch (System.Exception e) {
-				Debug.LogError(e);
+		//	try {
+		//		album = res_.albumProtoDict[level.selectedAlbumId];
+		//		song = res_.songProtoDict[Tuple.Create(level.selectedAlbumId, level.selectedSongId)];
+		//		midi = res_.midiProtoDict[Tuple.Create(level.selectedAlbumId, level.selectedSongId, level.selectedMidi)];
+		//	} catch (System.Exception e) {
+		//		Debug.LogError(e);
 
-				album = res_.albumProtoDict[level.selectedAlbum = 6];
-				song = res_.songProtoDict[Tuple.Create(level.selectedAlbum, level.selectedSong = 1)];
-				midi = res_.midiProtoDict[Tuple.Create(level.selectedAlbum, level.selectedSong, level.selectedMidi = "aka_easy")];
-			}
-			author = res_.authorProtoDict[midi.author];
+		//		album = res_.albumProtoDict[level.selectedAlbumId = 6];
+		//		song = res_.songProtoDict[Tuple.Create(level.selectedAlbumId, level.selectedSongId = 1)];
+		//		midi = res_.midiProtoDict[Tuple.Create(level.selectedAlbumId, level.selectedSongId, level.selectedMidi = "aka_easy")];
+		//	}
+		//	author = res_.authorProtoDict[midi.author];
 
-			byte[] bytes = midi.isFile ? System.IO.File.ReadAllBytes(midi.path) : Resources.Load<TextAsset>(midi.path).bytes;
-			midiFile = new MidiFile(bytes);
-			sequenceCollection = new NoteSequenceCollection(midiFile);
+		//	byte[] bytes = midi.isFile ? System.IO.File.ReadAllBytes(midi.path) : Resources.Load<TextAsset>(midi.path).bytes;
+		//	midiFile = new MidiFile(bytes);
+		//	sequenceCollection = new NoteSequenceCollection(midiFile);
 
-			sourceText.text = string.Format("{0} • {1}", album.name, song.name);
-			titleText.text = midi.name;
-			artistText.text = string.Format("by {0}", author.name);
-			infoText.text = string.Format("{0:N0} Sequences • {1:N0} Notes • {2}",
-				sequenceCollection.sequences.Count, sequenceCollection.noteCount, hash = MiscHelper.GetHexEncodedMd5Hash(bytes));
-		}
+		//	sourceText.text = string.Format("{0} • {1}", album.name, song.name);
+		//	titleText.text = midi.name;
+		//	artistText.text = string.Format("by {0}", author.name);
+		//	infoText.text = string.Format("{0:N0} Sequences • {1:N0} Notes • {2}",
+		//		sequenceCollection.sequences.Count, sequenceCollection.noteCount, hash = MiscHelper.GetHexEncodedMd5Hash(bytes));
+		//}
 
-		void InitDownloaded(bool renderList = true) {
-			var downloadedMidi = level.selectedDownloadedMidi;
-			if (!string.IsNullOrEmpty(downloadedMidi.coverBlurUrl)) {
-				Net.WebCache.instance.LoadTexture(downloadedMidi.coverBlurUrl, job => {
+		void InitMidiDetail(bool renderMidiList = true) {
+			midi = res.QueryMidiById(level.selectedMidiId);
+			if (!string.IsNullOrEmpty(midi.coverBlurUrl)) {
+				Net.WebCache.instance.LoadTexture(midi.coverBlurUrl, job => {
 					level.backgroundImage.texture = job.GetData();
 					game.backgroundTexture = job.GetData();
 				});
@@ -110,12 +109,11 @@ namespace TouhouMix.Levels.SongSelect {
 				game.backgroundTexture = null;
 			}
 
-			album = new AlbumProto { name = downloadedMidi.sourceAlbumName };
-			song = new SongProto { name = downloadedMidi.sourceSongName };
-			midi = new MidiProto { name = downloadedMidi.name };
-
-			byte[] bytes = System.IO.File.ReadAllBytes(System.IO.Path.Combine(Net.WebCache.instance.rootPath, downloadedMidi.hash));
-			midiId = downloadedMidi.id;
+			song = res.QuerySongById(midi.songId);
+			album = res.QueryAlbumById(song.albumId);
+			
+			byte[] bytes = System.IO.File.ReadAllBytes(System.IO.Path.Combine(Net.WebCache.instance.rootPath, midi.hash));
+			midiId = midi._id;
 			midiFile = new MidiFile(bytes);
 			sequenceCollection = new NoteSequenceCollection(midiFile);
 
@@ -125,20 +123,20 @@ namespace TouhouMix.Levels.SongSelect {
 			infoText.text = string.Format("{0:N0} Sequences • {1:N0} Notes • {2}",
 				sequenceCollection.sequences.Count, sequenceCollection.noteCount, hash = MiscHelper.GetHexEncodedMd5Hash(bytes));
 
-			if (string.IsNullOrWhiteSpace(downloadedMidi.coverUrl)) {
+			if (string.IsNullOrWhiteSpace(midi.coverUrl)) {
 				coverCutter.Cut(defaultTexture);
 			} else {
-				Net.WebCache.instance.LoadTexture(downloadedMidi.coverUrl, job => {
+				Net.WebCache.instance.LoadTexture(midi.coverUrl, job => {
 					coverCutter.Cut(job.GetData());
 				});
 			}
 
-			if (renderList) {
-				RenderDownloadedMidiList();
+			if (renderMidiList) {
+				RenderMidiList(midi.songId);
 			}
 		}
 
-		void InitRank() {
+		void InitMidiRank() {
 			game.netManager.ClAppMidiRecordList(hash, 0, (error, data) => {
 				if (!string.IsNullOrEmpty(error)) {
 					Debug.LogWarning(error);
@@ -187,10 +185,10 @@ namespace TouhouMix.Levels.SongSelect {
 			}
 		}
 
-		void RenderDownloadedMidiList() {
+		void RenderMidiList(string songId) {
 			int childCount = midiContentRect.childCount;
 			int i = 0;
-			foreach (var midi in level.selectedDownloadedMidi.song.midiList) {
+			foreach (var midi in res.QueryMidisBySongId(songId)) {
 				SongSelectItemController item;
 				if (i < childCount) {
 					item = midiContentRect.GetChild(i).GetComponent<SongSelectItemController>();
@@ -198,7 +196,7 @@ namespace TouhouMix.Levels.SongSelect {
 				} else {
 					item = Instantiate(listItemPrefab, midiContentRect, false).GetComponent<SongSelectItemController>();
 				}
-				RenderDownloadedMidi(item, midi);
+				RenderMidiListItem(item, midi);
 
 				i += 1;
 			}
@@ -208,22 +206,31 @@ namespace TouhouMix.Levels.SongSelect {
 			}
 		}
 
-		void RenderDownloadedMidi(SongSelectItemController item, DownloadedSongSelectPageScheduler.Midi midi) {
+		void RenderMidiListItem(SongSelectItemController item, Storage.Protos.Api.MidiProto midi) {
+			Debug.Log("Midi list item");
+
 			item.titleText.text = DownloadedSongSelectPageScheduler.GetStringOrUnkonwn(midi.name);
 			item.line1Text.text = "by " + DownloadedSongSelectPageScheduler.GetStringOrUnkonwn(midi.artistName);
 			item.line2Text.text = " 0   0x   0%";
 			item.action = () => {
-				level.selectedDownloadedMidi = midi;
-				InitDownloaded(false);
+				level.selectedMidiId = midi._id;
+				InitMidiDetail(false);
+				InitMidiRank();
 			};
 
 			var coverUrl = midi.coverUrl;
 			if (coverUrl != null) {
+				Debug.Log("Midi cover url");
 				Net.WebCache.instance.LoadTexture(coverUrl, job => {
+					Debug.Log("Midi cover url downloaded");
 					var texture = job.GetData();
-					item.imageCutter.Cut(texture);
+					game.ExecuteOnMain(() => {
+						Debug.Log("Cut midi");
+						item.imageCutter.Cut(texture);
+					});
 				});
 			} else {
+				Debug.Log("Cut midi default");
 				item.imageCutter.Cut(defaultTexture);
 			}
 		}

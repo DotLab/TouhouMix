@@ -39,10 +39,6 @@ namespace TouhouMix.Net {
       return json.Parse<T>(File.ReadAllText(GetDocFilePath(collection, id), System.Text.Encoding.UTF8));
     }
 
-    //public void WriteDoc(string collection, string id, JsonObj doc) {
-    //  File.WriteAllText(GetDocFilePath(collection, id), json.Stringify(doc), System.Text.Encoding.UTF8);
-    //}
-
     public void WriteDoc(string collection, string id, string text) {
       File.WriteAllText(GetDocFilePath(collection, id), text, System.Text.Encoding.UTF8);
     }
@@ -51,9 +47,14 @@ namespace TouhouMix.Net {
       File.WriteAllText(GetDocFilePath(collection, id), json.Stringify(obj), System.Text.Encoding.UTF8);
     }
 
-    public string[] GetAllDocIds(string collection) {
+    public System.Collections.Generic.IEnumerable<string> ReadAllDocIds(string collection) {
       return Directory.GetFiles(Path.Combine(rootPath, collection))
-        .Select(x => Path.GetFileName(x)).ToArray();
+        .Select(x => Path.GetFileName(x));
+    }
+
+    public System.Collections.Generic.IEnumerable<T> ReadAllDocs<T>(string collection) {
+      return Directory.GetFiles(Path.Combine(rootPath, collection))
+        .Select(x => ReadDoc<T>(collection, Path.GetFileName(x)));
     }
 
     public string GetDocFilePath(string collection, string id) {

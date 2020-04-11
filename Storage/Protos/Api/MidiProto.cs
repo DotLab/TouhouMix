@@ -9,11 +9,18 @@
 		public string name;
 		public string desc;
 		public string hash;
-		
+
+		public string coverUrl;
+		public string coverBlurUrl;
+
 		public string artistName;
 		public string artistUrl;
 		
 		public string songId;
+		public SongProto song;
+		public AlbumProto album;
+		public PersonProto author;
+		public PersonProto composer;
 		public string uploadedDate;
 		public string approvedDate;
 		public string status;
