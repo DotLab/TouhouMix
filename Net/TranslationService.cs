@@ -6,6 +6,16 @@ using Jsonf;
 
 namespace TouhouMix.Net {
 	public static class TranslationServiceExtension {
+		public static string TranslateVolatile(this string self) {
+			var game = Levels.GameScheduler.instance;
+			//UnityEngine.Debug.Log("translate " + self);
+			if (game.appConfig.displayLang != "en") {
+				return game.translationSevice.Translate(self, TranslationService.UI_VOLATILE);
+			} else {
+				return self;
+			}
+		}
+
 		public static string TranslateArtifact(this string self) {
 			var game = Levels.GameScheduler.instance;
 				//UnityEngine.Debug.Log("translate " + self);
@@ -33,6 +43,7 @@ namespace TouhouMix.Net {
 	public sealed class TranslationService {
 		public const string UI_APP = "ui.app";
 		public const string NAME_ARTIFACT = "name.artifact";
+		public const string UI_VOLATILE = "ui.volatile";
 
 		const string FILE_PATH = "Translations.json";
 

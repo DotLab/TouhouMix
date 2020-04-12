@@ -27,9 +27,12 @@ namespace TouhouMix.Levels.SongSelect.Popups {
 		}
 
 		public void OnAndroidAlphaVersionButtonClicked() {
-			string url = androidAlphaUrl
-				.Replace("https://storage.thmix.org", "https://asia.storage.thmix.org")
-				.Replace("https://storage.googleapis.com/microvolt-bucket-1", "https://asia.storage.thmix.org");
+			string url = androidAlphaUrl;
+			if (Levels.GameScheduler.instance.appConfig.networkEndpoint == 1) {
+				url = url
+					.Replace("https://storage.thmix.org", "https://asia.storage.thmix.org")
+					.Replace("https://storage.googleapis.com/microvolt-bucket-1", "https://asia.storage.thmix.org");
+			}
 			Application.OpenURL(url);
 		}
 

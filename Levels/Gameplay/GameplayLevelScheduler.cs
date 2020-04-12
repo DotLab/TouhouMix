@@ -108,7 +108,7 @@ namespace TouhouMix.Levels.Gameplay {
 			midiFileSha256Hash = MiscHelper.GetBase64EncodedSha256Hash(midiFile.bytes);
 
 			cacheTicks = cacheBeats * midiFile.ticksPerBeat;
-			endTicks = sequenceCollection.end + endDelayBeats * midiFile.ticksPerBeat;
+			endTicks = sequenceCollection.end + (game_.gameplayConfig.graceTime + endDelayBeats) * midiFile.ticksPerBeat;
 
 			midiSequencer = new MidiSequencer(midiFile, sf2Synth);
 			midiSequencer.isMuted = true;

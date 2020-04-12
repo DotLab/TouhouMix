@@ -47,7 +47,9 @@ namespace TouhouMix.Net {
 		Task pingTask;
 		//System.Threading.CancellationTokenSource cancellationToken; 
 
+		public NetStatus netStatus = NetStatus.OFFLINE;
 		public event System.Action<NetStatus> onNetStatusChangedEvent;
+		public event System.Action<string> onNetErrorEvent;
 
 		public void Init(Levels.GameScheduler game) {
 #if UNITY_EDITOR
@@ -69,6 +71,7 @@ namespace TouhouMix.Net {
 			new Task(() => {
 				try {
 					connecting = true;
+					netStatus = NetStatus.CONNECTING;
 					onNetStatusChangedEvent?.Invoke(NetStatus.CONNECTING);
 					websocket.Connect();
 				} catch(System.Exception ex) {
@@ -96,6 +99,7 @@ namespace TouhouMix.Net {
 								}
 
 								rtt = (int)(watch.ElapsedMilliseconds) - (int)(double)data;
+								netStatus = NetStatus.ONLINE;
 								onNetStatusChangedEvent?.Invoke(NetStatus.ONLINE);
 								Debug.Log("pong " + rtt);
 							});
@@ -125,6 +129,7 @@ namespace TouhouMix.Net {
 		void OnSocketClose(object sender, CloseEventArgs e) {
 			if (e != null) {
 				Debug.LogWarning("closed " + e.Code + " " + e.Reason);
+				onNetErrorEvent?.Invoke("socket closed");
 			}
 			available = false;
 			EndReconnect();
@@ -140,6 +145,7 @@ namespace TouhouMix.Net {
 
 		void HandleError(System.Exception e) {
 			Debug.LogWarning("error " + e);
+			onNetErrorEvent?.Invoke(e.Message);
 		}
 
 		void OnSocketMessage(object sender, MessageEventArgs e) {
@@ -183,6 +189,7 @@ namespace TouhouMix.Net {
 			}
 			Debug.Log("next retry delay " + retryDelay);
 
+			netStatus = NetStatus.CONNECTING;
 			onNetStatusChangedEvent?.Invoke(NetStatus.CONNECTING);
 			new Task(() => {
 				websocket.Connect();
@@ -195,8 +202,10 @@ namespace TouhouMix.Net {
 
 		void EndReconnect() {
 			if (available) {
+				netStatus = NetStatus.ONLINE;
 				onNetStatusChangedEvent?.Invoke(NetStatus.ONLINE);
 			} else {
+				netStatus = NetStatus.OFFLINE;
 				onNetStatusChangedEvent?.Invoke(NetStatus.OFFLINE);
 			}
 
@@ -211,6 +220,9 @@ namespace TouhouMix.Net {
 			//Debug.Log("HandleRpcResponse " + id + " " + callbackId);
 
 			if (callbackDict.ContainsKey(callbackId)) {
+				if (args.ContainsKey(KEY_ERROR)) {
+					onNetErrorEvent?.Invoke((string)args[KEY_ERROR]);
+				}
 #if UNITY_EDITOR
 				callbackDict[callbackId].Invoke(
 					args.ContainsKey(KEY_ERROR) ? (string)args[KEY_ERROR] : null,

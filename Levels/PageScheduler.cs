@@ -32,15 +32,5 @@ namespace TouhouMix.Levels {
 		public virtual void Disable() {
 			gameObject.SetActive(false);
 		}
-
-		public AnimationSequence Hide(AnimationSequence seq) {
-			return seq.FadeOut(group, .25f, EsType.CubicOut)
-				.ScaleTo(transform, Vector3.one * 2, .25f, EsType.CubicOut).Then().Call(Disable);
-		}
-
-		public AnimationSequence Show(AnimationSequence seq) {
-			return seq.Call(Enable).FadeInFromZero(group, .25f, EsType.CubicOut)
-				.ScaleFromTo(transform, Vector3.zero, Vector3.one, .25f, EsType.CubicOut);
-		}
 	}
 }

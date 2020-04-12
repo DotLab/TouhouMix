@@ -35,26 +35,21 @@ namespace TouhouMix.Levels.SongSelect {
       if (game.userObj != null) {
         DisplayUserInfo(game.userObj);
       } else if (!string.IsNullOrEmpty(game.username)) {
+        usernameInput.text = game.username;
+        passwordInput.text = "";
         net.ClAppUserLogin(game.username, game.password, (error, data) => {
           if (!string.IsNullOrEmpty(error)) {
             return;
           }
 
-          game.userObj = (JsonObj)data;
-          DisplayUserInfo((JsonObj)data);
+          game.ExecuteOnMain(() => { 
+            game.userObj = (JsonObj)data;
+            DisplayUserInfo((JsonObj)data);
+          });
         });
-      }
-    }
-
-    [Button]
-    public void OnLoginToggleClicked() {
-      if (loginPopupGroup.alpha > 0) {
-        anim.New(this).FadeOut(loginPopupGroup, .2f, 0).Then()
-          .Call(() => { loginPopupGroup.gameObject.SetActive(false); });
       } else {
-        anim.New(this)
-          .Call(() => { loginPopupGroup.gameObject.SetActive(true); })
-          .FadeIn(loginPopupGroup, .2f, 0);
+        usernameInput.text = "";
+        passwordInput.text = "";
       }
     }
 
@@ -71,31 +66,35 @@ namespace TouhouMix.Levels.SongSelect {
       }
 
       net.ClAppUserLogin(username, password, (error, data) => {
-        if (!string.IsNullOrEmpty(error)) {
-          return;
-        }
+        game.ExecuteOnMain(() => {
+          if (!string.IsNullOrEmpty(error)) {
+            usernameInput.text = "";
+            passwordInput.text = "";
+            return;
+          }
 
-        game.username = username;
-        game.password = password;
+          game.username = username;
+          game.password = password;
 
-        game.userObj = (JsonObj)data;
-        DisplayUserInfo((JsonObj)data);
+          game.userObj = (JsonObj)data;
+          DisplayUserInfo((JsonObj)data);
+        });
       });
     }
 
     public void OnRegisterButtonClicked() {
-      Application.OpenURL("https://asia.thmix.org");
+      if (game.appConfig.networkEndpoint == 0) {
+        Application.OpenURL("https://thmix.org/register");
+      } else {
+        Application.OpenURL("https://asia.thmix.org/register");
+      }
     }
 
     void DisplayUserInfo(JsonObj userDict) {
-      anim.New(this).FadeOut(loginPopupGroup, .2f, 0)
-        .FadeOut(loginButtonGroup, .2f, 0).Then()
-        .Call(() => {
-          loginPopupGroup.gameObject.SetActive(false);
-          loginButtonGroup.gameObject.SetActive(false);
-          userInfoGroup.gameObject.SetActive(true);
-        })
-        .FadeIn(userInfoGroup, .2f, 0);
+      TopToolBarScheduler.FadeOutAndDeactivate(loginPopupGroup);
+      loginButtonGroup.gameObject.SetActive(false);
+      userInfoGroup.gameObject.SetActive(true);
+      anim.New(userInfoGroup).FadeIn(userInfoGroup, .2f, 0);
 
       game.ExecuteOnMain(() => {
         nameText.text = (string)userDict["name"];

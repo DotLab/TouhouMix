@@ -153,14 +153,14 @@ namespace TouhouMix.Storage {
 					_id = path,
 					name = fileName,
 					sourceSongName = "Unknown".Translate(),
-					sourceAlbumName = "Custom Midis".Translate(),
+					sourceAlbumName = "Local Midis".Translate(),
 				};
 				midiProtoList.Add(midiProto);
 			}
 		}
 
 		public static void DecompressMidiBundle() {
-			string bundleId = "20200411";
+			string bundleId = "202004110825";
 			if (UnityEngine.PlayerPrefs.GetString("installedMidiBundleId", "") == bundleId) {
 				return;
 			}

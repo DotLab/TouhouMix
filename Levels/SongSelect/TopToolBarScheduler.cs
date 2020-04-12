@@ -14,10 +14,12 @@ namespace TouhouMix.Levels.SongSelect {
 	public sealed class TopToolBarScheduler : MonoBehaviour {
 		public Text rttText;
 
-		public CanvasGroup versionPopupGroup;
 		public VersionPopupController versionPopup;
+
+		public CanvasGroup versionPopupGroup;
 		public CanvasGroup userInfoPopupGroup;
 		public CanvasGroup socialPopupGroup;
+		public CanvasGroup loginPopupGroup;
 
 		GameScheduler game;
 		AnimationManager anim;
@@ -29,23 +31,42 @@ namespace TouhouMix.Levels.SongSelect {
 			versionPopupGroup.HideAndDeactivate();
 			userInfoPopupGroup.HideAndDeactivate();
 			socialPopupGroup.HideAndDeactivate();
+			loginPopupGroup.HideAndDeactivate();
 
 			game.netManager.onNetStatusChangedEvent += OnNetStatusChanged;
+			OnNetStatusChanged(game.netManager.netStatus);
 		}
 
 		private void OnDestroy() {
 			game.netManager.onNetStatusChangedEvent -= OnNetStatusChanged;
 		}
 
+		const float TRANSITION_DURATION = .1f;
+
+		public static void FadeOutAndDeactivate(CanvasGroup group) {
+			if (group.IsVisible()) {
+				AnimationManager.instance.New(group)
+					.FadeOut(group, TRANSITION_DURATION, 0)
+					.ShiftTo(group.GetComponent<RectTransform>(), new Vector2(0, 100), TRANSITION_DURATION, EsType.CubicIn)
+					.Then().Deactivate(group.gameObject);
+			}
+		}
+
+		public static void ActivateAndFadeIn(CanvasGroup group) {
+			AnimationManager.instance.New(group).Activate(group.gameObject)
+				.FadeIn(group, TRANSITION_DURATION, 0)
+				.MoveTo(group.GetComponent<RectTransform>(), new Vector2(0, -40), TRANSITION_DURATION, EsType.CubicOut);
+		}
+
 		public void OnVersionButtonClicked() {
 			if (versionPopupGroup.IsVisible()) {
-				anim.New(versionPopupGroup)
-					.FadeOut(versionPopupGroup, .2f, 0).Then().Deactivate(versionPopupGroup.gameObject);
+				FadeOutAndDeactivate(versionPopupGroup);
 				return;
 			}
-			anim.New(versionPopupGroup).Activate(versionPopupGroup.gameObject)
-					.ScaleFromTo(versionPopupGroup.transform, new Vector3(1, 0, 1), Vector3.one, .2f, EsType.BackOut)
-					.FadeIn(versionPopupGroup, .2f, 0);
+			FadeOutAndDeactivate(userInfoPopupGroup);
+			FadeOutAndDeactivate(socialPopupGroup);
+			FadeOutAndDeactivate(loginPopupGroup);
+			ActivateAndFadeIn(versionPopupGroup);
 
 			versionPopup.installedVersionText.text = Application.version;
 
@@ -106,28 +127,43 @@ namespace TouhouMix.Levels.SongSelect {
 
 		public void OnUserInfoButtonClicked() {
 			if (userInfoPopupGroup.IsVisible()) {
-				anim.New(userInfoPopupGroup)
-					.FadeOut(userInfoPopupGroup, .2f, 0).Then().Deactivate(userInfoPopupGroup.gameObject);
+				FadeOutAndDeactivate(userInfoPopupGroup);
 				return;
 			}
-			anim.New(userInfoPopupGroup).Activate(userInfoPopupGroup.gameObject)
-					.ScaleFromTo(userInfoPopupGroup.transform, new Vector3(1, 0, 1), Vector3.one, .2f, EsType.BackOut)
-					.FadeIn(userInfoPopupGroup, .2f, 0);
+			FadeOutAndDeactivate(versionPopupGroup);
+			FadeOutAndDeactivate(socialPopupGroup);
+			FadeOutAndDeactivate(loginPopupGroup);
+			ActivateAndFadeIn(userInfoPopupGroup);
 		}
 
 		public void OnSocialButtonClicked() {
 			if (socialPopupGroup.IsVisible()) {
-				anim.New(socialPopupGroup)
-					.FadeOut(socialPopupGroup, .2f, 0).Then().Deactivate(socialPopupGroup.gameObject);
+				FadeOutAndDeactivate(socialPopupGroup);
 				return;
 			}
-			anim.New(socialPopupGroup).Activate(socialPopupGroup.gameObject)
-					.ScaleFromTo(socialPopupGroup.transform, new Vector3(1, 0, 1), Vector3.one, .2f, EsType.BackOut)
-					.FadeIn(socialPopupGroup, .2f, 0);
+			FadeOutAndDeactivate(versionPopupGroup);
+			FadeOutAndDeactivate(userInfoPopupGroup);
+			FadeOutAndDeactivate(loginPopupGroup);
+			ActivateAndFadeIn(socialPopupGroup);
+		}
+
+		public void OnLoginButtonClicked() {
+			if (loginPopupGroup.IsVisible()) {
+				FadeOutAndDeactivate(loginPopupGroup);
+				return;
+			}
+			FadeOutAndDeactivate(versionPopupGroup);
+			FadeOutAndDeactivate(userInfoPopupGroup);
+			FadeOutAndDeactivate(socialPopupGroup);
+			ActivateAndFadeIn(loginPopupGroup);
 		}
 
 		public void OnGoToWebsiteButtonClicked() {
-			Application.OpenURL("https://asia.thmix.org");
+			if (game.appConfig.networkEndpoint == 0) {
+        Application.OpenURL("https://thmix.org");
+      } else {
+        Application.OpenURL("https://asia.thmix.org");
+      }
 		}
 
 		public void OnJoinQqButtonClicked() {

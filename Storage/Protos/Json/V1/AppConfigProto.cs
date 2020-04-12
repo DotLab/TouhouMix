@@ -12,7 +12,7 @@
 		public static AppConfigProto CreateDefault() {
 			return new AppConfigProto {
 				displayLang = GetDefaultLang(),
-				translateUserGeneratedContent = false,
+				translateUserGeneratedContent = true,
 
 				sampleRateDownscale = 0,
 				audioBufferUpscale = 0,

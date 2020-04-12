@@ -177,12 +177,20 @@ namespace TouhouMix.Levels.SongSelect {
 
     public void GoToPage(string page) {
       currentPage = int.Parse(page);
+      if (currentPage < 0) {
+        currentPage = 0;
+        pageControlInputField.text = "0";
+      }
       Fetch();
       scrollContentRect.anchoredPosition = new Vector2(0, 0);
     }
 
     public void PreviousPage() {
       currentPage -= 1;
+      if (currentPage < 0) {
+        currentPage = 0;
+        pageControlInputField.text = "0";
+      }
       Fetch();
       pageControlInputField.text = currentPage.ToString();
       scrollContentRect.anchoredPosition = new Vector2(0, 0);
