@@ -4,6 +4,7 @@ using TouhouMix.Storage;
 using TouhouMix.Net;
 using JsonObj = System.Collections.Generic.Dictionary<string, object>;
 using JsonList = System.Collections.Generic.List<object>;
+using Sirenix.OdinInspector;
 
 public partial class SROptions {
 	public int rtt {
@@ -87,6 +88,30 @@ namespace TouhouMix.Levels {
 			netManager.Dispose();
 		}
 		#endregion
+
+		[Button]
+		public void TakeScreenshot() {
+			ScreenCapture.CaptureScreenshot("screenshot.png");
+		}
+
+		[Button]
+		public void StartTakingScreenshots() {
+			StartCoroutine(ScreenshotHandler());
+		}
+
+		[Button]
+		public void StopTakingScreenshots() {
+			StopAllCoroutines();
+		}
+
+		System.Collections.IEnumerator ScreenshotHandler() {
+			int i = 0;
+			while (true) {
+				ScreenCapture.CaptureScreenshot("screenshot-" + i + ".png");
+				yield return new WaitForSeconds(1);
+				i += 1;
+			}
+		}
 
 		public void Init() {
 			ResourceStorage.DecompressMidiBundle();
