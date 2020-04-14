@@ -59,6 +59,14 @@ namespace TouhouMix.Levels.SongSelect {
 
 			InitMidiDetail();
 			InitMidiRank();
+
+			game.netManager.ClAppMidiGet(hash, (err, doc) => { 
+				if (err != null) {
+					Debug.LogError(err);
+					return;
+				}
+				game.localDb.WriteDoc(LocalDb.COLLECTION_MIDIS, ((JsonObj)doc).Get<string>("_id"), doc);
+			});
 		}
 
 		public override void Back() {
@@ -163,6 +171,8 @@ namespace TouhouMix.Levels.SongSelect {
 						item.imageCutter.Cut(job.GetKey(), job.GetData());
 					});
 				});
+			} else {
+				item.imageCutter.Cut(RefContainer.instance.imageCutterDefaultTexture.name, RefContainer.instance.imageCutterDefaultTexture);
 			}
 		}
 

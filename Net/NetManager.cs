@@ -217,7 +217,7 @@ namespace TouhouMix.Net {
 
 		void HandleRpcResponse(string id, JsonObj args) {
 			string callbackId = (string)args["id"];
-			//Debug.Log("HandleRpcResponse " + id + " " + callbackId);
+			Debug.Log("HandleRpcResponse " + callbackId);
 
 			if (callbackDict.ContainsKey(callbackId)) {
 				if (args.ContainsKey(KEY_ERROR)) {
@@ -333,6 +333,12 @@ namespace TouhouMix.Net {
 			}, callback);
 		}
 
+		public void ClAppMidiGet(string hash, RpcCallback callback) {
+			Rpc("ClAppMidiGet", new JsonObj() {
+				["hash"] = hash,
+			}, callback);
+		}
+
 		public void ClAppMidiRecordList(string hash, int page, RpcCallback callback) {
 			Rpc("ClAppMidiRecordList", new JsonObj() {
 				["hash"] = hash, ["page"] = page,
@@ -390,10 +396,9 @@ namespace TouhouMix.Net {
 #endif
 		}
 
-		public void ClAppDocAction(string collection, string docId, string action, int value, RpcCallback callback) {
+		public void ClAppMidiAction(string hash, string action, int value, RpcCallback callback) {
 			Rpc("ClAppDocAction", new JsonObj() {
-				["col"] = collection,
-				["docId"] = docId,
+				["hash"] = hash,
 				["action"] = action,
 				["value"] = value,
 			}, callback);

@@ -86,7 +86,7 @@ namespace TouhouMix.Levels {
 			} else {
 				love = 0;
 			}
-			GameScheduler.instance.netManager.ClAppDocAction("midis", GameScheduler.instance.midiId, "love", love, (err, res) => {
+			GameScheduler.instance.netManager.ClAppMidiAction(MiscHelper.GetHexEncodedMd5Hash(GameScheduler.instance.midiFile.bytes), "love", love, (err, res) => {
 				if (err != null) {
 					Debug.LogError(err);
 					return;
@@ -96,7 +96,7 @@ namespace TouhouMix.Levels {
 		}
 
 		public void OnUpButtonClicked() {
-			GameScheduler.instance.netManager.ClAppDocAction("midis", GameScheduler.instance.midiId, "vote", 1, (err, res) => {
+			GameScheduler.instance.netManager.ClAppMidiAction(MiscHelper.GetHexEncodedMd5Hash(GameScheduler.instance.midiFile.bytes), "vote", 1, (err, res) => {
 				if (err != null) {
 					Debug.LogError(err);
 					return;
@@ -109,7 +109,7 @@ namespace TouhouMix.Levels {
 		}
 
 		public void OnDownButtonClicked() {
-			GameScheduler.instance.netManager.ClAppDocAction("midis", GameScheduler.instance.midiId, "vote", -1, (err, res) => {
+			GameScheduler.instance.netManager.ClAppMidiAction(MiscHelper.GetHexEncodedMd5Hash(GameScheduler.instance.midiFile.bytes), "vote", -1, (err, res) => {
 				if (err != null) {
 					Debug.LogError(err);
 					return;
