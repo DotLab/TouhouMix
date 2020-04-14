@@ -1,25 +1,24 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using Midif.V3;
-using System.Linq;
 using Note = Midif.V3.NoteSequenceCollection.Note;
 using Sequence = Midif.V3.NoteSequenceCollection.Sequence;
 
 namespace TouhouMix.Levels.Gameplay {
 	[System.Serializable]
-	public sealed class OneOnlyGameplayBlockGenerator {
+	public sealed class SingleLaneBlockGenerator {
 		sealed class VirtualTouch {
+			public int index;
 			public bool isFree = true;
 			public Note holdingNote;
-			public float lastTapSeconds = float.MinValue;
-			public float lastTapX;
+			public float lastPressSeconds = float.MinValue;
+			public float lastPressX;
 		}
 
 		public sealed class BlockInfo {
 			public Note note;
 			public int lane;
 			public float x;
+			public int batch;
 			public int touchIndex = -1;
 			public BlockType type;
 		}
@@ -27,25 +26,26 @@ namespace TouhouMix.Levels.Gameplay {
 		public int maxTouchCount;
 		public int laneCount;
 		public float[] laneX;
-		public float minTapIntervalSeconds;
+		public float minTapInterval;
 		public float cooldownSeconds;
 		public float maxTouchMoveVelocity;
-		public float coalesceSeconds;
+		public float blockCoalesceSeconds;
 
 		public float instantBlockSeconds;
 		public float shortBlockSeconds;
 
-		readonly List<BlockInfo> blocks = new List<BlockInfo>();
-		readonly List<VirtualTouch> touches = new List<VirtualTouch>();
-		readonly List<Note> backgroundNotes = new List<Note>();
+		public readonly List<BlockInfo> blocks = new List<BlockInfo>();
+		public readonly List<Note> backgroundNotes = new List<Note>();
+		readonly List<BlockInfo> batchBlocks = new List<BlockInfo>();
+		VirtualTouch[] touches;
 		Note[] noteLanes;
 
 		void Reset() {
 			blocks.Clear();
-			touches.Clear();
+			touches = new VirtualTouch[maxTouchCount];
 			backgroundNotes.Clear();
 			for (int i = 0; i < maxTouchCount; i++) {
-				touches.Add(new VirtualTouch());
+				touches[i] = new VirtualTouch { index = i };
 			}
 			noteLanes = new Note[laneCount];
 			minMatchingTouchIndex = new int[maxTouchCount];
@@ -60,23 +60,23 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 			// Sort notes by time and channel
 			notes.Sort((a, b) => {
-				if (a.start == b.start) {
-					return a.channel.CompareTo(b.channel);
-				}
+				if (a.start == b.start) return a.channel.CompareTo(b.channel);
 				return a.start.CompareTo(b.start);
 			});
 
 			float seconds = 0;
+			int batch = 0;
 			var coalescedNotes = new List<Note>();
 			foreach (var note in notes) {
-				Debug.LogFormat("seconds {0} start {1} coalesced {2}", seconds, note.startSeconds, coalescedNotes.Count);
+				// Debug.LogFormat("seconds {0} start {1} coalesced {2}", seconds, note.startSeconds, coalescedNotes.Count);
 				if (coalescedNotes.Count == 0) {
 					seconds = note.startSeconds;
 					coalescedNotes.Add(note);
 				} else {
-					if (note.startSeconds > seconds + coalesceSeconds) {
+					if (note.startSeconds > seconds + blockCoalesceSeconds) {
 						// Cannot coalesce
-						GenerateBlockBatch(coalescedNotes);
+						GenerateBlockBatch(batch, coalescedNotes);
+						batch += 1;
 						coalescedNotes.Clear();
 					}
 					// Coalesce
@@ -85,15 +85,13 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 			}
 			if (coalescedNotes.Count > 0) {
-				GenerateBlockBatch(coalescedNotes);
+				GenerateBlockBatch(batch, coalescedNotes);
 			}
 
 			return blocks;
 		}
 
-		
-		void GenerateBlockBatch(List<Note> notes) {
-			var backgroundNotes = new List<Note>();
+		void GenerateBlockBatch(int batch, List<Note> notes) {
 			// Remove overlapped notes
 			foreach (var note in notes) {
 				int lane = note.note % laneCount;
@@ -110,39 +108,39 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 			}
 
-			var gameBlocks = new List<BlockInfo>();
+			batchBlocks.Clear();
 			for (int i = 0; i < laneCount; i++) {
 				var note = noteLanes[i];
 				if (note != null) {
-					gameBlocks.Add(new BlockInfo {note = note, lane=i, x = laneX[i] });
+					batchBlocks.Add(new BlockInfo { note = note, lane = i, x = laneX[i], batch = batch });
 					noteLanes[i] = null;
 				}
 			}
 			// Remove lower sounding notes
-			gameBlocks.Sort((a, b) => -a.note.note.CompareTo(b.note.note));
-			while (gameBlocks.Count > maxTouchCount) {
-				int lastIndex = gameBlocks.Count - 1;
-				backgroundNotes.Add(gameBlocks[lastIndex].note);
-				gameBlocks.RemoveAt(lastIndex);
+			batchBlocks.Sort((a, b) => -a.note.note.CompareTo(b.note.note));
+			while (batchBlocks.Count > maxTouchCount) {
+				int lastIndex = batchBlocks.Count - 1;
+				backgroundNotes.Add(batchBlocks[lastIndex].note);
+				batchBlocks.RemoveAt(lastIndex);
 			}
 
-			Debug.LogFormat("batch {0} game {1} bg {2}", notes.Count, gameBlocks.Count, backgroundNotes.Count);
+			// Debug.LogFormat("batch {0} game {1} bg {2}", notes.Count, gameBlocks.Count, backgroundNotes.Count);
 
-			for (int i = 0; i < gameBlocks.Count; i++) {
-				var block = gameBlocks[i];
-				Debug.LogFormat("lane {0} x {1:F2} start {2:F2}", block.lane, block.x, block.note.startSeconds);
-			}
+			//for (int i = 0; i < gameBlocks.Count; i++) {
+			//	var block = gameBlocks[i];
+			// Debug.LogFormat("lane {0} x {1:F2} start {2:F2}", block.lane, block.x, block.note.startSeconds);
+			//}
 
-			gameBlocks.Sort((a, b) => a.x.CompareTo(b.x));
+			batchBlocks.Sort((a, b) => a.x.CompareTo(b.x));
 			for (int i = 0; i < maxTouchCount; i++) {
 				minMatchingTouchIndex[i] = -1;
 			}
 			minCost = float.MaxValue;
-			GenerateOptimalViableBlocks(gameBlocks, gameBlocks.Count, 0, 0, 0);
+			FindOptimalMatchings(batchBlocks, batchBlocks.Count, 0, 0, 0);
 
-			for (int i = 0; i < gameBlocks.Count; i++) {
+			for (int i = 0; i < batchBlocks.Count; i++) {
 				var touch = touches[minMatchingTouchIndex[i]];
-				var block = gameBlocks[i];
+				var block = batchBlocks[i];
 				block.touchIndex = minMatchingTouchIndex[i];
 
 				if (block.note.durationSeconds <= instantBlockSeconds) {
@@ -154,19 +152,19 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 
 				if (!touch.isFree) {
-					if (touch.holdingNote == null && block.note.startSeconds > touch.lastTapSeconds + cooldownSeconds) {
-						Debug.Log("Free start");
+					if (touch.holdingNote == null && block.note.startSeconds > touch.lastPressSeconds + cooldownSeconds) {
+						// Debug.Log("Free start");
 						// Now free
 						touch.isFree = true;
 					} else {
-						Debug.Log("Not free");
+						// Debug.Log("Not free");
 						// Still not free;
-						float maxOffset = maxTouchMoveVelocity * (block.note.startSeconds - touch.lastTapSeconds);
-						if (Mathf.Abs(block.x - touch.lastTapX) > maxOffset) {
-							if (block.x > touch.lastTapX) {
-								block.x = touch.lastTapX + maxOffset;
+						float maxOffset = maxTouchMoveVelocity * (block.note.startSeconds - touch.lastPressSeconds);
+						if (Mathf.Abs(block.x - touch.lastPressX) > maxOffset) {
+							if (block.x > touch.lastPressX) {
+								block.x = touch.lastPressX + maxOffset;
 							} else {
-								block.x = touch.lastTapX - maxOffset;
+								block.x = touch.lastPressX - maxOffset;
 							}
 						}
 					}
@@ -175,18 +173,18 @@ namespace TouhouMix.Levels.Gameplay {
 				if (touch.holdingNote != null) {
 					if (block.note.startSeconds < touch.holdingNote.endSeconds) {
 						// Still holding
-						Debug.Log("Still holding");
+						// Debug.Log("Still holding");
 						block.type = BlockType.INSTANT;
 					} else {
 						// Holding end
-						Debug.Log("Holding end");
+						// Debug.Log("Holding end");
 						touch.holdingNote = null;
 					}
 				}
 
 				// If the note appears too fast, generate instant
-				if (block.note.startSeconds - touch.lastTapSeconds < minTapIntervalSeconds) {
-					Debug.Log("Tapping too fast");
+				if (block.note.startSeconds - touch.lastPressSeconds < minTapInterval) {
+					// Debug.Log("Tapping too fast");
 					block.type = BlockType.INSTANT;
 				}
 
@@ -195,10 +193,10 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 
 				touch.isFree = false;
-				touch.lastTapSeconds = block.note.startSeconds;
-				touch.lastTapX = block.x;
+				touch.lastPressSeconds = block.note.startSeconds;
+				touch.lastPressX = block.x;
 
-				Debug.LogFormat("optimal lane {0} touch {1} x {2:F2} start {3:F2} type {4}", block.lane, block.touchIndex, block.x, block.note.startSeconds, block.type);
+				// Debug.LogFormat("optimal lane {0} touch {1} x {2:F2} start {3:F2} type {4}", block.lane, block.touchIndex, block.x, block.note.startSeconds, block.type);
 
 				blocks.Add(block);
 			}
@@ -207,26 +205,26 @@ namespace TouhouMix.Levels.Gameplay {
 		float minCost;
 		int[] minMatchingTouchIndex;
 
-		void GenerateOptimalViableBlocks(List<BlockInfo> blocks, int blockCount, int blockIndex, int touchIndex, float cost) {
+		void FindOptimalMatchings(List<BlockInfo> blocks, int blockCount, int blockIndex, int touchIndex, float cost) {
 			if (blockIndex == blockCount) {
 				// Match finishes
-				for (int i = 0; i < blockCount; i++) {
-					Debug.LogFormat("    block {0} ({1}) touch {2} ({3})", i, blocks[i].x, blocks[i].touchIndex, touches[blocks[i].touchIndex].lastTapX);
-				}
-				Debug.Log("  cost " + cost);
+				// for (int i = 0; i < blockCount; i++) {
+				// Debug.LogFormat("    block {0} ({1}) touch {2} ({3})", i, blocks[i].x, blocks[i].touchIndex, touches[blocks[i].touchIndex].lastTapX);
+				// }
+				// Debug.Log("  cost " + cost);
 				if (cost < minCost) {
 					minCost = cost;
 					for (int i = 0; i < blockCount; i++) {
 						minMatchingTouchIndex[i] = blocks[i].touchIndex;
 					}
-					Debug.Log("  new min cost " + minCost);
+					// Debug.Log("  new min cost " + minCost);
 				}
 				return;
 			}
 
 			for (int i = touchIndex; i < maxTouchCount; i++) {
 				blocks[blockIndex].touchIndex = i;
-				GenerateOptimalViableBlocks(blocks, blockCount, blockIndex + 1, i + 1, cost + Mathf.Abs(touches[i].lastTapX - blocks[blockIndex].x));
+				FindOptimalMatchings(blocks, blockCount, blockIndex + 1, i + 1, cost + Mathf.Abs(touches[i].lastPressX - blocks[blockIndex].x));
 			}
 		}
 	}

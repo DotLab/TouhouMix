@@ -3,7 +3,6 @@ using UnityEngine;
 using Midif.V3;
 using Uif;
 using Systemf;
-using System.Linq;
 
 namespace TouhouMix.Levels.Gameplay {
 	[System.Serializable]
@@ -70,6 +69,9 @@ namespace TouhouMix.Levels.Gameplay {
 		protected ScoringManager scoringManager;
 		protected MidiSequencer midiSequencer;
 
+		public List<SingleLaneBlockGenerator.BlockInfo> blockInfos;
+		public int blockInfoIndex;
+
 		public virtual void Init(IGameplayHost host) {
 			this.host = host;
 
@@ -117,6 +119,8 @@ namespace TouhouMix.Levels.Gameplay {
 			blockJudgingHalfWidth = blockJudgingWidth * .5f;
 
 			midiSequencer.ticks = -cacheTicks;
+
+			blockInfoIndex = 0;
 		}
 
 		#region Skin Management
@@ -138,69 +142,11 @@ namespace TouhouMix.Levels.Gameplay {
 
 		#region Block Generation
 		protected readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
-		protected readonly List<NoteSequenceCollection.Note> tentativeNotes = new List<NoteSequenceCollection.Note>();
 
 		public virtual void AddTentativeNote(NoteSequenceCollection.Note note) {
-			tentativeNotes.Add(note);
 		}
 
-		void AddTentativeInstantBlock(NoteSequenceCollection.Note note) {
-			//			Debug.Log("tentative instant");
-			int lane = note.note % laneCount;
-			if (tentativeBlockDict.TryGetValue(lane, out Block existingBlock)) {
-				// if has exising block, append as background note
-				existingBlock.backgroundNotes.Add(note);
-			} else {
-				// if no existing block, normal generation
-				AddTentativeBlock(lane, BlockType.INSTANT, note);
-			}
-		}
-
-		void AddTentativeShortBlock(NoteSequenceCollection.Note note) {
-			//			Debug.Log("tentative short");
-			int lane = note.note % laneCount;
-			if (tentativeBlockDict.TryGetValue(lane, out Block existingBlock)) {
-				if (existingBlock.type == BlockType.INSTANT) {
-					// if has existing instant block, override the instant block
-					OverrideTentativeBlock(existingBlock, BlockType.SHORT, note);
-				} else {
-					// if short or long, append as background note
-					existingBlock.backgroundNotes.Add(note);
-				}
-			} else {
-				// if no existing block, normal generation
-				AddTentativeBlock(lane, BlockType.SHORT, note);
-			}
-		}
-
-		void AddTentativeLongBlock(NoteSequenceCollection.Note note) {
-			//			Debug.Log("tentative long");
-			int lane = note.note % laneCount;
-			if (tentativeBlockDict.TryGetValue(lane, out Block existingBlock)) {
-				// if has exising block
-				if (existingBlock.type != BlockType.LONG) {
-					// if has existing instant or short block, override the instant block
-					OverrideTentativeBlock(existingBlock, BlockType.LONG, note);
-				} else if (existingBlock.note.end < note.end) {
-					// if long and shorter, override
-					OverrideTentativeBlock(existingBlock, BlockType.LONG, note);
-				} else {
-					existingBlock.backgroundNotes.Add(note);
-				}
-			} else {
-				// if no existing block, normal generation
-				AddTentativeBlock(lane, BlockType.LONG, note);
-			}
-		}
-
-		void OverrideTentativeBlock(Block block, BlockType newType, NoteSequenceCollection.Note newNote) {
-			block.type = newType;
-			block.backgroundNotes.Add(block.note);
-			block.note = newNote;
-			block.end = newNote.end;
-		}
-
-		void AddTentativeBlock(int lane, BlockType type, NoteSequenceCollection.Note note) {
+		Block AddTentativeBlock(int lane, BlockType type, NoteSequenceCollection.Note note) {
 			var block = blockContainer.CreateOrReuseItem();
 			block.isTentative = true;
 			block.active = true;
@@ -210,60 +156,15 @@ namespace TouhouMix.Levels.Gameplay {
 			block.backgroundNotes.Clear();
 			block.holdingFingerId = -1;
 			tentativeBlockDict.Add(lane, block);
+			return block;
 		}
-
-		sealed class NoteComparer : IComparer<NoteSequenceCollection.Note> {
-			public int Compare(NoteSequenceCollection.Note a, NoteSequenceCollection.Note b) {
-				if (a.note < b.note) {
-					return 1;
-				}
-				return -1;
-			}
-		}
-		readonly NoteComparer noteComparer = new NoteComparer();
 
 		public virtual void GenerateBlocks() {
-			tentativeNotes.Sort(noteComparer);
-			for (int i = 0; i < tentativeNotes.Count; i++) {
-				//Debug.Log(i + " " + tentativeNotes[i].note + " " + tentativeNotes[i].velocity);
-				if (tentativeBlockDict.Count >= maxSimultaneousBlocks) {
-					host.AddBackgroundNote(tentativeNotes[i]);
-					continue;
-				}
-
-				var note = tentativeNotes[i];
-				Block overlappingLongBlock = null;
-				for (int j = 0; j < blockContainer.firstFreeItemIndex; j++) {
-					var block = blockContainer.itemList[j];
-					if (!block.isTentative && block.type == BlockType.LONG && note.start <= block.end) {
-						//					Debug.Log("Overlap!");
-						overlappingLongBlock = block;
-						break;
-					}
-				}
-
-				float durationInSeconds = midiSequencer.ToSeconds(note.duration);
-				//Debug.Log(durationInSeconds);
-				if (durationInSeconds <= maxInstantBlockSeconds) {
-					// tentative instant block
-					AddTentativeInstantBlock(note);
-				} else if (durationInSeconds <= maxShortBlockSeconds) {
-					// tentative short block
-					if (overlappingLongBlock != null) {
-						// if has overlapping long block, change to instant block
-						AddTentativeInstantBlock(note);
-					} else {
-						AddTentativeShortBlock(note);
-					}
-				} else {
-					// tentative long block
-					if (overlappingLongBlock != null) {
-						overlappingLongBlock.end = note.start;
-					}
-					AddTentativeLongBlock(note);
-				}
+			for (; blockInfoIndex < blockInfos.Count && midiSequencer.ticks + cacheTicks >= blockInfos[blockInfoIndex].note.start; blockInfoIndex += 1) {
+				var blockInfo = blockInfos[blockInfoIndex];
+				var block = AddTentativeBlock(blockInfo.lane, blockInfo.type, blockInfo.note);
+				block.x = blockInfo.x;
 			}
-			tentativeNotes.Clear();
 
 			Block minXBlock = null;
 			Block maxXBlock = null;
@@ -271,7 +172,7 @@ namespace TouhouMix.Levels.Gameplay {
 				int lane = pair.Key;
 				var block = pair.Value;
 				block.lane = lane;
-				block.x = laneXDict[lane];
+				//block.x = laneXDict[lane];
 
 				// Record minX and maxX for possibl ShortConnect
 				if (minXBlock == null || block.x < minXBlock.x) {
@@ -432,8 +333,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		#endregion
-
-
+		
 		#region Touch
 
 		public void ProcessTouchDown(int id, float x, float y) {
@@ -473,7 +373,7 @@ namespace TouhouMix.Levels.Gameplay {
 		public void ProcessTouchHold(int id, float x, float y) {
 			MarkTouchedLanes(x, y);
 
-			CheckAllInstantBlocks(true);
+			CheckAllInstantBlocks(x, true);
 
 			if (!holdingBlockDict.TryGetValue(id, out Block holdingBlock)) {
 				return;
@@ -496,7 +396,7 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 		}
 
-		bool CheckAllInstantBlocks(bool onlyCheckOverdue) {
+		bool CheckAllInstantBlocks(float x, bool onlyCheckOverdue) {
 			bool isInstantBlockTouched = false;
 			float perfectTiming = scoringManager.perfectTiming;
 			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
@@ -504,7 +404,10 @@ namespace TouhouMix.Levels.Gameplay {
 				if (block.type != BlockType.INSTANT) {
 					continue;
 				}
-				if (!touchedLaneSet.Contains(block.lane)) continue;
+				//if (!touchedLaneSet.Contains(block.lane)) continue;
+				if (!(block.x - blockJudgingHalfWidth <= x && x <= block.x + blockJudgingHalfWidth)) {
+					continue;
+				}
 
 				float tickDiff = midiSequencer.ticks - block.note.start;
 				float timingDiff = midiSequencer.ToSeconds(tickDiff);
@@ -524,11 +427,14 @@ namespace TouhouMix.Levels.Gameplay {
 			//Debug.Log("check " + blockContainer.firstFreeItemIndex);
 			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
 				var block = blockContainer.itemList[i];
-				if (!touchedLaneSet.Contains(block.lane)) continue;
+				//if (!touchedLaneSet.Contains(block.lane)) continue;
+				if (!(block.x - blockJudgingHalfWidth <= x && x <= block.x + blockJudgingHalfWidth)) {
+					continue;
+				}
 				float tickDiff = midiSequencer.ticks - block.note.start;
 				float timeingDiff = midiSequencer.ToSeconds(tickDiff);
 				timeingDiff = timeingDiff < 0 ? -timeingDiff : timeingDiff;
-				float offset = laneXDict[block.lane] - x;
+				float offset = block.x - x;
 				offset = offset < 0 ? -offset : offset;
 				//Debug.LogFormat("compare best note tick {2}, time {0}, offset {1}", timeingDiff, offset, tickDiff);
 				if (timeingDiff <= badTiming) {

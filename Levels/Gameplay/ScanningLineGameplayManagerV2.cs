@@ -5,7 +5,7 @@ using Midif.V3;
 using Uif;
 using Uif.Settables.Components;
 
-namespace TouhouMix.Levels.Gameplay {
+namespace TouhouMix.Levels.Gameplay {/*
 	[System.Serializable]
 	public sealed class ScanningLineGameplayManagerV2 : OneOnlyGameplayManagerV2 {
 		[Space]
@@ -227,5 +227,5 @@ namespace TouhouMix.Levels.Gameplay {
 		sealed class Block : Gameplay.Block {
 			public bool superLong;
 		}
-	}
+	}*/
 }

@@ -42,8 +42,10 @@ namespace TouhouMix.Levels.Gameplay {
 		//public OneOnlyGameplayManager oneOnlyGameplayManager;
 		public OneOnlyGameplayManagerV2 oneOnlyGameplayManagerV2;
 		//public ScanningLineGameplayManager scanningLineGameplayManager;
-		public ScanningLineGameplayManagerV2 scanningLineGameplayManagerV2;
+		//public ScanningLineGameplayManagerV2 scanningLineGameplayManagerV2;
 		IGameplayManager gameplayManager;
+
+		public SingleLaneBlockGenerator generator;
 
 		GameScheduler game_;
 		AnimationManager anim_;
@@ -68,6 +70,9 @@ namespace TouhouMix.Levels.Gameplay {
 		readonly List<NoteSequenceCollection.Sequence> gameSequences = new List<NoteSequenceCollection.Sequence>();
 		readonly List<NoteSequenceCollection.Sequence> backgroundSequences = new List<NoteSequenceCollection.Sequence>();
 
+		int blockInfoIndex;
+		List<SingleLaneBlockGenerator.BlockInfo> blockInfos;
+
 		sealed class BackgroundTrack {
 			public int seqNoteIndex;
 		}
@@ -85,12 +90,8 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 
 			switch (game_.gameplayConfig.layoutPreset) {
-				case GameplayConfigProto.LAYOUT_PRESET_SCANNING_LINE: gameplayManager = scanningLineGameplayManagerV2; break;
+				//case GameplayConfigProto.LAYOUT_PRESET_SCANNING_LINE: gameplayManager = scanningLineGameplayManagerV2; break;
 				default: gameplayManager = oneOnlyGameplayManagerV2; break;
-			}
-
-			if (shouldLoadGameplayConfig) {
-				LoadGameplayConfig();
 			}
 
 			hasStarted = false;
@@ -124,6 +125,10 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 			sf2Synth.ignoreProgramChange = true;
 			Debug.LogFormat("background tracks: {0}, game tracks: {1}", backgroundSequences.Count, gameSequences.Count);
+
+			if (shouldLoadGameplayConfig) {
+				LoadGameplayConfig();
+			}
 
 			backgroundTracks = new BackgroundTrack[backgroundSequences.Count];
 			for (int i = 0; i < backgroundTracks.Length; i++) backgroundTracks[i] = new BackgroundTrack();
@@ -189,6 +194,21 @@ namespace TouhouMix.Levels.Gameplay {
 
 				oneOnlyGameplayManagerV2.judgeTimeOffset = config.judgeTimeOffset;
 
+				generator.maxTouchCount = config.maxSimultaneousBlocks;
+				generator.laneCount = config.laneCount;
+
+				float canvasWidth = GetCanvasSize().x;
+				var laneXDict = new float[config.laneCount];
+				float laneStart = config.blockSize * .5f;
+				float laneSpacing = (canvasWidth - config.blockSize) / (config.laneCount - 1);
+				for (int i = 0; i < laneXDict.Length; i++) {
+					laneXDict[i] = laneStart + i * laneSpacing;
+				}
+				generator.laneX = laneXDict;
+
+				oneOnlyGameplayManagerV2.blockInfos = generator.GenerateBlocks(gameSequences);
+				Debug.Log("generated " + oneOnlyGameplayManagerV2.blockInfos.Count);
+
 				//scanningLineGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : scanningLineGameplayManager.instantBlockPrefab;
 				//scanningLineGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : scanningLineGameplayManager.shortBlockPrefab;
 				//scanningLineGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : scanningLineGameplayManager.longBlockPrefab;
@@ -209,26 +229,26 @@ namespace TouhouMix.Levels.Gameplay {
 				//scanningLineGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
 				//scanningLineGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
 
-				scanningLineGameplayManagerV2.laneCount = config.laneCount;
-				scanningLineGameplayManagerV2.blockWidth = config.blockSize;
-				scanningLineGameplayManagerV2.blockJudgingWidth = config.blockJudgingWidth;
+				//scanningLineGameplayManagerV2.laneCount = config.laneCount;
+				//scanningLineGameplayManagerV2.blockWidth = config.blockSize;
+				//scanningLineGameplayManagerV2.blockJudgingWidth = config.blockJudgingWidth;
 
-				scanningLineGameplayManagerV2.judgeHeight = config.judgeLinePosition;
-				scanningLineGameplayManagerV2.judgeThickness = config.judgeLineThickness;
+				//scanningLineGameplayManagerV2.judgeHeight = config.judgeLinePosition;
+				//scanningLineGameplayManagerV2.judgeThickness = config.judgeLineThickness;
 
-				scanningLineGameplayManagerV2.cacheBeats = config.cacheTime;
-				scanningLineGameplayManagerV2.cacheEsType = config.cacheEasingType;
-				scanningLineGameplayManagerV2.graceBeats = config.graceTime;
-				scanningLineGameplayManagerV2.graceEsType = config.graceEasingType;
+				//scanningLineGameplayManagerV2.cacheBeats = config.cacheTime;
+				//scanningLineGameplayManagerV2.cacheEsType = config.cacheEasingType;
+				//scanningLineGameplayManagerV2.graceBeats = config.graceTime;
+				//scanningLineGameplayManagerV2.graceEsType = config.graceEasingType;
 
-				scanningLineGameplayManagerV2.maxInstantBlockSeconds = config.instantBlockMaxTime;
-				scanningLineGameplayManagerV2.maxShortBlockSeconds = config.shortBlockMaxTime;
+				//scanningLineGameplayManagerV2.maxInstantBlockSeconds = config.instantBlockMaxTime;
+				//scanningLineGameplayManagerV2.maxShortBlockSeconds = config.shortBlockMaxTime;
 
-				scanningLineGameplayManagerV2.maxSimultaneousBlocks = config.maxSimultaneousBlocks;
-				scanningLineGameplayManagerV2.generateShortConnect = config.generateShortConnect;
-				scanningLineGameplayManagerV2.generateInstantConnect = config.generateInstantConnect;
-				scanningLineGameplayManagerV2.maxInstantConnectSeconds = config.instantConnectMaxTime;
-				scanningLineGameplayManagerV2.maxInstantConnectX = config.instantConnectMaxDistance;
+				//scanningLineGameplayManagerV2.maxSimultaneousBlocks = config.maxSimultaneousBlocks;
+				//scanningLineGameplayManagerV2.generateShortConnect = config.generateShortConnect;
+				//scanningLineGameplayManagerV2.generateInstantConnect = config.generateInstantConnect;
+				//scanningLineGameplayManagerV2.maxInstantConnectSeconds = config.instantConnectMaxTime;
+				//scanningLineGameplayManagerV2.maxInstantConnectX = config.instantConnectMaxDistance;
 
 				scoringManager.LoadGameplayConfig(config);
 			} catch (System.Exception e) {
