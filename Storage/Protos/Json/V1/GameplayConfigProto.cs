@@ -28,6 +28,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 
 		public float instantBlockMaxTime;
 		public float shortBlockMaxTime;
+
 		public int maxSimultaneousBlocks;
 		public float minTapInterval;
 		public float minCooldownTime;
@@ -36,9 +37,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 
 		public bool generateShortConnect;
 		public bool generateInstantConnect;
-		public bool generateInstantConnectMesh;
 		public float instantConnectMaxTime;
-		public float instantConnectMaxDistance;
 
 		public float judgeTimeOffset;
 		public float perfectTime;
@@ -80,16 +79,14 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 				shortBlockMaxTime = 1,
 
 				maxSimultaneousBlocks = 2,
-				minTapInterval = .1f,
-				minCooldownTime = 2,
+				minTapInterval = .2f,
+				minCooldownTime = 1.5f,
 				maxTouchMoveSpeed = 400,
-				maxBlockCoalesceTime = .1f,
+				maxBlockCoalesceTime = .05f,
 
 				generateShortConnect = true,
 				generateInstantConnect = true,
-				generateInstantConnectMesh = false,
 				instantConnectMaxTime = 1f,
-				instantConnectMaxDistance = 200,
 
 				judgeTimeOffset = 0,
 				perfectTime = .05f,
