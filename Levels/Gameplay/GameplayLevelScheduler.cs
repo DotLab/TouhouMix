@@ -10,7 +10,7 @@ using TouhouMix.Prefabs;
 using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
-	public sealed partial class GameplayLevelScheduler : MonoBehaviour, IGameplayHost {
+	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
 		const int MOUSE_TOUCH_ID = -100;
 
 		public string testMidiPath;
@@ -39,13 +39,8 @@ namespace TouhouMix.Levels.Gameplay {
 		public ScoringManager scoringManager;
 
 		[Space]
-		//public OneOnlyGameplayManager oneOnlyGameplayManager;
-		public OneOnlyGameplayManagerV2 oneOnlyGameplayManagerV2;
-		//public ScanningLineGameplayManager scanningLineGameplayManager;
-		//public ScanningLineGameplayManagerV2 scanningLineGameplayManagerV2;
+		public OneOnlyGameplayManagerV2 oneOnlyGameplayManager;
 		IGameplayManager gameplayManager;
-
-		public SingleLaneBlockGenerator generator;
 
 		GameScheduler game_;
 		AnimationManager anim_;
@@ -59,25 +54,21 @@ namespace TouhouMix.Levels.Gameplay {
 
 		string midiFileSha256Hash;
 		Sf2File sf2File;
-		MidiFile midiFile;
+		public MidiFile midiFile;
 		NoteSequenceCollection sequenceCollection;
 
 		Sf2Synth sf2Synth;
-		MidiSequencer midiSequencer;
+		public MidiSequencer midiSequencer;
 
 		MidiSynthConfigProto synthConfig;
 
-		readonly List<NoteSequenceCollection.Sequence> gameSequences = new List<NoteSequenceCollection.Sequence>();
-		readonly List<NoteSequenceCollection.Sequence> backgroundSequences = new List<NoteSequenceCollection.Sequence>();
-
-		int blockInfoIndex;
-		List<SingleLaneBlockGenerator.BlockInfo> blockInfos;
+		public readonly List<NoteSequenceCollection.Sequence> gameSequences = new List<NoteSequenceCollection.Sequence>();
+		public readonly List<NoteSequenceCollection.Sequence> backgroundSequences = new List<NoteSequenceCollection.Sequence>();
 
 		sealed class BackgroundTrack {
 			public int seqNoteIndex;
 		}
 		BackgroundTrack[] backgroundTracks;
-		BackgroundTrack[] gameTracks;
 		readonly ActiveSet<NoteSequenceCollection.Note> pendingBackgroundNoteSet = new ActiveSet<NoteSequenceCollection.Note>();
 		readonly ActiveSet<NoteSequenceCollection.Note> activeBackgroundNoteSet = new ActiveSet<NoteSequenceCollection.Note>();
 
@@ -91,7 +82,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 			switch (game_.gameplayConfig.layoutPreset) {
 				//case GameplayConfigProto.LAYOUT_PRESET_SCANNING_LINE: gameplayManager = scanningLineGameplayManagerV2; break;
-				default: gameplayManager = oneOnlyGameplayManagerV2; break;
+				default: gameplayManager = oneOnlyGameplayManager; break;
 			}
 
 			hasStarted = false;
@@ -126,19 +117,16 @@ namespace TouhouMix.Levels.Gameplay {
 			sf2Synth.ignoreProgramChange = true;
 			Debug.LogFormat("background tracks: {0}, game tracks: {1}", backgroundSequences.Count, gameSequences.Count);
 
+			pausePageGroup.gameObject.SetActive(false);
+			
 			if (shouldLoadGameplayConfig) {
 				LoadGameplayConfig();
 			}
+			scoringManager.Init(this);
+			gameplayManager.Init(this);
 
 			backgroundTracks = new BackgroundTrack[backgroundSequences.Count];
 			for (int i = 0; i < backgroundTracks.Length; i++) backgroundTracks[i] = new BackgroundTrack();
-			gameTracks = new BackgroundTrack[gameSequences.Count];
-			for (int i = 0; i < gameTracks.Length; i++) gameTracks[i] = new BackgroundTrack();
-
-			pausePageGroup.gameObject.SetActive(false);
-
-			scoringManager.Init(this);
-			gameplayManager.Init(this);
 
 			ShowReadyAnimation();
 		}
@@ -156,99 +144,27 @@ namespace TouhouMix.Levels.Gameplay {
 				//oneOnlyGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : oneOnlyGameplayManager.shortBlockPrefab;
 				//oneOnlyGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : oneOnlyGameplayManager.longBlockPrefab;
 
-				//oneOnlyGameplayManager.laneCount = config.laneCount;
-				//oneOnlyGameplayManager.blockWidth = config.blockSize;
-				//oneOnlyGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
+				oneOnlyGameplayManager.laneCount = config.laneCount;
+				oneOnlyGameplayManager.blockWidth = config.blockSize;
+				oneOnlyGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
 
-				//oneOnlyGameplayManager.judgeHeight = config.judgeLinePosition;
-				//oneOnlyGameplayManager.judgeThickness = config.judgeLineThickness;
+				oneOnlyGameplayManager.judgeHeight = config.judgeLinePosition;
+				oneOnlyGameplayManager.judgeThickness = config.judgeLineThickness;
 
-				//oneOnlyGameplayManager.cacheBeats = config.cacheTime;
-				//oneOnlyGameplayManager.cacheEsType = config.cacheEasingType;
-				//oneOnlyGameplayManager.graceBeats = config.graceTime;
-				//oneOnlyGameplayManager.graceEsType = config.graceEasingType;
+				oneOnlyGameplayManager.cacheBeats = config.cacheTime;
+				oneOnlyGameplayManager.cacheEsType = config.cacheEasingType;
+				oneOnlyGameplayManager.graceBeats = config.graceTime;
+				oneOnlyGameplayManager.graceEsType = config.graceEasingType;
 
-				//oneOnlyGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
-				//oneOnlyGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
+				oneOnlyGameplayManager.generator.instantBlockSeconds = config.instantBlockMaxTime;
+				oneOnlyGameplayManager.generator.shortBlockSeconds = config.shortBlockMaxTime;
+				oneOnlyGameplayManager.generator.maxTouchCount = config.maxSimultaneousBlocks;
 
-				oneOnlyGameplayManagerV2.laneCount = config.laneCount;
-				oneOnlyGameplayManagerV2.blockWidth = config.blockSize;
-				oneOnlyGameplayManagerV2.blockJudgingWidth = config.blockJudgingWidth;
+				oneOnlyGameplayManager.generateShortConnect = config.generateShortConnect;
+				oneOnlyGameplayManager.generateInstantConnect = config.generateInstantConnect;
+				oneOnlyGameplayManager.maxInstantConnectSeconds = config.instantConnectMaxTime;
 
-				oneOnlyGameplayManagerV2.judgeHeight = config.judgeLinePosition;
-				oneOnlyGameplayManagerV2.judgeThickness = config.judgeLineThickness;
-
-				oneOnlyGameplayManagerV2.cacheBeats = config.cacheTime;
-				oneOnlyGameplayManagerV2.cacheEsType = config.cacheEasingType;
-				oneOnlyGameplayManagerV2.graceBeats = config.graceTime;
-				oneOnlyGameplayManagerV2.graceEsType = config.graceEasingType;
-
-				oneOnlyGameplayManagerV2.maxInstantBlockSeconds = config.instantBlockMaxTime;
-				oneOnlyGameplayManagerV2.maxShortBlockSeconds = config.shortBlockMaxTime;
-
-				oneOnlyGameplayManagerV2.maxSimultaneousBlocks = config.maxSimultaneousBlocks;
-				oneOnlyGameplayManagerV2.generateShortConnect = config.generateShortConnect;
-				oneOnlyGameplayManagerV2.generateInstantConnect = config.generateInstantConnect;
-				oneOnlyGameplayManagerV2.maxInstantConnectSeconds = config.instantConnectMaxTime;
-				oneOnlyGameplayManagerV2.maxInstantConnectX = config.instantConnectMaxDistance;
-
-				oneOnlyGameplayManagerV2.judgeTimeOffset = config.judgeTimeOffset;
-
-				generator.maxTouchCount = config.maxSimultaneousBlocks;
-				generator.laneCount = config.laneCount;
-
-				float canvasWidth = GetCanvasSize().x;
-				var laneXDict = new float[config.laneCount];
-				float laneStart = config.blockSize * .5f;
-				float laneSpacing = (canvasWidth - config.blockSize) / (config.laneCount - 1);
-				for (int i = 0; i < laneXDict.Length; i++) {
-					laneXDict[i] = laneStart + i * laneSpacing;
-				}
-				generator.laneX = laneXDict;
-
-				oneOnlyGameplayManagerV2.blockInfos = generator.GenerateBlocks(gameSequences);
-				Debug.Log("generated " + oneOnlyGameplayManagerV2.blockInfos.Count);
-
-				//scanningLineGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : scanningLineGameplayManager.instantBlockPrefab;
-				//scanningLineGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : scanningLineGameplayManager.shortBlockPrefab;
-				//scanningLineGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : scanningLineGameplayManager.longBlockPrefab;
-
-				//scanningLineGameplayManager.laneCount = config.laneCount;
-				//scanningLineGameplayManager.blockWidth = config.blockSize;
-				//scanningLineGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
-
-				//scanningLineGameplayManager.judgeHeight = config.judgeLinePosition;
-				//scanningLineGameplayManager.judgeThickness = config.judgeLineThickness;
-
-				//scanningLineGameplayManager.scanningBeats = config.cacheTime;
-				//scanningLineGameplayManager.cacheBeats = config.cacheTime;
-				//scanningLineGameplayManager.cacheEsType = config.cacheEasingType;
-				//scanningLineGameplayManager.graceBeats = config.graceTime;
-				//scanningLineGameplayManager.graceEsType = config.graceEasingType;
-
-				//scanningLineGameplayManager.maxInstantBlockSeconds = config.instantBlockMaxTime;
-				//scanningLineGameplayManager.maxShortBlockSeconds = config.shortBlockMaxTime;
-
-				//scanningLineGameplayManagerV2.laneCount = config.laneCount;
-				//scanningLineGameplayManagerV2.blockWidth = config.blockSize;
-				//scanningLineGameplayManagerV2.blockJudgingWidth = config.blockJudgingWidth;
-
-				//scanningLineGameplayManagerV2.judgeHeight = config.judgeLinePosition;
-				//scanningLineGameplayManagerV2.judgeThickness = config.judgeLineThickness;
-
-				//scanningLineGameplayManagerV2.cacheBeats = config.cacheTime;
-				//scanningLineGameplayManagerV2.cacheEsType = config.cacheEasingType;
-				//scanningLineGameplayManagerV2.graceBeats = config.graceTime;
-				//scanningLineGameplayManagerV2.graceEsType = config.graceEasingType;
-
-				//scanningLineGameplayManagerV2.maxInstantBlockSeconds = config.instantBlockMaxTime;
-				//scanningLineGameplayManagerV2.maxShortBlockSeconds = config.shortBlockMaxTime;
-
-				//scanningLineGameplayManagerV2.maxSimultaneousBlocks = config.maxSimultaneousBlocks;
-				//scanningLineGameplayManagerV2.generateShortConnect = config.generateShortConnect;
-				//scanningLineGameplayManagerV2.generateInstantConnect = config.generateInstantConnect;
-				//scanningLineGameplayManagerV2.maxInstantConnectSeconds = config.instantConnectMaxTime;
-				//scanningLineGameplayManagerV2.maxInstantConnectX = config.instantConnectMaxDistance;
+				oneOnlyGameplayManager.judgeTimeOffset = config.judgeTimeOffset;
 
 				scoringManager.LoadGameplayConfig(config);
 			} catch (System.Exception e) {
@@ -266,15 +182,6 @@ namespace TouhouMix.Levels.Gameplay {
 			anim_.New(this).FadeIn(readyPageGroup, .5f, 0).Then()
 				.RotateFromTo(readyPageText.transform, -180, 0, .8f, EsType.BackOut)
 				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				//.Set(readyPageText.GetStringSettable(), "3")
-				//.RotateFromTo(readyPageText.transform, 180, 0, .8f, EsType.BackOut)
-				//.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				//.Set(readyPageText.GetStringSettable(), "2")
-				//.RotateFromTo(readyPageText.transform, -180, 0, .8f, EsType.BackOut)
-				//.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				//.Set(readyPageText.GetStringSettable(), "1")
-				//.RotateFromTo(readyPageText.transform, 180, 0, .8f, EsType.BackOut)
-				//.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
 				.Set(readyPageText.GetStringSettable(), "GO")
 				.Set(readyPageText.GetAlphaFloatSettable(), 1)
 				.ScaleTo(readyPageText.transform, new Vector3(2, 2, 1), 1, EsType.CubicIn)
@@ -343,7 +250,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 			UpdateBackgroundNotes();
 
-			GenerateGameNotes();
+			gameplayManager.GenerateBlocks();
 
 #if UNITY_EDITOR || UNITY_STANDALONE
 			ProcessMouse();
@@ -386,18 +293,6 @@ namespace TouhouMix.Levels.Gameplay {
 
 		void OnAudioFilterRead (float[] buffer, int channel) {
 			if (sf2Synth != null) sf2Synth.Process(buffer);
-		}
-
-		public Vector2 GetCanvasSize() {
-			return sizeWatcher.canvasSize;
-		}
-
-		public ScoringManager GetScoringManager() {
-			return scoringManager;
-		}
-
-		public MidiSequencer GetMidiSequencer() {
-			return midiSequencer;
 		}
 	}
 }

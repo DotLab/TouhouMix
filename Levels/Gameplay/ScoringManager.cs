@@ -229,7 +229,7 @@ namespace TouhouMix.Levels.Gameplay {
 			FlashAccuracy();
 		}
 
-		public void CountMiss(Block block) {
+		public void CountMiss() {
 			//			Debug.Log("Miss!");
 			FlashJudgment(Judgment.Miss);
 			combo = 0;

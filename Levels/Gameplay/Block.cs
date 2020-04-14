@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Midif.V3;
-using Uif.Settables;
 using Systemf;
 
 namespace TouhouMix.Levels.Gameplay {
@@ -24,6 +23,7 @@ namespace TouhouMix.Levels.Gameplay {
 		public float end;
 
 		// Display and touch
+		public int batch;
 		public int lane;
 		public float x;
 		public int index;

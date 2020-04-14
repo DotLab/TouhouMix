@@ -24,23 +24,12 @@ namespace TouhouMix.Levels.Gameplay {
 		public RectTransform activeBlockRect;
 
 		protected readonly ActiveFreeContainer<Block> blockContainer = new ActiveFreeContainer<Block>(() => new Block());
-
-		// For fast generate instant connect
-		protected readonly OrderedActiveQueue<Block> instantBlockQueue = new OrderedActiveQueue<Block>();
 		protected readonly ActiveFreeContainer<Connect> connectContainer = new ActiveFreeContainer<Connect>(() => new Connect());
-
 		protected readonly Dictionary<int, Block> holdingBlockDict = new Dictionary<int, Block>();
-		protected readonly HashSet<int> touchedLaneSet = new HashSet<int>();
 
-		public int maxSimultaneousBlocks = 2;
 		public bool generateShortConnect = true;
 		public bool generateInstantConnect = true;
-		public bool generateInstantConnectMesh = false;
-
-		public float maxInstantBlockSeconds = .2f;
-		public float maxShortBlockSeconds = .8f;
 		public float maxInstantConnectSeconds = .5f;
-		public float maxInstantConnectX = 200;
 
 		[Space]
 		public int cacheEsType;
@@ -62,18 +51,16 @@ namespace TouhouMix.Levels.Gameplay {
 		public float blockWidth = 100;
 		public float blockJudgingWidth = 120;
 		protected float blockScaling;
-		protected float[] laneXDict;
 		protected float blockJudgingHalfWidth;
 
-		protected IGameplayHost host;
-		protected ScoringManager scoringManager;
-		protected MidiSequencer midiSequencer;
+		protected GameplayLevelScheduler level;
 
-		public List<SingleLaneBlockGenerator.BlockInfo> blockInfos;
-		public int blockInfoIndex;
+		public readonly SingleLaneBlockGenerator generator = new SingleLaneBlockGenerator();
+		protected List<SingleLaneBlockGenerator.BlockInfo> blockInfos;
+		protected int blockInfoIndex;
 
-		public virtual void Init(IGameplayHost host) {
-			this.host = host;
+		public virtual void Init(GameplayLevelScheduler level) {
+			this.level = level;
 
 			string[] skinNames = new string[] {
 				BLOCK_SHORT,
@@ -95,31 +82,31 @@ namespace TouhouMix.Levels.Gameplay {
 				});
 			}
 
-			scoringManager = host.GetScoringManager();
-			midiSequencer = host.GetMidiSequencer();
-
-			var canvasSize = host.GetCanvasSize();
-
+			var canvasSize = level.sizeWatcher.canvasSize;
 			judgeRect.anchoredPosition = new Vector2(0, judgeHeight);
 			judgeRect.sizeDelta = new Vector2(0, judgeThickness);
 			cacheHeight = canvasSize.y - judgeHeight;
 
 			blockScaling = blockWidth / 100;
 			float canvasWidth = canvasSize.x;
-			laneXDict = new float[laneCount];
+			float[] laneX = new float[laneCount];
 			float laneStart = blockWidth * .5f;
 			float laneSpacing = (canvasWidth - blockWidth) / (laneCount - 1);
-			for (int i = 0; i < laneXDict.Length; i++) {
-				laneXDict[i] = laneStart + i * laneSpacing;
+			for (int i = 0; i < laneX.Length; i++) {
+				laneX[i] = laneStart + i * laneSpacing;
 			}
+			generator.laneCount = laneCount;
+			generator.laneX = laneX;
 
-			cacheTicks = cacheBeats * midiSequencer.file.ticksPerBeat;
-			graceTicks = graceBeats * midiSequencer.file.ticksPerBeat;
+			cacheTicks = cacheBeats * level.midiFile.ticksPerBeat;
+			graceTicks = graceBeats * level.midiFile.ticksPerBeat;
 
 			blockJudgingHalfWidth = blockJudgingWidth * .5f;
 
-			midiSequencer.ticks = -cacheTicks;
+			level.midiSequencer.ticks = -cacheTicks;
 
+			blockInfos = generator.GenerateBlocks(level.gameSequences);
+			level.backgroundSequences.Add(new NoteSequenceCollection.Sequence { notes = generator.backgroundNotes });
 			blockInfoIndex = 0;
 		}
 
@@ -127,27 +114,21 @@ namespace TouhouMix.Levels.Gameplay {
 
 		protected BlockSkinController CreateOrReuseSkin(string skinName) {
 			var skin = freeSkinContainerDict[skinName].CreateOrReuseItem();
-			//skin.rect.SetParent(activeBlockRect, false);
 			skin.group.alpha = 1;
 			return skin;
 		}
 
 		protected void FreeSkin(string skinName, BlockSkinController skin) {
 			freeSkinContainerDict[skinName].FreeItem(skin);
-			//skin.rect.SetParent(freeBlockRect, false);
 			skin.group.alpha = 0;
 		}
 
 		#endregion
 
 		#region Block Generation
-		protected readonly Dictionary<int, Block> tentativeBlockDict = new Dictionary<int, Block>();
-
-		public virtual void AddTentativeNote(NoteSequenceCollection.Note note) {
-		}
-
 		Block AddTentativeBlock(int lane, BlockType type, NoteSequenceCollection.Note note) {
 			var block = blockContainer.CreateOrReuseItem();
+			block.lane = lane;
 			block.isTentative = true;
 			block.active = true;
 			block.type = type;
@@ -155,24 +136,22 @@ namespace TouhouMix.Levels.Gameplay {
 			block.end = note.end;
 			block.backgroundNotes.Clear();
 			block.holdingFingerId = -1;
-			tentativeBlockDict.Add(lane, block);
 			return block;
 		}
 
 		public virtual void GenerateBlocks() {
-			for (; blockInfoIndex < blockInfos.Count && midiSequencer.ticks + cacheTicks >= blockInfos[blockInfoIndex].note.start; blockInfoIndex += 1) {
-				var blockInfo = blockInfos[blockInfoIndex];
-				var block = AddTentativeBlock(blockInfo.lane, blockInfo.type, blockInfo.note);
-				block.x = blockInfo.x;
+			if (blockInfoIndex >= blockInfos.Count || level.midiSequencer.ticks + cacheTicks < blockInfos[blockInfoIndex].note.start) {
+				return;
 			}
 
 			Block minXBlock = null;
 			Block maxXBlock = null;
-			foreach (var pair in tentativeBlockDict) {
-				int lane = pair.Key;
-				var block = pair.Value;
-				block.lane = lane;
-				//block.x = laneXDict[lane];
+			// Generate one batch at a time
+			for (int batch = blockInfos[blockInfoIndex].batch; blockInfos[blockInfoIndex].batch == batch; blockInfoIndex += 1) {
+				var blockInfo = blockInfos[blockInfoIndex];
+				var block = AddTentativeBlock(blockInfo.lane, blockInfo.type, blockInfo.note);
+				block.batch = blockInfo.batch;
+				block.x = blockInfo.x;
 
 				// Record minX and maxX for possibl ShortConnect
 				if (minXBlock == null || block.x < minXBlock.x) {
@@ -183,25 +162,20 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 
 				if (block.type == BlockType.INSTANT) {
-					// Need to generate InstantConnect
 					bool isInner = false;
-					if (generateInstantConnect) {
+					if (blockInfo.prev != null && generateInstantConnect) {
+						// Need to generate InstantConnect
 						for (int i = blockContainer.firstFreeItemIndex - 1; i >= 0; i--) {
 							var activeBlock = blockContainer.itemList[i];
-						//for (var activeBlock in instantBlockQueue.itemQueue.Reverse()) {
-							if (!activeBlock.isTentative) {
-								if (midiSequencer.ToSeconds(block.note.start - activeBlock.note.start) < maxInstantConnectSeconds && Mathf.Abs(activeBlock.x - block.x) < maxInstantConnectX) {
-									isInner = true;
+							if (activeBlock.batch == blockInfo.prev.batch && activeBlock.lane == blockInfo.prev.lane) {
+								if (activeBlock.type == BlockType.INSTANT && block.note.startSeconds - activeBlock.note.startSeconds <= maxInstantConnectSeconds) {
 									GenerateConnect(BLOCK_INSTANT_CONNECT, activeBlock, block, false);
-									if (!generateInstantConnectMesh) {
-										break;
-									}
+									isInner = true;
 								}
+								break;
 							}
 						}
-						instantBlockQueue.Push(block);
 					}
-
 					block.skinName = isInner ? BLOCK_INSTANT_INNER : BLOCK_INSTANT;
 					block.skin = CreateOrReuseSkin(block.skinName);
 					block.skin.rect.SetAsLastSibling();
@@ -225,12 +199,10 @@ namespace TouhouMix.Levels.Gameplay {
 				block.skin.rect.localScale = Vector3.one * blockScaling;
 			}
 
-			if (generateShortConnect && tentativeBlockDict.Count > 1) {
+			if (generateShortConnect && minXBlock != maxXBlock) {
 				// Need to generate ShortConnect
 				GenerateConnect(BLOCK_SHORT_CONNECT, minXBlock, maxXBlock, true);
 			}
-
-			tentativeBlockDict.Clear();
 		}
 
 		protected virtual void GenerateConnect(string skinName, Block from, Block to, bool isFixed) {
@@ -261,7 +233,7 @@ namespace TouhouMix.Levels.Gameplay {
 		#region Block Update
 
 		public virtual void UpdateBlocks() {
-			float ticks = midiSequencer.ticks;
+			float ticks = level.midiSequencer.ticks;
 
 			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
 				var block = blockContainer.itemList[i];
@@ -270,7 +242,7 @@ namespace TouhouMix.Levels.Gameplay {
 				int start = block.note.start;
 				if (block.end < ticks - graceTicks) {
 					// miss
-					scoringManager.CountMiss(block);
+					level.scoringManager.CountMiss();
 					HideAndFreeTouchedBlock(block);
 					i -= 1;
 					continue;
@@ -282,8 +254,8 @@ namespace TouhouMix.Levels.Gameplay {
 						// hold finish
 						holdingBlockDict.Remove(block.holdingFingerId);
 						block.holdingFingerId = -1;
-						scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(block.end), block, true);
-						host.StopNote(block.note);
+						level.scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(block.end), block, true);
+						level.StopNote(block.note);
 						HideAndFreeTouchedBlock(block);
 					} else {
 						float startY = block.holdingFingerId != -1 ? judgeHeight : GetY(start);
@@ -322,7 +294,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		protected virtual float GetY(float start) {
-			float ticks = midiSequencer.ticks;
+			float ticks = level.midiSequencer.ticks;
 			if (ticks < start) {
 				// in cache period
 				return Es.Calc(cacheEsType, Mathf.Clamp01((start - ticks) / cacheTicks)) * cacheHeight + judgeHeight;
@@ -333,12 +305,10 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		#endregion
-		
+
 		#region Touch
 
 		public void ProcessTouchDown(int id, float x, float y) {
-			MarkTouchedLanes(x, y);
-
 			int bestBlockIndex = -1;
 			Block bestBlock = null;
 			float bestTimingDiff = -1;
@@ -355,8 +325,6 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void ProcessTouchUp(int id, float x, float y) {
-			MarkTouchedLanes(x, y);
-
 			if (!holdingBlockDict.TryGetValue(id, out Block holdingBlock)) {
 				return;
 			}
@@ -364,15 +332,13 @@ namespace TouhouMix.Levels.Gameplay {
 			holdingBlockDict.Remove(id);
 			HideAndFreeTouchedBlock(holdingBlock);
 			//Debug.Log("Up " + holdingBlock.end + " " + GetOffsetInSeconds(holdingBlock.end));
-			scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(holdingBlock.end), holdingBlock);
+			level.scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(holdingBlock.end), holdingBlock);
 
 			// Only check instant block when ending long block
 			//CheckAllInstantBlocks(false);
 		}
 
 		public void ProcessTouchHold(int id, float x, float y) {
-			MarkTouchedLanes(x, y);
-
 			CheckAllInstantBlocks(x, true);
 
 			if (!holdingBlockDict.TryGetValue(id, out Block holdingBlock)) {
@@ -381,24 +347,9 @@ namespace TouhouMix.Levels.Gameplay {
 			holdingBlock.holdingX = x + holdingBlock.holdingOffset;
 		}
 
-		protected virtual void MarkTouchedLanes(float x, float y) {
-			touchedLaneSet.Clear();
-			if (y > 0.5f * host.GetCanvasSize().y) {
-				// only mark lane as touched when touch is in range
-				return;
-			}
-
-			for (int i = 0; i < laneCount; i++) {
-				float laneX = laneXDict[i];
-				if (laneX - blockJudgingHalfWidth <= x && x <= laneX + blockJudgingHalfWidth) {
-					touchedLaneSet.Add(i);
-				}
-			}
-		}
-
 		bool CheckAllInstantBlocks(float x, bool onlyCheckOverdue) {
 			bool isInstantBlockTouched = false;
-			float perfectTiming = scoringManager.perfectTiming;
+			float perfectTiming = level.scoringManager.perfectTiming;
 			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
 				var block = blockContainer.itemList[i];
 				if (block.type != BlockType.INSTANT) {
@@ -409,8 +360,8 @@ namespace TouhouMix.Levels.Gameplay {
 					continue;
 				}
 
-				float tickDiff = midiSequencer.ticks - block.note.start;
-				float timingDiff = midiSequencer.ToSeconds(tickDiff);
+				float tickDiff = level.midiSequencer.ticks - block.note.start;
+				float timingDiff = level.midiSequencer.ToSeconds(tickDiff);
 				//				Debug.LogFormat("compare instant note tick {1}, time {0}", timingDiff, tickDiff);
 				if ((onlyCheckOverdue && 0 <= timingDiff && timingDiff <= perfectTiming) ||
 					(!onlyCheckOverdue && -perfectTiming <= timingDiff && timingDiff <= perfectTiming)) {
@@ -423,7 +374,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		void FindBestNote(float x, ref int bestBlockIndex, ref Block bestBlock, ref float bestTimingDiff, ref float bestOffset) {
-			float badTiming = scoringManager.badTiming;
+			float badTiming = level.scoringManager.badTiming;
 			//Debug.Log("check " + blockContainer.firstFreeItemIndex);
 			for (int i = 0; i < blockContainer.firstFreeItemIndex; i++) {
 				var block = blockContainer.itemList[i];
@@ -431,8 +382,8 @@ namespace TouhouMix.Levels.Gameplay {
 				if (!(block.x - blockJudgingHalfWidth <= x && x <= block.x + blockJudgingHalfWidth)) {
 					continue;
 				}
-				float tickDiff = midiSequencer.ticks - block.note.start;
-				float timeingDiff = midiSequencer.ToSeconds(tickDiff);
+				float tickDiff = level.midiSequencer.ticks - block.note.start;
+				float timeingDiff = level.midiSequencer.ToSeconds(tickDiff);
 				timeingDiff = timeingDiff < 0 ? -timeingDiff : timeingDiff;
 				float offset = block.x - x;
 				offset = offset < 0 ? -offset : offset;
@@ -452,15 +403,15 @@ namespace TouhouMix.Levels.Gameplay {
 		void TouchInstantBlock(Block block, int index, bool isHolding = false) {
 			//block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block);
-			scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block, isHolding);
-			host.PlayBackgroundNotes(block);
+			level.scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block, isHolding);
+			level.PlayBackgroundNotes(block);
 		}
 
 		void TouchShortBlock(Block block, int index) {
 			//block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block);
-			scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block);
-			host.PlayBackgroundNotes(block);
+			level.scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block);
+			level.PlayBackgroundNotes(block);
 		}
 
 		void TouchLongBlock(Block block, int _, int fingerId, float x) {
@@ -468,13 +419,13 @@ namespace TouhouMix.Levels.Gameplay {
 			block.holdingOffset = block.x - x;
 			block.holdingX = block.x;
 			if (holdingBlockDict.TryGetValue(fingerId, out Block holdingBlock)) {
-				scoringManager.CountMiss(holdingBlock);
+				level.scoringManager.CountMiss();
 				HideAndFreeTouchedBlock(holdingBlock);
 			}
 			holdingBlockDict[fingerId] = block;
-			scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block);
-			host.PlayBackgroundNotes(block);
-			host.StartNote(block.note);
+			level.scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block);
+			level.PlayBackgroundNotes(block);
+			level.StartNote(block.note);
 		}
 
 		protected void HideAndFreeTouchedBlock(Block block) {
@@ -483,15 +434,12 @@ namespace TouhouMix.Levels.Gameplay {
 				FreeSkin(BLOCK_LONG_FILL, block.longFillSkin);
 				FreeSkin(BLOCK_LONG_END, block.longEndSkin);
 			}
-			if (block.type == BlockType.INSTANT) {
-				instantBlockQueue.ForceFree(block);
-			}
 			blockContainer.FreeItem(block);
 		}
 
 		float GetOffsetInSeconds(float timingTicks) {
-			float timing = midiSequencer.ticks - timingTicks;
-			float seconds = midiSequencer.ToSeconds(timing) + judgeTimeOffset;
+			float timing = level.midiSequencer.ticks - timingTicks;
+			float seconds = level.midiSequencer.ToSeconds(timing) + judgeTimeOffset;
 			if (seconds < 0) seconds = -seconds;
 			return seconds;
 		}

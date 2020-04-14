@@ -12,24 +12,27 @@ namespace TouhouMix.Levels.Gameplay {
 			public Note holdingNote;
 			public float lastPressSeconds = float.MinValue;
 			public float lastPressX;
+			public BlockInfo lastPressBlock;
 		}
 
 		public sealed class BlockInfo {
 			public Note note;
+			public int batch;
 			public int lane;
 			public float x;
-			public int batch;
 			public int touchIndex = -1;
 			public BlockType type;
+
+			public BlockInfo prev;
 		}
 
-		public int maxTouchCount;
+		public int maxTouchCount = 2;
 		public int laneCount;
 		public float[] laneX;
-		public float minTapInterval;
-		public float cooldownSeconds;
-		public float maxTouchMoveVelocity;
-		public float blockCoalesceSeconds;
+		public float minTapInterval = 0;
+		public float cooldownSeconds = 2;
+		public float maxTouchMoveVelocity = 400;
+		public float blockCoalesceSeconds = .1f;
 
 		public float instantBlockSeconds;
 		public float shortBlockSeconds;
@@ -139,9 +142,9 @@ namespace TouhouMix.Levels.Gameplay {
 			FindOptimalMatchings(batchBlocks, batchBlocks.Count, 0, 0, 0);
 
 			for (int i = 0; i < batchBlocks.Count; i++) {
-				var touch = touches[minMatchingTouchIndex[i]];
 				var block = batchBlocks[i];
 				block.touchIndex = minMatchingTouchIndex[i];
+				var touch = touches[block.touchIndex];
 
 				if (block.note.durationSeconds <= instantBlockSeconds) {
 					block.type = BlockType.INSTANT;
@@ -152,13 +155,16 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 
 				if (!touch.isFree) {
+					// Check if still not free
 					if (touch.holdingNote == null && block.note.startSeconds > touch.lastPressSeconds + cooldownSeconds) {
 						// Debug.Log("Free start");
 						// Now free
 						touch.isFree = true;
+						touch.lastPressBlock = null;
 					} else {
 						// Debug.Log("Not free");
 						// Still not free;
+						block.prev = touch.lastPressBlock;
 						float maxOffset = maxTouchMoveVelocity * (block.note.startSeconds - touch.lastPressSeconds);
 						if (Mathf.Abs(block.x - touch.lastPressX) > maxOffset) {
 							if (block.x > touch.lastPressX) {
@@ -191,10 +197,10 @@ namespace TouhouMix.Levels.Gameplay {
 				if (block.type == BlockType.LONG) {
 					touch.holdingNote = block.note;
 				}
-
 				touch.isFree = false;
 				touch.lastPressSeconds = block.note.startSeconds;
 				touch.lastPressX = block.x;
+				touch.lastPressBlock = block;
 
 				// Debug.LogFormat("optimal lane {0} touch {1} x {2:F2} start {3:F2} type {4}", block.lane, block.touchIndex, block.x, block.note.startSeconds, block.type);
 

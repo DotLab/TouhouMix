@@ -28,8 +28,12 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 
 		public float instantBlockMaxTime;
 		public float shortBlockMaxTime;
-
 		public int maxSimultaneousBlocks;
+		public float minTapInterval;
+		public float minCooldownTime;
+		public float maxTouchMoveSpeed;
+		public float maxBlockCoalesceTime;
+
 		public bool generateShortConnect;
 		public bool generateInstantConnect;
 		public bool generateInstantConnectMesh;
@@ -50,7 +54,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		public float goodSparkScaling;
 		public string badSparkPreset;
 		public float badSparkScaling;
-		
+
 		public static GameplayConfigProto CreateDefault() {
 			return new GameplayConfigProto {
 				layoutPreset = 0,
@@ -76,10 +80,15 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 				shortBlockMaxTime = 1,
 
 				maxSimultaneousBlocks = 2,
+				minTapInterval = .1f,
+				minCooldownTime = 2,
+				maxTouchMoveSpeed = 400,
+				maxBlockCoalesceTime = .1f,
+
 				generateShortConnect = true,
 				generateInstantConnect = true,
 				generateInstantConnectMesh = false,
-				instantConnectMaxTime = .2f,
+				instantConnectMaxTime = 1f,
 				instantConnectMaxDistance = 200,
 
 				judgeTimeOffset = 0,
