@@ -13,5 +13,4 @@ namespace TouhouMix.Levels.SongSelect.MidiDetailPage {
     public Text infoRightText;
     public Text gradeText;
   }
-
 }

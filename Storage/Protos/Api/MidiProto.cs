@@ -31,6 +31,7 @@
 		public string sourceSongName;
 		
 		public int trialCount;
+		public int downloadCount;
 		public int loveCount;
 		public int voteCount;
 		public int voteSum;

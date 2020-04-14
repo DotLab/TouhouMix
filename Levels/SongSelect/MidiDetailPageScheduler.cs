@@ -18,6 +18,8 @@ namespace TouhouMix.Levels.SongSelect {
 		public Text titleText;
 		public Text artistText;
 		public Text infoText;
+		public Text statisticsText;
+		public Text statusText;
 
 		public RawImageCutter coverCutter;
 
@@ -55,49 +57,15 @@ namespace TouhouMix.Levels.SongSelect {
 		public override void Enable() {
 			base.Enable();
 
-			//if (level.selectedDownloadedMidi == null) {
-			//	InitLocal();
-			//} else {
-				InitMidiDetail();
-			//}
+			InitMidiDetail();
 			InitMidiRank();
 		}
 
 		public override void Back() {
 			level.selectedMidiId = null;
 			level.selectedSongId = null;
-			//level.selectedDownloadedMidi = null;
 			base.Back();
 		}
-
-		//void InitLocal() {
-		//	level.backgroundImage.texture = level.defaultBackgroundTexture;
-		//	game.backgroundTexture = null;
-		//	midiId = null;
-
-		//	try {
-		//		album = res_.albumProtoDict[level.selectedAlbumId];
-		//		song = res_.songProtoDict[Tuple.Create(level.selectedAlbumId, level.selectedSongId)];
-		//		midi = res_.midiProtoDict[Tuple.Create(level.selectedAlbumId, level.selectedSongId, level.selectedMidi)];
-		//	} catch (System.Exception e) {
-		//		Debug.LogError(e);
-
-		//		album = res_.albumProtoDict[level.selectedAlbumId = 6];
-		//		song = res_.songProtoDict[Tuple.Create(level.selectedAlbumId, level.selectedSongId = 1)];
-		//		midi = res_.midiProtoDict[Tuple.Create(level.selectedAlbumId, level.selectedSongId, level.selectedMidi = "aka_easy")];
-		//	}
-		//	author = res_.authorProtoDict[midi.author];
-
-		//	byte[] bytes = midi.isFile ? System.IO.File.ReadAllBytes(midi.path) : Resources.Load<TextAsset>(midi.path).bytes;
-		//	midiFile = new MidiFile(bytes);
-		//	sequenceCollection = new NoteSequenceCollection(midiFile);
-
-		//	sourceText.text = string.Format("{0} • {1}", album.name, song.name);
-		//	titleText.text = midi.name;
-		//	artistText.text = string.Format("by {0}", author.name);
-		//	infoText.text = string.Format("{0:N0} Sequences • {1:N0} Notes • {2}",
-		//		sequenceCollection.sequences.Count, sequenceCollection.noteCount, hash = MiscHelper.GetHexEncodedMd5Hash(bytes));
-		//}
 
 		void InitMidiDetail(bool renderMidiList = true) {
 			midi = res.QueryMidiById(level.selectedMidiId);
@@ -127,6 +95,8 @@ namespace TouhouMix.Levels.SongSelect {
 			artistText.text = string.Format("by {0}", author?.name ?? midi.artistName);
 			infoText.text = string.Format("{0:N0} Sequences • {1:N0} Notes • {2}",
 				sequenceCollection.sequences.Count, sequenceCollection.noteCount, hash = MiscHelper.GetHexEncodedMd5Hash(bytes));
+			statisticsText.text = string.Format(" <size=12>{0:N0}</size>   <size=12>{1:N0}</size>   <size=12>{2:N0}</size>   <size=12>{3:N0}</size>", midi.trialCount, midi.downloadCount, midi.voteSum, midi.loveCount);
+			statusText.text = midi.status;
 
 			if (string.IsNullOrWhiteSpace(midi.coverUrl)) {
 				coverCutter.Cut(defaultTexture.name, defaultTexture);
@@ -176,10 +146,16 @@ namespace TouhouMix.Levels.SongSelect {
 			item.nameText.text = trialObj.Get<string>("userName");
 			int totalCount = (int)(trialObj.Get<double>("perfectCount") + trialObj.Get<double>("greatCount") 
 				+ trialObj.Get<double>("goodCount") + trialObj.Get<double>("badCount") + trialObj.Get<double>("missCount"));
-			item.infoText.text = string.Format("{0:N0}/{1:N0} Perfects", trialObj.Get<double>("perfectCount"), totalCount);
-			item.infoRightText.text = string.Format(" {0:N0}x   {1:F2}%", trialObj.Get<double>("combo"), trialObj.Get<double>("accuracy") * 100);
-			item.scoreText.text = string.Format("{0:N0}", trialObj.Get<double>("score"));
-			item.gradeText.text = GetGrade(trialObj.Get<double>("accuracy"));
+			//item.infoText.text = string.Format("{0:N0}/{1:N0} Perfects", trialObj.Get<double>("perfectCount"), totalCount);
+			item.infoText.text = string.Format("<color=#B070FF>{0:N0}</color> <color=#FF7842>{1:N0}</color> <color=#3FF490>{2:N0}</color> <color=#69B6FF>{3:N0}</color> <color=#FF1A37>{4:N0}</color>", 
+				trialObj.Get<double>("perfectCount"), 
+				trialObj.Get<double>("greatCount"),
+				trialObj.Get<double>("goodCount"), 
+				trialObj.Get<double>("badCount"), 
+				trialObj.Get<double>("missCount"));
+			item.infoRightText.text = string.Format(" {0:N0}   {1:N0}x   {2:F2}%", trialObj.Get<double>("score"), trialObj.Get<double>("combo"), trialObj.Get<double>("accuracy") * 100);
+			item.scoreText.text = string.Format("{0:F2} pp", trialObj.Get<double>("performance"));
+			item.gradeText.text = trialObj.Get<string>("grade");
 			item.rankText.text = rank.ToString();
 			if (!string.IsNullOrEmpty(trialObj.Get<string>("userAvatarUrl"))) {
 				Net.WebCache.instance.LoadTexture(trialObj.Get<string>("userAvatarUrl"), job => {
@@ -216,11 +192,13 @@ namespace TouhouMix.Levels.SongSelect {
 
 			item.titleText.text = DownloadedSongSelectPageScheduler.GetStringOrUnkonwn(midi.name);
 			item.line1Text.text = "by " + DownloadedSongSelectPageScheduler.GetStringOrUnkonwn(midi.artistName);
-			item.line2Text.text = " 0   0x   0%";
+			item.line2Text.text = string.Format(" {0:N0}   {1:N0}x   {2:F2}%", midi.avgScore, midi.avgCombo, midi.avgAccuracy * 100);
 			item.action = () => {
-				level.selectedMidiId = midi._id;
-				InitMidiDetail(false);
-				InitMidiRank();
+				if (level.selectedMidiId != midi._id) {
+					level.selectedMidiId = midi._id;
+					InitMidiDetail(false);
+					InitMidiRank();
+				}
 			};
 
 			var coverUrl = midi.coverUrl;
