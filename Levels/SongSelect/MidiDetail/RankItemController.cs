@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 namespace TouhouMix.Levels.SongSelect.MidiDetailPage {
   public sealed class RankItemController : MonoBehaviour {
+    public CanvasGroup group;
     public Text rankText;
     public RawImageCutter imageCutter;
     public Text nameText;

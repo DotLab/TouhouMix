@@ -309,6 +309,8 @@ namespace TouhouMix.Net {
 		}
 
 		public sealed class Trial {
+			public bool withdrew;
+			
 			public string hash;
 			public int score;
 			public int combo;
@@ -323,6 +325,8 @@ namespace TouhouMix.Net {
 
 		public void ClAppTrialUpload(Trial trial, RpcCallback callback) {
 			Rpc("ClAppTrialUpload", new JsonObj() {
+				["withdrew"] = trial.withdrew,
+
 				["hash"] = trial.hash,
 				["score"] = trial.score, ["combo"] = trial.combo, ["accuracy"] = trial.accuracy,
 
@@ -361,14 +365,14 @@ namespace TouhouMix.Net {
 			}, callback);
 		}
 
-		public void ClAppErrorReport(System.Exception error, RpcCallback callback) {
+		public void ClAppErrorReport(string message, string stackTrace, RpcCallback callback) {
 			var audioConfig = AudioSettings.GetConfiguration();
 			Rpc("ClAppErrorReport", new JsonObj() {
 				["version"] = Application.version,
 
-				["message"] = error.Message,
-				["stack"] = error.StackTrace,
-				["source"] = error.Source,
+				["message"] = message,
+				["stack"] = stackTrace,
+				//["source"] = error.Source,
 
 				["platform"] = GetPlatform(),
 				["runtime"] = Application.platform.ToString().ToLower(),

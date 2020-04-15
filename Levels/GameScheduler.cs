@@ -62,7 +62,6 @@ namespace TouhouMix.Levels {
 			if (instance == null) {
 				instance = this;
 				DontDestroyOnLoad(gameObject);
-				ImaginationOverflow.UniversalFileAssociation.FileAssociationManager.Instance.FileActivated += FileActivatedHandler;
 
 				Init();
 			} else {
@@ -70,8 +69,14 @@ namespace TouhouMix.Levels {
 			}
 		}
 
+		private void OnEnable() {
+			ImaginationOverflow.UniversalFileAssociation.FileAssociationManager.Instance.FileActivated += FileActivatedHandler;
+			Application.logMessageReceived += HandleLogs;
+		}
+
 		void OnDisable() {
 			ImaginationOverflow.UniversalFileAssociation.FileAssociationManager.Instance.FileActivated -= FileActivatedHandler;
+			Application.logMessageReceived -= HandleLogs;
 		}
 
 		void OnApplicationFocus(bool hasFocus) {
@@ -88,6 +93,18 @@ namespace TouhouMix.Levels {
 			netManager.Dispose();
 		}
 		#endregion
+
+		[Button]
+		public void LogTestError() {
+			Debug.LogError("this is a test error");
+			throw new System.Exception("this is a test exception");
+		}
+
+		private void HandleLogs(string condition, string stackTrace, LogType type) {
+			if (type == LogType.Error || type == LogType.Exception) {
+				netManager.ClAppErrorReport(condition, stackTrace, null);
+			}
+		}
 
 		[Button]
 		public void TakeScreenshot() {

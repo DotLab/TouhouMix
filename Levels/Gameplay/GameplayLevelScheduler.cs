@@ -276,6 +276,8 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void OnRestartButtonClicked() {
+			scoringManager.ReportScores(true);
+
 			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
 		}
 
@@ -289,6 +291,8 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void OnStopButtonClicked() {
+			scoringManager.ReportScores(true);
+
 			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.SONG_SELECT_LEVEL_BUILD_INDEX);
 		}
 

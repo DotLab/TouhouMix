@@ -186,6 +186,11 @@ namespace TouhouMix.Levels.SongSelect {
 			item.scoreText.text = string.Format("{0:F2} pp", trialObj.Get<double>("performance"));
 			item.gradeText.text = trialObj.Get<string>("grade");
 			item.rankText.text = rank.ToString();
+			if (trialObj.ContainsKey("withdrew") && trialObj.Get<bool>("withdrew")) {
+				item.group.alpha = .5f;
+			} else {
+				item.group.alpha = 1;
+			}
 			if (!string.IsNullOrEmpty(trialObj.Get<string>("userAvatarUrl"))) {
 				Net.WebCache.instance.LoadTexture(trialObj.Get<string>("userAvatarUrl"), job => {
 					game.ExecuteOnMain(() => { 

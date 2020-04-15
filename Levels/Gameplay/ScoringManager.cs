@@ -118,7 +118,7 @@ namespace TouhouMix.Levels.Gameplay {
 			progressBar.SetProgress(progress);
 		}
 
-		public void ReportScores() {
+		public void ReportScores(bool withdrew = false) {
 			game_.perfectCount = perfectCount;
 			game_.greatCount = greatCount;
 			game_.goodCount = goodCount;
@@ -130,6 +130,8 @@ namespace TouhouMix.Levels.Gameplay {
 
 			if (shouldUploadTrial) {
 				game_.netManager.ClAppTrialUpload(new Net.NetManager.Trial {
+					withdrew = withdrew,
+
 					hash = MiscHelper.GetHexEncodedMd5Hash(game_.midiFile.bytes),
 					score = score,
 					combo = maxCombo,

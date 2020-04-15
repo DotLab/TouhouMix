@@ -91,6 +91,13 @@ namespace TouhouMix.Levels.Gameplay {
 				GenerateBlockBatch(batch, coalescedNotes);
 			}
 
+			backgroundNotes.Sort((a, b) => { 
+				if (a.start == b.start) {
+					return a.note.CompareTo(b.note);
+				}
+				return a.start.CompareTo(b.start);
+			});
+
 			return blocks;
 		}
 
