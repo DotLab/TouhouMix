@@ -365,13 +365,14 @@ namespace TouhouMix.Net {
 			}, callback);
 		}
 
-		public void ClAppErrorReport(string message, string stackTrace, RpcCallback callback) {
+		public void ClAppErrorReport(string message, string stackTrace, bool isException, RpcCallback callback) {
 			var audioConfig = AudioSettings.GetConfiguration();
 			Rpc("ClAppErrorReport", new JsonObj() {
 				["version"] = Application.version,
 
 				["message"] = message,
 				["stack"] = stackTrace,
+				["exception"] = isException,
 				//["source"] = error.Source,
 
 				["platform"] = GetPlatform(),

@@ -71,14 +71,16 @@ namespace TouhouMix.Levels {
 
 		private void OnEnable() {
 			ImaginationOverflow.UniversalFileAssociation.FileAssociationManager.Instance.FileActivated += FileActivatedHandler;
+			UnityEngine.SceneManagement.SceneManager.sceneUnloaded += OnSceneUnloaded;
 			Application.logMessageReceived += HandleLogs;
 		}
 
 		void OnDisable() {
 			ImaginationOverflow.UniversalFileAssociation.FileAssociationManager.Instance.FileActivated -= FileActivatedHandler;
+			UnityEngine.SceneManagement.SceneManager.sceneUnloaded -= OnSceneUnloaded;
 			Application.logMessageReceived -= HandleLogs;
 		}
-
+		
 		void OnApplicationFocus(bool hasFocus) {
 			if (!hasFocus) Save();
 		}
@@ -100,9 +102,13 @@ namespace TouhouMix.Levels {
 			throw new System.Exception("this is a test exception");
 		}
 
+		private void OnSceneUnloaded(UnityEngine.SceneManagement.Scene _) {
+			instance.actionQueue.Clear();
+		}
+
 		private void HandleLogs(string condition, string stackTrace, LogType type) {
 			if (type == LogType.Error || type == LogType.Exception) {
-				netManager.ClAppErrorReport(condition, stackTrace, null);
+				netManager.ClAppErrorReport(condition, stackTrace, type == LogType.Exception, null);
 			}
 		}
 

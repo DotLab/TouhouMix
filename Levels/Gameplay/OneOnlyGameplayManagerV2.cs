@@ -146,7 +146,7 @@ namespace TouhouMix.Levels.Gameplay {
 			Block minXBlock = null;
 			Block maxXBlock = null;
 			// Generate one batch at a time
-			for (int batch = blockInfos[blockInfoIndex].batch; blockInfos[blockInfoIndex].batch == batch; blockInfoIndex += 1) {
+			for (int batch = blockInfos[blockInfoIndex].batch; blockInfoIndex < blockInfos.Count && blockInfos[blockInfoIndex].batch == batch; blockInfoIndex += 1) {
 				var blockInfo = blockInfos[blockInfoIndex];
 				var block = AddTentativeBlock(blockInfo.lane, blockInfo.type, blockInfo.note);
 				block.batch = blockInfo.batch;
@@ -162,11 +162,12 @@ namespace TouhouMix.Levels.Gameplay {
 
 				if (block.type == BlockType.INSTANT) {
 					bool isInner = false;
-					if (blockInfo.prev != null && generateInstantConnect) {
+					var prevInfo = blockInfo.prev;
+					if (prevInfo != null && generateInstantConnect) {
 						// Need to generate InstantConnect
 						for (int i = blockContainer.firstFreeItemIndex - 1; i >= 0; i--) {
 							var activeBlock = blockContainer.itemList[i];
-							if (activeBlock.batch == blockInfo.prev.batch && activeBlock.lane == blockInfo.prev.lane) {
+							if (activeBlock.batch == prevInfo.batch && activeBlock.lane == prevInfo.lane) {
 								if (activeBlock.type == BlockType.INSTANT && block.note.startSeconds - activeBlock.note.startSeconds <= maxInstantConnectSeconds) {
 									GenerateConnect(BLOCK_INSTANT_CONNECT, activeBlock, block, false);
 									isInner = true;
