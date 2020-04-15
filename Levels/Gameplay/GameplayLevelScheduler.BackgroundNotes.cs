@@ -11,18 +11,13 @@ namespace TouhouMix.Levels.Gameplay {
 			sf2Synth.NoteOff(seqNote.channel, seqNote.note, 0);
 		}
 
-		public void PlayBackgroundNotes(Block block) {
-			PlayBackgroundNote(block.note);
-			foreach (var note in block.backgroundNotes) {
-				PlayBackgroundNote(note);
-			}
-		}
-
 		public void PlayBackgroundNote(NoteSequenceCollection.Note seqNote) {
+			//Debug.LogFormat("on {0} @ {1} ch {2}", seqNote.note, seqNote.velocity, seqNote.channel);
 			// start background note
 			sf2Synth.NoteOn(seqNote.channel, seqNote.note, seqNote.velocity);
 			if (seqNote.end <= ticks) {
 				// already overdue
+				//Debug.LogFormat("  overdue");
 				sf2Synth.NoteOff(seqNote.channel, seqNote.note, 0);
 			} else {
 				activeBackgroundNoteSet.AddItem(seqNote);
@@ -45,6 +40,18 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 			}
 
+			// End notes
+			for (int i = 0; i < activeBackgroundNoteSet.firstFreeItemIndex; i++) {
+				var note = activeBackgroundNoteSet.itemList[i];
+				if (note.end <= ticks) {
+					// end background note
+					//Debug.LogFormat("off {0} ch {1}", note.note, note.channel);
+					sf2Synth.NoteOff(note.channel, note.note, 0);
+					activeBackgroundNoteSet.FreeItemAt(i);
+					i -= 1;
+				}
+			}
+
 			// Play background track notes
 			for (int i = 0; i < backgroundSequences.Count; i++) {
 				var seq = backgroundSequences[i];
@@ -52,17 +59,6 @@ namespace TouhouMix.Levels.Gameplay {
 
 				for (; track.seqNoteIndex < seq.notes.Count && seq.notes[track.seqNoteIndex].start <= ticks; track.seqNoteIndex++) {
 					PlayBackgroundNote(seq.notes[track.seqNoteIndex]);
-				}
-			}
-
-			// End notes
-			for (int i = 0; i < activeBackgroundNoteSet.firstFreeItemIndex; i++) {
-				var note = activeBackgroundNoteSet.itemList[i];
-				if (note.end <= ticks) {
-					// end background note
-					sf2Synth.NoteOff(note.channel, note.note, 0);
-					activeBackgroundNoteSet.FreeItemAt(i);
-					i -= 1;
 				}
 			}
 		}

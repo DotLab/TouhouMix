@@ -17,7 +17,6 @@ namespace TouhouMix.Levels.Gameplay {
 
 		public BlockType type;
 		public NoteSequenceCollection.Note note;
-		public List<NoteSequenceCollection.Note> backgroundNotes = new List<NoteSequenceCollection.Note>();
 
 		// Long block can override note end
 		public float end;

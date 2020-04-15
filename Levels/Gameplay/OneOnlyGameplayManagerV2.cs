@@ -134,7 +134,6 @@ namespace TouhouMix.Levels.Gameplay {
 			block.type = type;
 			block.note = note;
 			block.end = note.end;
-			block.backgroundNotes.Clear();
 			block.holdingFingerId = -1;
 			return block;
 		}
@@ -208,7 +207,8 @@ namespace TouhouMix.Levels.Gameplay {
 		protected virtual void GenerateConnect(string skinName, Block from, Block to, bool isFixed) {
 			var connect = connectContainer.CreateOrReuseItem();
 			connect.isTentative = true;
-			connect.isFixed = isFixed;
+			//connect.isFixed = isFixed;
+			connect.isFixed = false;
 			connect.skinName = skinName;
 			connect.skin = CreateOrReuseSkin(skinName);
 			connect.skin.rect.localScale = new Vector3(blockScaling, 1, 1);
@@ -216,14 +216,14 @@ namespace TouhouMix.Levels.Gameplay {
 			connect.startTick = from.note.start;
 			connect.endX = to.x;
 			connect.endTick = to.note.start;
-			if (isFixed) {
-				// Calc the length and angle once
-				float startY = GetY(connect.startTick);
-				float endY = GetY(connect.endTick);
-				float length = Vector2.Distance(new Vector2(connect.startX, startY), new Vector2(connect.endX, endY));
-				connect.skin.rect.sizeDelta = new Vector2(connect.skin.rect.sizeDelta.x, length);
-				connect.skin.rect.eulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
-			}
+			//if (isFixed) {
+			//	// Calc the length and angle once
+			//	float startY = GetY(connect.startTick);
+			//	float endY = GetY(connect.endTick);
+			//	float length = Vector2.Distance(new Vector2(connect.startX, startY), new Vector2(connect.endX, endY));
+			//	connect.skin.rect.sizeDelta = new Vector2(connect.skin.rect.sizeDelta.x, length);
+			//	connect.skin.rect.eulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
+			//}
 			// Push to back
 			connect.skin.rect.SetAsFirstSibling();
 		}
@@ -404,14 +404,14 @@ namespace TouhouMix.Levels.Gameplay {
 			//block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block);
 			level.scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block, isHolding);
-			level.PlayBackgroundNotes(block);
+			level.PlayBackgroundNote(block.note);
 		}
 
 		void TouchShortBlock(Block block, int index) {
 			//block.rect.gameObject.SetActive(false);
 			HideAndFreeTouchedBlock(block);
 			level.scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block);
-			level.PlayBackgroundNotes(block);
+			level.PlayBackgroundNote(block.note);
 		}
 
 		void TouchLongBlock(Block block, int _, int fingerId, float x) {
@@ -424,7 +424,7 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 			holdingBlockDict[fingerId] = block;
 			level.scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.note.start), block);
-			level.PlayBackgroundNotes(block);
+			level.PlayBackgroundNote(block.note);
 			level.StartNote(block.note);
 		}
 

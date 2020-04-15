@@ -71,7 +71,7 @@ namespace TouhouMix.Levels.Gameplay {
 			int batch = 0;
 			var coalescedNotes = new List<Note>();
 			foreach (var note in notes) {
-				// Debug.LogFormat("seconds {0} start {1} coalesced {2}", seconds, note.startSeconds, coalescedNotes.Count);
+				//Debug.LogFormat("seconds {0} start {1} coalesced {2}", seconds, note.startSeconds, coalescedNotes.Count);
 				if (coalescedNotes.Count == 0) {
 					seconds = note.startSeconds;
 					coalescedNotes.Add(note);
@@ -81,9 +81,9 @@ namespace TouhouMix.Levels.Gameplay {
 						GenerateBlockBatch(batch, coalescedNotes);
 						batch += 1;
 						coalescedNotes.Clear();
+						seconds = note.startSeconds;
 					}
 					// Coalesce
-					seconds = note.startSeconds;
 					coalescedNotes.Add(note);
 				}
 			}
@@ -127,11 +127,10 @@ namespace TouhouMix.Levels.Gameplay {
 				batchBlocks.RemoveAt(lastIndex);
 			}
 
-			// Debug.LogFormat("batch {0} game {1} bg {2}", notes.Count, gameBlocks.Count, backgroundNotes.Count);
-
-			//for (int i = 0; i < gameBlocks.Count; i++) {
-			//	var block = gameBlocks[i];
-			// Debug.LogFormat("lane {0} x {1:F2} start {2:F2}", block.lane, block.x, block.note.startSeconds);
+			//Debug.LogFormat("batch {0} game {1} bg {2}", notes.Count, batchBlocks.Count, backgroundNotes.Count);
+			//for (int i = 0; i < batchBlocks.Count; i++) {
+			//	var block = batchBlocks[i];
+			//	Debug.LogFormat("lane {0} x {1:F2} start {2:F2}", block.lane, block.x, block.note.startSeconds);
 			//}
 
 			batchBlocks.Sort((a, b) => a.x.CompareTo(b.x));
@@ -141,6 +140,7 @@ namespace TouhouMix.Levels.Gameplay {
 			minCost = float.MaxValue;
 			FindOptimalMatchings(batchBlocks, batchBlocks.Count, 0, 0, 0);
 
+			batchBlocks.Sort((a, b) => a.note.start.CompareTo(b.note.start));
 			for (int i = 0; i < batchBlocks.Count; i++) {
 				var block = batchBlocks[i];
 				block.touchIndex = minMatchingTouchIndex[i];
@@ -157,12 +157,12 @@ namespace TouhouMix.Levels.Gameplay {
 				if (!touch.isFree) {
 					// Check if still not free
 					if (touch.holdingNote == null && block.note.startSeconds > touch.lastPressSeconds + cooldownSeconds) {
-						// Debug.Log("Free start");
+						//Debug.Log("Free start");
 						// Now free
 						touch.isFree = true;
 						touch.lastPressBlock = null;
 					} else {
-						// Debug.Log("Not free");
+						//Debug.Log("Not free");
 						// Still not free;
 						block.prev = touch.lastPressBlock;
 						float maxOffset = maxTouchMoveVelocity * (block.note.startSeconds - touch.lastPressSeconds);
@@ -179,18 +179,18 @@ namespace TouhouMix.Levels.Gameplay {
 				if (touch.holdingNote != null) {
 					if (block.note.startSeconds < touch.holdingNote.endSeconds) {
 						// Still holding
-						// Debug.Log("Still holding");
+						//Debug.Log("Still holding");
 						block.type = BlockType.INSTANT;
 					} else {
 						// Holding end
-						// Debug.Log("Holding end");
+						//Debug.Log("Holding end");
 						touch.holdingNote = null;
 					}
 				}
 
 				// If the note appears too fast, generate instant
 				if (block.note.startSeconds - touch.lastPressSeconds < minTapInterval) {
-					// Debug.Log("Tapping too fast");
+					//Debug.Log("Tapping too fast");
 					block.type = BlockType.INSTANT;
 				}
 
@@ -202,7 +202,7 @@ namespace TouhouMix.Levels.Gameplay {
 				touch.lastPressX = block.x;
 				touch.lastPressBlock = block;
 
-				// Debug.LogFormat("optimal lane {0} touch {1} x {2:F2} start {3:F2} type {4}", block.lane, block.touchIndex, block.x, block.note.startSeconds, block.type);
+				//Debug.LogFormat("optimal lane {0} touch {1} x {2:F2} start {3:F2} type {4} du {5:F2}", block.lane, block.touchIndex, block.x, block.note.startSeconds, block.type, block.note.durationSeconds);
 
 				blocks.Add(block);
 			}

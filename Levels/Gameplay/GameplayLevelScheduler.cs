@@ -115,7 +115,6 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 			}
 			sf2Synth.ignoreProgramChange = true;
-			Debug.LogFormat("background tracks: {0}, game tracks: {1}", backgroundSequences.Count, gameSequences.Count);
 
 			pausePageGroup.gameObject.SetActive(false);
 			
@@ -127,6 +126,7 @@ namespace TouhouMix.Levels.Gameplay {
 
 			backgroundTracks = new BackgroundTrack[backgroundSequences.Count];
 			for (int i = 0; i < backgroundTracks.Length; i++) backgroundTracks[i] = new BackgroundTrack();
+			Debug.LogFormat("background tracks: {0}, game tracks: {1}", backgroundSequences.Count, gameSequences.Count);
 
 			ShowReadyAnimation();
 		}
@@ -159,6 +159,7 @@ namespace TouhouMix.Levels.Gameplay {
 				oneOnlyGameplayManager.generator.instantBlockSeconds = config.instantBlockMaxTime;
 				oneOnlyGameplayManager.generator.shortBlockSeconds = config.shortBlockMaxTime;
 				oneOnlyGameplayManager.generator.maxTouchCount = config.maxSimultaneousBlocks;
+				oneOnlyGameplayManager.generator.blockCoalesceSeconds = config.maxBlockCoalesceTime;
 
 				oneOnlyGameplayManager.generateShortConnect = config.generateShortConnect;
 				oneOnlyGameplayManager.generateInstantConnect = config.generateInstantConnect;

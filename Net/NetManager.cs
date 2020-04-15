@@ -397,7 +397,7 @@ namespace TouhouMix.Net {
 		}
 
 		public void ClAppMidiAction(string hash, string action, int value, RpcCallback callback) {
-			Rpc("ClAppDocAction", new JsonObj() {
+			Rpc("ClAppMidiAction", new JsonObj() {
 				["hash"] = hash,
 				["action"] = action,
 				["value"] = value,
