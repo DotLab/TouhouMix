@@ -41,7 +41,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 				state = game.midiSynthConfigs.synthConfigDict[sha256Hash];
 				Systemf.Assert.Equal(collection.sequences.Count, state.sequenceStateList.Count);
 			} catch (System.Exception e) {
-				UnityEngine.Debug.Log("Cannot find synth config\n" + e);
+				UnityEngine.Debug.Log("Cannot find synth config, generate default\n" + e);
 
 				state = new MidiSynthConfigProto{
 					trackGroupCount = collection.trackGroups.Length,
