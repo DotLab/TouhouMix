@@ -46,6 +46,27 @@ namespace TouhouMix.Levels.SongSelect {
 			set { GameScheduler.instance.gameplayConfig.layoutPreset = value; }
 		}
 
+		public int gameplayGenerationPreset {
+			get { 
+				switch (GameScheduler.instance.gameplayConfig.maxBlockCoalesceTime) {
+					case 2: return 0;
+					case 1: return 1;
+					case .5f: return 2;
+					case .05f: return 3;
+					default: return 4;
+				} 
+			}
+			set {
+				GameScheduler.instance.gameplayConfig.layoutPreset = value;
+				switch (value) {
+					case 0: GameScheduler.instance.gameplayConfig.maxBlockCoalesceTime = 2; break;
+					case 1: GameScheduler.instance.gameplayConfig.maxBlockCoalesceTime = 1; break;
+					case 2: GameScheduler.instance.gameplayConfig.maxBlockCoalesceTime = .5f; break;
+					default: GameScheduler.instance.gameplayConfig.maxBlockCoalesceTime = .05f; break;
+				}
+			}
+		}
+
 		ResourceStorage res;
 
 		public override void Init(SongSelectLevelScheduler level) {

@@ -361,12 +361,18 @@ namespace TouhouMix.Net {
 			}, callback);
 		}
 
-		public void ClAppReportDeviceInfo(RpcCallback callback) {
+		public void ClAppErrorReport(System.Exception error, RpcCallback callback) {
 			var audioConfig = AudioSettings.GetConfiguration();
-			Rpc("ClAppReportDeviceInfo", new JsonObj() {
+			Rpc("ClAppErrorReport", new JsonObj() {
+				["version"] = Application.version,
+
+				["message"] = error.Message,
+				["stack"] = error.StackTrace,
+				["source"] = error.Source,
+
 				["platform"] = GetPlatform(),
 				["runtime"] = Application.platform.ToString().ToLower(),
-				
+
 				["sampleRate"] = audioConfig.sampleRate,
 				["bufferSize"] = audioConfig.dspBufferSize,
 

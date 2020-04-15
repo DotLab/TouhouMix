@@ -82,7 +82,8 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 				minTapInterval = .2f,
 				minCooldownTime = 1.5f,
 				maxTouchMoveSpeed = 400,
-				maxBlockCoalesceTime = .05f,
+				// 2 1 .5f .05f
+				maxBlockCoalesceTime = 2,
 
 				generateShortConnect = true,
 				generateInstantConnect = true,
