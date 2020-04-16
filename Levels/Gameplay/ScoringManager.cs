@@ -118,7 +118,7 @@ namespace TouhouMix.Levels.Gameplay {
 			progressBar.SetProgress(progress);
 		}
 
-		public void ReportScores(bool withdrew = false) {
+		public void ReportScores(float time, bool withdrew = false) {
 			game_.perfectCount = perfectCount;
 			game_.greatCount = greatCount;
 			game_.goodCount = goodCount;
@@ -136,6 +136,7 @@ namespace TouhouMix.Levels.Gameplay {
 					score = score,
 					combo = maxCombo,
 					accuracy = accuracy,
+					duration = (int)(time * 1000),
 
 					perfectCount = perfectCount,
 					greatCount = greatCount,

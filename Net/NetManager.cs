@@ -315,26 +315,19 @@ namespace TouhouMix.Net {
 			public int score;
 			public int combo;
 			public float accuracy;
+			public int duration;  // in ms
 
-      public int perfectCount; 
+			public int perfectCount; 
 			public int greatCount; 
 			public int goodCount; 
 			public int badCount; 
 			public int missCount;
+
+			public int version = 3;
 		}
 
 		public void ClAppTrialUpload(Trial trial, RpcCallback callback) {
-			Rpc("ClAppTrialUpload", new JsonObj() {
-				["withdrew"] = trial.withdrew,
-
-				["hash"] = trial.hash,
-				["score"] = trial.score, ["combo"] = trial.combo, ["accuracy"] = trial.accuracy,
-
-				["perfectCount"] = trial.perfectCount, ["greatCount"] = trial.greatCount, 
-				["goodCount"] = trial.goodCount, ["badCount"] = trial.badCount, ["missCount"] = trial.missCount,
-
-				["version"] = 3,
-			}, callback);
+			Rpc("ClAppTrialUpload", trial, callback);
 		}
 
 		public void ClAppMidiGet(string hash, RpcCallback callback) {

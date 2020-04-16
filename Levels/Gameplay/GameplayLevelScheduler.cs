@@ -72,7 +72,11 @@ namespace TouhouMix.Levels.Gameplay {
 		readonly ActiveSet<NoteSequenceCollection.Note> pendingBackgroundNoteSet = new ActiveSet<NoteSequenceCollection.Note>();
 		readonly ActiveSet<NoteSequenceCollection.Note> activeBackgroundNoteSet = new ActiveSet<NoteSequenceCollection.Note>();
 
+		float startTime;
+
 		public void Start() {
+			startTime = Time.time;
+
 			game_ = GameScheduler.instance;
 			anim_ = AnimationManager.instance;
 
@@ -276,7 +280,7 @@ namespace TouhouMix.Levels.Gameplay {
 			anim_.New()
 				.FadeOut(gameplayPageGroup, 1, 0).Then()
 				.Call(() => {
-					scoringManager.ReportScores();
+					scoringManager.ReportScores(Time.time - startTime);
 
 					#if UNITY_ANDROID
 					Screen.autorotateToLandscapeLeft = true;
@@ -326,7 +330,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void OnRestartButtonClicked() {
-			scoringManager.ReportScores(true);
+			scoringManager.ReportScores(Time.time - startTime, true);
 
 			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
 		}
@@ -341,7 +345,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void OnStopButtonClicked() {
-			scoringManager.ReportScores(true);
+			scoringManager.ReportScores(Time.time - startTime, true);
 
 			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.SONG_SELECT_LEVEL_BUILD_INDEX);
 		}
