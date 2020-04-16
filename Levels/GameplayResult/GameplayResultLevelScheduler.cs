@@ -6,20 +6,14 @@ using Uif.Settables.Components;
 
 namespace TouhouMix.Levels {
 	public sealed class GameplayResultLevelScheduler : MonoBehaviour {
-		public Text titleText;
-		public Text subtitleText;
-
+		public Text difficultyText;
+		public Text midiNameText;
 		public Text scoreText;
-		public Text newBestText;
+		public Text accuracyComboText;
+		public Text countText;
+		public Text statsText;
 
-		public Text perfectCountText;
-		public Text greatCountText;
-		public Text goodCountText;
-		public Text badCountText;
-		public Text missCountText;
-		public Text maxComboCountText;
-		public Text fullComboText;
-		public Text accuracyText;
+		public Text songNameText;
 
 		public Text gradeText;
 
@@ -44,32 +38,29 @@ namespace TouhouMix.Levels {
 		void Start() {
 			var game = GameScheduler.instance;
 
-			titleText.text = game.title;
-			subtitleText.text = game.subtitle;
-
+			difficultyText.text = ((Storage.Protos.Json.V1.GameplayConfigProto.DifficaultyPresetEnum)(game.gameplayConfig.difficultyPreset)).ToString();
+			midiNameText.text = game.title;
 			scoreText.text = game.score.ToString("N0");
-			newBestText.text = "";
+			accuracyComboText.text = string.Format("<size=18><b>{0}</b></size>  {1:F2}% accuracy  {2:N0} max combo",
+					GetGrade(game.accuracy), game.accuracy * 100, game.maxComboCount);
+			countText.text = string.Format("Perfect {0:N0}     Great {1:N0}     Good {2:N0}    Bad {3:N0}    Miss {4:N0}",
+					game.perfectCount, game.greatCount, game.goodCount, game.badCount, game.missCount);
+			statsText.text = string.Format("Early {0:N0}     Late {1:N0}     ATE  {2:F3}s     STE {3:F3}s",
+					0, 0, 0, 0);
 
-			perfectCountText.text = game.perfectCount.ToString("N0");
-			greatCountText.text = game.greatCount.ToString("N0");
-			goodCountText.text = game.goodCount.ToString("N0");
-			badCountText.text = game.badCount.ToString("N0");
-			missCountText.text = game.missCount.ToString("N0");
-			maxComboCountText.text = game.maxComboCount.ToString("N0") + "x";
-			fullComboText.gameObject.SetActive(game.missCount == 0 && game.badCount == 0);
-			AnimationManager.instance.New()
-				.ScaleTo(fullComboText.transform, new Vector3(1.2f, 1.2f, 1.2f), .1f, 0).Then()
-				.ScaleTo(fullComboText.transform, Vector3.one, .2f, 0).Then().Repeat();
+			songNameText.text = game.subtitle;
 
-			accuracyText.text = game.accuracy.ToString("P2");
+			gradeText.text = GetGrade(game.accuracy);
+		}
 
+		public string GetGrade(float accuracy) {
 			for (int i = 0; i < gradeCutoffs.Length; i++) {
 				var cutoff = gradeCutoffs[i];
-				if (game.accuracy >= cutoff.cutoff) {
-					gradeText.text = cutoff.grade;
-					break;
+				if (accuracy >= cutoff.cutoff) {
+					return cutoff.grade;
 				}
 			}
+			return "?";
 		}
 
 		public void OnMenuButtonClicked() {
@@ -77,6 +68,24 @@ namespace TouhouMix.Levels {
 		}
 
 		public void OnAgainButtonClicked() {
+			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
+		}
+
+		public void OnNextButtonClicked() {
+			LoadMidiAndPlay(GameScheduler.instance.resourceStorage.QueryNextMidiById(GameScheduler.instance.midiId));
+		}
+
+		public void OnRandomButtonClicked() {
+			LoadMidiAndPlay(GameScheduler.instance.resourceStorage.QueryRandomMidi());
+		}
+
+		void LoadMidiAndPlay(Storage.Protos.Api.MidiProto midi) {
+			var game = GameScheduler.instance;
+			game.midiId = midi._id;
+			game.midiFile = new Midif.V3.MidiFile(Storage.ResourceStorage.ReadMidiBytes(midi));
+			game.noteSequenceCollection = new Midif.V3.NoteSequenceCollection(game.midiFile);
+			game.title = midi.name;
+			game.subtitle = string.Format("{0} • {1}", midi.sourceAlbumName, midi.sourceSongName);
 			UnityEngine.SceneManagement.SceneManager.LoadScene(GameScheduler.GAMEPLAY_LEVEL_BUILD_INDEX);
 		}
 

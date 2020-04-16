@@ -3,8 +3,20 @@
 namespace TouhouMix.Storage.Protos.Json.V1 {
 	[System.Serializable]
 	public sealed class GameplayConfigProto {
+		public const int LAYOUT_PRESET_ONE_ONLY = 0;
 		public const int LAYOUT_PRESET_SCANNING_LINE = 6;
-		public const int LAYOUT_PRESET_ONE_ONLY_V2 = 7;
+
+		public enum DifficaultyPresetEnum {
+			BEGINNER = 0,
+			EASY = 1,
+			NORMAL = 2,
+			HARD = 3,
+			LUNATIC = 4,
+			CUSTOM = 5,
+		}
+
+		// 0: Beginner, 1: Easy, 2: Normal, 3: Hard, 4: Lunatic, 5: Custom
+		public int difficultyPreset;
 
 		// 0: OneOnly, 6: ScanningLine
 		public int layoutPreset;
@@ -56,6 +68,7 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 
 		public static GameplayConfigProto CreateDefault() {
 			return new GameplayConfigProto {
+				difficultyPreset = 0,
 				layoutPreset = 0,
 
 				instantBlockPreset = "",

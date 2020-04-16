@@ -34,20 +34,20 @@ namespace TouhouMix.Levels {
 
 		public Texture2D backgroundTexture;
 
+		// Fields to start GameplayLevel
 		public string midiId;
 		public Midif.V3.MidiFile midiFile;
 		public Midif.V3.NoteSequenceCollection noteSequenceCollection;
-
 		public string title;
 		public string subtitle;
 
+		// Fields GameplayLevel will set
 		public int perfectCount;
 		public int greatCount;
 		public int goodCount;
 		public int badCount;
 		public int missCount;
 		public int maxComboCount;
-
 		public int score;
 		public float accuracy;
 

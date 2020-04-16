@@ -133,6 +133,56 @@ namespace TouhouMix.Levels.Gameplay {
 
 		void LoadGameplayConfig() {
 			var config = game_.gameplayConfig;
+
+			switch (config.difficultyPreset) {
+				case (int)GameplayConfigProto.DifficaultyPresetEnum.BEGINNER:
+					config.maxSimultaneousBlocks = 1;
+					config.minTapInterval = 1;
+					config.minCooldownTime = 2;
+					config.maxTouchMoveSpeed = 200;
+					config.maxBlockCoalesceTime = 2;
+					config.generateInstantConnect = true;
+					config.generateShortConnect = false;
+					break;
+				case (int)GameplayConfigProto.DifficaultyPresetEnum.EASY:
+					config.maxSimultaneousBlocks = 2;
+					config.minTapInterval = 1;
+					config.minCooldownTime = 2f;
+					config.maxTouchMoveSpeed = 200;
+					config.maxBlockCoalesceTime = 1;
+					config.generateInstantConnect = true;
+					config.generateShortConnect = false;
+					break;
+				case (int)GameplayConfigProto.DifficaultyPresetEnum.NORMAL:
+					config.maxSimultaneousBlocks = 2;
+					config.minTapInterval = 1;
+					config.minCooldownTime = 2f;
+					config.maxTouchMoveSpeed = 300;
+					config.maxBlockCoalesceTime = .25f;
+					config.generateInstantConnect = true;
+					config.generateShortConnect = false;
+					break;
+				case (int)GameplayConfigProto.DifficaultyPresetEnum.HARD:
+					config.maxSimultaneousBlocks = 2;
+					config.minTapInterval = .2f;
+					config.minCooldownTime = 1.5f;
+					config.maxTouchMoveSpeed = 400;
+					config.maxBlockCoalesceTime = .05f;
+					config.generateInstantConnect = true;
+					config.generateShortConnect = true;
+					break;
+				case (int)GameplayConfigProto.DifficaultyPresetEnum.LUNATIC:
+					config.maxSimultaneousBlocks = 3;
+					config.minTapInterval = .2f;
+					config.minCooldownTime = 1.5f;
+					config.maxTouchMoveSpeed = 600;
+					config.maxBlockCoalesceTime = .05f;
+					config.generateInstantConnect = true;
+					config.generateShortConnect = true;
+					break;
+				default: break;
+			}
+
 			try {
 				cacheBeats = config.cacheTime;
 				playbackSpeed = config.playbackSpeed;

@@ -8,12 +8,7 @@ using TouhouMix.Net;
 
 namespace TouhouMix.Storage {
 	public sealed class ResourceStorage {
-		//const string AUTHORS_FILE_PATH = "Authors";
-		//const string ALBUMS_FILE_PATH = "Albums";
-		//const string SONGS_FILE_PATH = "Songs";
-		//const string MIDI_HASH_LIST_FILE_PATH = "MidiHashList";
 		const string LANG_OPTION_LIST_FILE_PATH = "LangOptionList";
-		//readonly string[] MIDIS_FILE_PATH_LIST = {"MidisContrib", "MidisDmbn", "MidisDmbnNew"};
 
 		static string LoadText(string path) {
 			return UnityEngine.Resources.Load<UnityEngine.TextAsset>(path).text;
@@ -22,18 +17,6 @@ namespace TouhouMix.Storage {
 		static byte[] LoadBytes(string path) {
 			return UnityEngine.Resources.Load<UnityEngine.TextAsset>(path).bytes;
 		}
-
-		//public readonly List<AuthorProto> authorProtoList = new List<AuthorProto>();
-		//public readonly List<AlbumProto> albumProtoList = new List<AlbumProto>();
-		//public readonly List<SongProto> songProtoList = new List<SongProto>();
-		//public readonly List<MidiProto> midiProtoList = new List<MidiProto>();
-		//public readonly HashSet<string> midiHashSet = new HashSet<string>();
-		//public readonly HashSet<string> customMidiPathSet = new HashSet<string>();
-
-		//public readonly Dictionary<int, AuthorProto> authorProtoDict = new Dictionary<int, AuthorProto>();
-		//public readonly Dictionary<int, AlbumProto> albumProtoDict = new Dictionary<int, AlbumProto>();
-		//public readonly Dictionary<Tuple<int, int>, SongProto> songProtoDict = new Dictionary<Tuple<int, int>, SongProto>();
-		//public readonly Dictionary<Tuple<int, int, string>, MidiProto> midiProtoDict = new Dictionary<Tuple<int, int, string>, MidiProto>();
 
 		public readonly List<Protos.Api.MidiProto> midiProtoList = new List<Protos.Api.MidiProto>();
 		public readonly List<Protos.Api.SongProto> songProtoList = new List<Protos.Api.SongProto>();
@@ -47,35 +30,6 @@ namespace TouhouMix.Storage {
 		public readonly Dictionary<int, Protos.Resource.LangOptionProto> langOptionDictByIndex = new Dictionary<int, Protos.Resource.LangOptionProto>();
 
 		public void Init(Levels.GameScheduler game) {
-			//authorProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AuthorsProto>(LoadText(AUTHORS_FILE_PATH)).authorList);
-			//albumProtoList.AddRange(UnityEngine.JsonUtility.FromJson<AlbumsProto>(LoadText(ALBUMS_FILE_PATH)).albumList);
-			//songProtoList.AddRange(UnityEngine.JsonUtility.FromJson<SongsProto>(LoadText(SONGS_FILE_PATH)).songList);
-			//foreach (string hash in UnityEngine.JsonUtility.FromJson<HashListProto>(LoadText(MIDI_HASH_LIST_FILE_PATH)).hashList) {
-			//	midiHashSet.Add(hash);
-			//}
-			//for (int i = 0; i < MIDIS_FILE_PATH_LIST.Length; i++) {
-			//	midiProtoList.AddRange(UnityEngine.JsonUtility.FromJson<MidisProto>(LoadText(MIDIS_FILE_PATH_LIST[i])).midiList);
-			//}
-
-			//foreach (var authorProto in authorProtoList) {
-			//	authorProtoDict.Add(authorProto.author, authorProto);
-			//}
-			//foreach (var albumProto in albumProtoList) {
-			//	albumProtoDict.Add(albumProto.album, albumProto);
-			//}
-			//foreach (var songProto in songProtoList) {
-			//	songProtoDict.Add(Tuple.Create(songProto.album, songProto.song), songProto);
-			//	albumProtoDict[songProto.album].songCount += 1;
-			//}
-			//foreach (var midiProto in midiProtoList) {
-			//	midiProtoDict.Add(Tuple.Create(midiProto.album, midiProto.song, midiProto.name), midiProto);
-			//	authorProtoDict[midiProto.author].midiCount += 1;
-			//	albumProtoDict[midiProto.album].midiCount += 1;
-			//	songProtoDict[Tuple.Create(midiProto.album, midiProto.song)].midiCount += 1;
-			//}
-
-			//LoadCustomMidis();
-
 			LoadMidis();
 			LoadLangOptions();
 		}
@@ -175,34 +129,9 @@ namespace TouhouMix.Storage {
 			UnityEngine.Debug.Log("MidiBundle decompressed");
 		}
 
-		class Test : ICSharpCode.SharpZipLib.Zip.IEntryFactory {
-			public INameTransform NameTransform { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-
-			public ZipEntry MakeDirectoryEntry(string directoryName) {
-				throw new System.NotImplementedException();
-			}
-
-			public ZipEntry MakeDirectoryEntry(string directoryName, bool useFileSystem) {
-				throw new System.NotImplementedException();
-			}
-
-			public ZipEntry MakeFileEntry(string fileName) {
-				throw new System.NotImplementedException();
-			}
-
-			public ZipEntry MakeFileEntry(string fileName, bool useFileSystem) {
-				throw new System.NotImplementedException();
-			}
-
-			public string TransformDirectory(string name) {
-				UnityEngine.Debug.Log(name);
-				return name;
-			}
-
-			public string TransformFile(string name) {
-				UnityEngine.Debug.Log(name);
-				return name;
-			}
+		public static byte[] ReadMidiBytes(Protos.Api.MidiProto midi) {
+			return System.IO.File.Exists(midi._id) ? System.IO.File.ReadAllBytes(midi._id) :
+				System.IO.File.ReadAllBytes(System.IO.Path.Combine(WebCache.instance.rootPath, midi.hash));
 		}
 
 		public Protos.Api.AlbumProto QueryAlbumById(string albumId) {
@@ -215,6 +144,27 @@ namespace TouhouMix.Storage {
 
 		public Protos.Api.MidiProto QueryMidiById(string midiId) {
 			return midiProtoList.Find(x => x._id == midiId);
+		}
+
+		public Protos.Api.MidiProto QueryNextMidiById(string midiId) {
+			bool found = false;
+			foreach (var album in QueryAllAlbums()) {
+				foreach (var song in QuerySongsByAlbumId(album._id)) {
+					foreach (var midi in QueryMidisBySongId(song._id)) {
+						if (found) {
+							return midi;
+						}
+						if (midi._id == midiId) {
+							found = true;
+						}
+					}
+				}
+			}
+			return QueryMidisBySongId(QuerySongsByAlbumId(QueryAllAlbums().First()._id).First()._id).First();
+		}
+
+		public Protos.Api.MidiProto QueryRandomMidi() {
+			return midiProtoList[UnityEngine.Random.Range(0, midiProtoList.Count)];
 		}
 
 		public Protos.Api.PersonProto QueryPersonById(string personId) {
@@ -240,17 +190,5 @@ namespace TouhouMix.Storage {
 				return null;
 			}
 		}
-
-		//public IEnumerable<object> QueryAlbums() {
-		//	return albumProtoList.Where(x => x.album == 0 || x.midiCount > 0).Cast<object>();
-		//}
-
-		//public IEnumerable<object> QuerySongsByAlbum(int album) {
-		//	return songProtoList.Where(x => x.album == album && x.midiCount > 0).Cast<object>();
-		//}
-
-		//public IEnumerable<object> QueryMidisByAlbumAndSong(int album, int song) {
-		//	return midiProtoList.Where(x => x.album == album && x.song == song).Cast<object>();
-		//}
 	}
 }
