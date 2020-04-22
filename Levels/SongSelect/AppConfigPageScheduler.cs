@@ -48,5 +48,13 @@ namespace TouhouMix.Levels.SongSelect {
 			audioDelayText.text = string.Format("{0:N1} ms ({1:N1} Hz)", 
 				(float)audioConfig.dspBufferSize / audioConfig.sampleRate * 1000, audioConfig.sampleRate / (float)audioConfig.dspBufferSize);
 		}
+
+		public void OnReloadResourceBundle() {
+			GameScheduler.instance.resourceStorage.Reset();
+		}
+
+		public void OnClearTranslationCache() {
+			GameScheduler.instance.translationSevice.Reset();
+		}
 	}
 }

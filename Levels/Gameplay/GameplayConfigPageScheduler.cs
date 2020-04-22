@@ -3,6 +3,27 @@ using Uif.Binding;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed class GameplayConfigPageScheduler : TwoWayBindable {
+		public int useRandomColor {
+			get { return BindingHelper.BoolToInt(GameScheduler.instance.gameplayConfig.useRandomColor); }
+			set { GameScheduler.instance.gameplayConfig.useRandomColor = BindingHelper.IntToBool(value); }
+		}
+		public int useOneColor {
+			get { return BindingHelper.BoolToInt(GameScheduler.instance.gameplayConfig.useOneColor); }
+			set { GameScheduler.instance.gameplayConfig.useOneColor = BindingHelper.IntToBool(value); }
+		}
+		public string instantBlockColor {
+			get { return GameScheduler.instance.gameplayConfig.instantBlockColor; }
+			set { GameScheduler.instance.gameplayConfig.instantBlockColor = value; }
+		}
+		public string shortBlockColor {
+			get { return GameScheduler.instance.gameplayConfig.shortBlockColor; }
+			set { GameScheduler.instance.gameplayConfig.shortBlockColor = value; }
+		}
+		public string longBlockColor {
+			get { return GameScheduler.instance.gameplayConfig.longBlockColor; }
+			set { GameScheduler.instance.gameplayConfig.longBlockColor = value; }
+		}
+
 		public string instantBlockPreset { 
 			get { return GameScheduler.instance.gameplayConfig.instantBlockPreset; }
 			set { GameScheduler.instance.gameplayConfig.instantBlockPreset = value; }

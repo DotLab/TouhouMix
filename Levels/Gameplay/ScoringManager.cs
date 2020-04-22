@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TouhouMix.Prefabs;
 using Uif;
+using Uif.Tasks;
 using Uif.Settables;
 using TouhouMix.Storage.Protos.Json.V1;
 
@@ -22,6 +23,7 @@ namespace TouhouMix.Levels.Gameplay {
 		public Text scoreText;
 		public Text scoreAdditionText;
 		public Text comboText;
+		public CanvasGroup comboGroup;
 		public Text judgmentText;
 		public Text accuracyText;
 		public float scoreBase = 100;
@@ -36,12 +38,16 @@ namespace TouhouMix.Levels.Gameplay {
 		float perfectAccuracyFactor;
 		float accuracy;
 
-		int perfectCount = 0;
-		int greatCount = 0;
-		int goodCount = 0;
-		int badCount = 0;
-		int missCount = 0;
+		int perfectCount;
+		int greatCount;
+		int goodCount;
+		int badCount;
+		int missCount;
 		int maxCombo;
+		int earlyCount;
+		int lateCount;
+
+		readonly List<float> offsetList = new List<float>();
 
 		[Space]
 		public Transform sparkPage;
@@ -71,9 +77,10 @@ namespace TouhouMix.Levels.Gameplay {
 			game_ = GameScheduler.instance;
 			anim_ = AnimationManager.instance;
 
-			scoreText.text = "";
+			scoreText.text = "0";
 			scoreAdditionText.text = "";
 			comboText.text = "";
+			comboGroup.alpha = 0;
 			judgmentText.text = "";
 			accuracyText.text = "";
 
@@ -127,8 +134,23 @@ namespace TouhouMix.Levels.Gameplay {
 			game_.score = score;
 			game_.accuracy = accuracy;
 			game_.maxComboCount = maxCombo;
+			game_.earlyCount = earlyCount;
+			game_.lateCount = lateCount;
 
-			if (shouldUploadTrial) {
+			float sum = 0;
+			foreach (var offset in offsetList) {
+				sum += offset;
+			}
+			float mean = sum / offsetList.Count;
+			float variance = 0;
+			foreach (var offset in offsetList) {
+				variance += (offset - mean) * (offset - mean);
+			}
+			float std = Mathf.Sqrt(variance);
+			game_.offsetAverage = mean;
+			game_.offsetStd = std;
+
+			if (shouldUploadTrial && game_.midiFile != null) {
 				game_.netManager.ClAppTrialUpload(new Net.NetManager.Trial {
 					withdrew = withdrew,
 
@@ -147,9 +169,21 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 		}
 
-		public void CountScoreForBlock(float timing, Block block, bool isHolding = false) {
-			var judgment = GetTimingJudgment(timing);
+		public void CountScoreForBlock(float timing, Block block, bool isHolding = false, bool isLongTail = false) {
+			float timingAbs = Mathf.Abs(timing);
+			var judgment = GetTimingJudgment(timingAbs);
 			FlashJudgment(judgment);
+
+			if (!isHolding) {
+				offsetList.Add(timing);
+				if (judgment != Judgment.Perfect) {
+					if (timing > 0) {
+						earlyCount += 1;
+					} else if (timing < 0) {
+						lateCount += 1;
+					}
+				}
+			}
 
 			switch (judgment) {
 				case Judgment.Perfect: perfectCount += 1; break;
@@ -162,7 +196,6 @@ namespace TouhouMix.Levels.Gameplay {
 			var emitter = GetParticleEmitterFromJudgment(judgment);
 			emitter.Emit(block.Position);
 
-
 			bool shouldKeepCombo = CheckShouldKeepComboFromJudgment(judgment);
 			if (shouldKeepCombo) {
 				combo += 1;
@@ -172,9 +205,9 @@ namespace TouhouMix.Levels.Gameplay {
 				ClearCombo();
 			}
 
-			int noteScore = (int)(scoreBase * 
-				GetBlockTypeScoreMultipler(block.type) *
-				GetTimingScoreMultiplier(timing) * 
+			int noteScore = (int)(scoreBase *
+				GetBlockTypeScoreMultiplier(isLongTail ? BlockType.INSTANT : block.type) *
+				GetTimingScoreMultiplier(timingAbs) *
 				GetComboScoreMultiplier(combo));
 			if (isHolding) {
 				noteScore = 1;
@@ -188,48 +221,9 @@ namespace TouhouMix.Levels.Gameplay {
 			FlashAccuracy();
 
 			//flashControllers[block.lane].Dim(1);
-			anim_.New(backgroundRect).ScaleFromTo(backgroundRect, new Vector3(1.2f, 1.2f, 1), Vector3.one, .4f, EsType.Linear)
-				.RotateFromTo(backgroundRect, -2, 0, .2f, EsType.Linear);
-		}
-
-		public void CountScoreForLongBlockTail(float timing, Block block, bool isHolding = false) {
-			var judgment = GetTimingJudgment(timing);
-			FlashJudgment(judgment);
-
-			switch (judgment) {
-				case Judgment.Perfect: perfectCount += 1; break;
-				case Judgment.Great: greatCount += 1; break;
-				case Judgment.Good: goodCount += 1; break;
-				case Judgment.Bad: badCount += 1; break;
-				case Judgment.Miss: missCount += 1; break;
-			}
-
-			var emitter = GetParticleEmitterFromJudgment(judgment);
-			emitter.Emit(block.Position);
-
-			bool shouldKeepCombo = CheckShouldKeepComboFromJudgment(judgment);
-			if (shouldKeepCombo) {
-				combo += 1;
-				FlashCombo();
-			} else {
-				combo = 0;
-				ClearCombo();
-			}
-
-			int noteScore = (int)(scoreBase * 
-				GetBlockTypeScoreMultipler(BlockType.INSTANT) *
-				GetTimingScoreMultiplier(timing) * 
-				GetComboScoreMultiplier(combo));
-			if (isHolding) {
-				noteScore = 1;
-			}
-			score += noteScore;
-			FlashScore(noteScore);
-
-			accuracyFactor += GetJudgmentAccuracyContribution(judgment);
-			perfectAccuracyFactor += GetJudgmentAccuracyContribution(Judgment.Perfect);
-			accuracy = accuracyFactor / perfectAccuracyFactor;
-			FlashAccuracy();
+			anim_.New(backgroundRect)
+				.ScaleFromTo(backgroundRect, new Vector3(1.1f, 1.1f, 1), Vector3.one, .4f, EsType.QuadOut)
+				.RotateFromTo(backgroundRect, block.x < 400 ? -2 : 2, 0, .2f, EsType.QuadOut);
 		}
 
 		public void CountMiss() {
@@ -244,7 +238,7 @@ namespace TouhouMix.Levels.Gameplay {
 			FlashAccuracy();
 		}
 
-		float GetBlockTypeScoreMultipler(BlockType type) {
+		float GetBlockTypeScoreMultiplier(BlockType type) {
 			switch (type) {
 				case BlockType.INSTANT: return 1f;
 				case BlockType.SHORT: return 1f;
@@ -352,17 +346,17 @@ namespace TouhouMix.Levels.Gameplay {
 		void FlashCombo() {
 			if (combo > maxCombo) maxCombo = combo;
 			if (combo > 5) {
-				comboText.text = string.Format("{0:N0} COMBO", combo);
+				comboText.text = string.Format("{0:N0}", combo);
 				anim_.New(comboText)
 					.ScaleFromTo(comboText.transform, new Vector3(1.2f, 1.2f, 1.2f), Vector3.one, .2f, 0)
-					.FadeFromTo(comboText, 1, .5f, .2f, 0);
+					.FadeFromTo(comboGroup, 1, .5f, .2f, 0);
 			}
 		}
 
 		void ClearCombo() {
 			anim_.New(comboText)
 				//				.ScaleFromTo(comboText.transform, new Vector3(1.2f, 1.2f, 1.2f), Vector3.one, .2f, 0)
-				.FadeTo(comboText, 0, .2f, 0);
+				.FadeTo(comboGroup, 0, .2f, 0);
 		}
 
 		void FlashScore(int addition) {
@@ -374,7 +368,7 @@ namespace TouhouMix.Levels.Gameplay {
 			anim_.New(scoreAdditionText)
 				.FadeOutFromOne(scoreAdditionText, .2f, 0)
 				.ScaleFromTo(scoreAdditionText.transform, new Vector3(1.2f, 1.2f, 1.2f), Vector3.one, .2f, 0)
-				.MoveFromTo(scoreAdditionText.rectTransform, new Vector2(100, -20), new Vector2(0, -20), .2f, EsType.CubicIn);
+				.MoveFromTo(scoreAdditionText.rectTransform, new Vector2(80, 0), new Vector2(0, 0), .2f, EsType.CubicIn);
 		}
 
 		void FlashAccuracy() {

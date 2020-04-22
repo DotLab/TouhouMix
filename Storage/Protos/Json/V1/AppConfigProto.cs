@@ -14,7 +14,7 @@
 				displayLang = GetDefaultLang(),
 				translateUserGeneratedContent = true,
 
-				sampleRateDownscale = 0,
+				sampleRateDownscale = 1,
 				audioBufferUpscale = 0,
 				networkEndpoint = 0,
 			};

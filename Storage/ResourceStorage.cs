@@ -47,6 +47,12 @@ namespace TouhouMix.Storage {
 			GenerateFakeAlbums();
 		}
 
+		public void Reset() {
+			UnityEngine.PlayerPrefs.DeleteKey(BUNDLE_ID_KEY);
+			DecompressMidiBundle();
+			LoadMidis();
+		}
+
 		void GenerateFakeAlbums() {
 			var albumDict = new Dictionary<string, Protos.Api.AlbumProto>();
 			var songDict = new Dictionary<string, Protos.Api.SongProto>();
@@ -113,14 +119,16 @@ namespace TouhouMix.Storage {
 			}
 		}
 
+		const string BUNDLE_ID_KEY = "installedMidiBundleId";
+		const string BUNDLE_ID = "202004110825";
+
 		public static void DecompressMidiBundle() {
-			string bundleId = "202004110825";
-			if (UnityEngine.PlayerPrefs.GetString("installedMidiBundleId", "") == bundleId) {
+			if (UnityEngine.PlayerPrefs.GetString(BUNDLE_ID_KEY, "") == BUNDLE_ID) {
 				return;
 			}
-			UnityEngine.PlayerPrefs.SetString("installedMidiBundleId", bundleId);
+			UnityEngine.PlayerPrefs.SetString(BUNDLE_ID_KEY, BUNDLE_ID);
 
-			UnityEngine.Debug.Log("Decompressing MidiBundle " + bundleId);
+			UnityEngine.Debug.Log("Decompressing MidiBundle " + BUNDLE_ID);
 			string dataPath = UnityEngine.Application.persistentDataPath;
 			byte[] bytes = UnityEngine.Resources.Load<UnityEngine.TextAsset>("MidiBundle").bytes;
 			using (var stream = new System.IO.MemoryStream(bytes)) {

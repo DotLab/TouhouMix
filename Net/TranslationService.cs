@@ -61,6 +61,11 @@ namespace TouhouMix.Net {
 			filePath = System.IO.Path.Combine(UnityEngine.Application.persistentDataPath, FILE_PATH);
 		}
 
+		public void Reset() {
+			dict.Clear();
+			Flush();
+		}
+
 		public void Translate(string src, TranslateCallback callback) {
 			Translate(src, UI_APP, callback);
 		}
@@ -106,6 +111,7 @@ namespace TouhouMix.Net {
 				net.ClAppTranslate(src, lang, ns, (err, data) => {
 					if (!string.IsNullOrEmpty(err)) {
 						UnityEngine.Debug.LogError("Translation: " + err);
+						return;
 					}
 					var res = (string)data;
 					// Possible duplicates, fix later

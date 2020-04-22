@@ -50,6 +50,10 @@ namespace TouhouMix.Levels {
 		public int maxComboCount;
 		public int score;
 		public float accuracy;
+		public int earlyCount;
+		public int lateCount;
+		public float offsetAverage;
+		public float offsetStd;
 
 		public string username;
 		public string password;

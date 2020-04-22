@@ -16,7 +16,6 @@ namespace TouhouMix.Levels.SongSelect {
 		public MidiDetailPageScheduler midiDetailPage;
 		public SynthConfigPageScheduler synthConfigPage;
 		public MidiDirectPageScheduler midiDirectPage;
-		public DownloadedSongSelectPageScheduler downloadedSongSelectPage;
 		public AppConfigPageScheduler appConfigPageScheduler;
 
 		public float albumSelectScrollViewPositionY { 
@@ -72,10 +71,6 @@ namespace TouhouMix.Levels.SongSelect {
 			midiDirectPage.Disable();
 			midiDirectPage.group.interactable = false;
 
-			downloadedSongSelectPage.Init(this);
-			downloadedSongSelectPage.Disable();
-			downloadedSongSelectPage.group.interactable = false;
-
 			appConfigPageScheduler.Init(this);
 			appConfigPageScheduler.Disable();
 			appConfigPageScheduler.group.interactable = false;
@@ -91,10 +86,6 @@ namespace TouhouMix.Levels.SongSelect {
 
 		public void OpenMidiDirectPage() {
 			Push(midiDirectPage);
-		}
-
-		public void OnDownloadedButtonClicked() {
-			Push(downloadedSongSelectPage);
 		}
 
 		public void OnAppConfigButtonClicked() {

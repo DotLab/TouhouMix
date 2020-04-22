@@ -6,6 +6,8 @@ using Uif.Settables.Components;
 
 namespace TouhouMix.Levels {
 	public sealed class GameplayResultLevelScheduler : MonoBehaviour {
+		public RawImage backgroundImage;
+
 		public Text difficultyText;
 		public Text midiNameText;
 		public Text scoreText;
@@ -38,6 +40,10 @@ namespace TouhouMix.Levels {
 		void Start() {
 			var game = GameScheduler.instance;
 
+			if (game.backgroundTexture != null) {
+				backgroundImage.texture = game.backgroundTexture;
+			}
+
 			difficultyText.text = ((Storage.Protos.Json.V1.GameplayConfigProto.DifficaultyPresetEnum)(game.gameplayConfig.difficultyPreset)).ToString();
 			midiNameText.text = game.title;
 			scoreText.text = game.score.ToString("N0");
@@ -46,7 +52,7 @@ namespace TouhouMix.Levels {
 			countText.text = string.Format("Perfect {0:N0}     Great {1:N0}     Good {2:N0}    Bad {3:N0}    Miss {4:N0}",
 					game.perfectCount, game.greatCount, game.goodCount, game.badCount, game.missCount);
 			statsText.text = string.Format("Early {0:N0}     Late {1:N0}     ATE  {2:F3}s     STE {3:F3}s",
-					0, 0, 0, 0);
+					game.earlyCount, game.lateCount, game.offsetAverage, game.offsetStd);
 
 			songNameText.text = game.subtitle;
 

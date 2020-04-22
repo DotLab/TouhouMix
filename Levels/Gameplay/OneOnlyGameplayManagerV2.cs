@@ -53,6 +53,11 @@ namespace TouhouMix.Levels.Gameplay {
 		protected float blockScaling;
 		protected float blockJudgingHalfWidth;
 
+		[Space]
+		public Color instantColor = Color.red;
+		public Color shortColor = Color.red;
+		public Color longColor = Color.red;
+
 		protected GameplayLevelScheduler level;
 
 		public readonly SingleLaneBlockGenerator generator = new SingleLaneBlockGenerator();
@@ -126,7 +131,7 @@ namespace TouhouMix.Levels.Gameplay {
 		#endregion
 
 		#region Block Generation
-		Block AddTentativeBlock(int lane, BlockType type, NoteSequenceCollection.Note note) {
+		Block AddBlock(int lane, BlockType type, NoteSequenceCollection.Note note) {
 			var block = blockContainer.CreateOrReuseItem();
 			block.lane = lane;
 			block.isTentative = true;
@@ -148,7 +153,7 @@ namespace TouhouMix.Levels.Gameplay {
 			// Generate one batch at a time
 			for (int batch = blockInfos[blockInfoIndex].batch; blockInfoIndex < blockInfos.Count && blockInfos[blockInfoIndex].batch == batch; blockInfoIndex += 1) {
 				var blockInfo = blockInfos[blockInfoIndex];
-				var block = AddTentativeBlock(blockInfo.lane, blockInfo.type, blockInfo.note);
+				var block = AddBlock(blockInfo.lane, blockInfo.type, blockInfo.note);
 				block.batch = blockInfo.batch;
 				block.x = blockInfo.x;
 
@@ -169,7 +174,7 @@ namespace TouhouMix.Levels.Gameplay {
 							var activeBlock = blockContainer.itemList[i];
 							if (activeBlock.batch == prevInfo.batch && activeBlock.lane == prevInfo.lane) {
 								if (activeBlock.type == BlockType.INSTANT && block.note.startSeconds - activeBlock.note.startSeconds <= maxInstantConnectSeconds) {
-									GenerateConnect(BLOCK_INSTANT_CONNECT, activeBlock, block, false);
+									GenerateConnect(BLOCK_INSTANT_CONNECT, activeBlock, block, instantColor);
 									isInner = true;
 								}
 								break;
@@ -179,10 +184,12 @@ namespace TouhouMix.Levels.Gameplay {
 					block.skinName = isInner ? BLOCK_INSTANT_INNER : BLOCK_INSTANT;
 					block.skin = CreateOrReuseSkin(block.skinName);
 					block.skin.rect.SetAsLastSibling();
+					block.skin.color.Set(instantColor);
 				} else if (block.type == BlockType.SHORT) {
 					block.skinName = BLOCK_SHORT;
 					block.skin = CreateOrReuseSkin(block.skinName);
 					block.skin.rect.SetAsLastSibling();
+					block.skin.color.Set(shortColor);
 				} else {  // tentativeBlock.type == GameplayBlockType.Long
 					block.skinName = BLOCK_LONG_START;
 					block.skin = CreateOrReuseSkin(block.skinName);
@@ -194,6 +201,10 @@ namespace TouhouMix.Levels.Gameplay {
 					block.longFillSkin.rect.SetAsLastSibling();
 					block.longEndSkin.rect.SetAsLastSibling();
 					block.skin.rect.SetAsLastSibling();
+
+					block.skin.color.Set(longColor);
+					block.longFillSkin.color.Set(longColor);
+					block.longEndSkin.color.Set(longColor);
 				}
 
 				block.skin.rect.localScale = Vector3.one * blockScaling;
@@ -201,30 +212,21 @@ namespace TouhouMix.Levels.Gameplay {
 
 			if (generateShortConnect && minXBlock != maxXBlock) {
 				// Need to generate ShortConnect
-				GenerateConnect(BLOCK_SHORT_CONNECT, minXBlock, maxXBlock, true);
+				GenerateConnect(BLOCK_SHORT_CONNECT, minXBlock, maxXBlock, shortColor);
 			}
 		}
 
-		protected virtual void GenerateConnect(string skinName, Block from, Block to, bool isFixed) {
+		protected virtual void GenerateConnect(string skinName, Block from, Block to, Color color) {
 			var connect = connectContainer.CreateOrReuseItem();
 			connect.isTentative = true;
-			//connect.isFixed = isFixed;
-			connect.isFixed = false;
 			connect.skinName = skinName;
 			connect.skin = CreateOrReuseSkin(skinName);
 			connect.skin.rect.localScale = new Vector3(blockScaling, 1, 1);
+			connect.skin.color.Set(color);
 			connect.startX = from.x;
 			connect.startTick = from.note.start;
 			connect.endX = to.x;
 			connect.endTick = to.note.start;
-			//if (isFixed) {
-			//	// Calc the length and angle once
-			//	float startY = GetY(connect.startTick);
-			//	float endY = GetY(connect.endTick);
-			//	float length = Vector2.Distance(new Vector2(connect.startX, startY), new Vector2(connect.endX, endY));
-			//	connect.skin.rect.sizeDelta = new Vector2(connect.skin.rect.sizeDelta.x, length);
-			//	connect.skin.rect.eulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
-			//}
 			// Push to back
 			connect.skin.rect.SetAsFirstSibling();
 		}
@@ -255,7 +257,7 @@ namespace TouhouMix.Levels.Gameplay {
 						// hold finish
 						holdingBlockDict.Remove(block.holdingFingerId);
 						block.holdingFingerId = -1;
-						level.scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(block.end), block, true);
+						level.scoringManager.CountScoreForBlock(GetOffsetInSeconds(block.end), block, true, true);
 						level.StopNote(block.note);
 						HideAndFreeTouchedBlock(block);
 					} else {
@@ -285,12 +287,10 @@ namespace TouhouMix.Levels.Gameplay {
 
 				float startY = GetY(connect.startTick);
 				connect.skin.rect.anchoredPosition = new Vector2(connect.startX, startY);
-				if (!connect.isFixed) {
-					float endY = GetY(connect.endTick);
-					float length = Vector2.Distance(new Vector2(connect.startX, startY), new Vector2(connect.endX, endY));
-					connect.skin.rect.sizeDelta = new Vector2(connect.skin.rect.sizeDelta.x, length);
-					connect.skin.rect.eulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
-				}
+				float endY = GetY(connect.endTick);
+				float length = Vector2.Distance(new Vector2(connect.startX, startY), new Vector2(connect.endX, endY));
+				connect.skin.rect.sizeDelta = new Vector2(connect.skin.rect.sizeDelta.x, length);
+				connect.skin.rect.eulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
 			}
 		}
 
@@ -333,7 +333,7 @@ namespace TouhouMix.Levels.Gameplay {
 			holdingBlockDict.Remove(id);
 			HideAndFreeTouchedBlock(holdingBlock);
 			//Debug.Log("Up " + holdingBlock.end + " " + GetOffsetInSeconds(holdingBlock.end));
-			level.scoringManager.CountScoreForLongBlockTail(GetOffsetInSeconds(holdingBlock.end), holdingBlock);
+			level.scoringManager.CountScoreForBlock(GetOffsetInSeconds(holdingBlock.end), holdingBlock, false, true);
 
 			// Only check instant block when ending long block
 			//CheckAllInstantBlocks(false);
@@ -438,10 +438,9 @@ namespace TouhouMix.Levels.Gameplay {
 			blockContainer.FreeItem(block);
 		}
 
-		float GetOffsetInSeconds(float timingTicks) {
-			float timing = level.midiSequencer.ticks - timingTicks;
-			float seconds = level.midiSequencer.ToSeconds(timing) + judgeTimeOffset;
-			if (seconds < 0) seconds = -seconds;
+		float GetOffsetInSeconds(float targetTicks) {
+			float timing = targetTicks - level.midiSequencer.ticks;
+			float seconds = level.midiSequencer.ToSeconds(timing) - judgeTimeOffset;
 			return seconds;
 		}
 
@@ -452,7 +451,6 @@ namespace TouhouMix.Levels.Gameplay {
 
 			public int index;
 
-			public bool isFixed;
 			public string skinName;
 			public BlockSkinController skin;
 			public float startX;

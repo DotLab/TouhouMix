@@ -8,7 +8,7 @@ using Uif.Tasks;
 using TouhouMix.Net;
 
 namespace TouhouMix {
-  public class ErrorHintController : MonoBehaviour {
+  public sealed class ErrorHintController : MonoBehaviour {
     public Text errorText;
     public CanvasGroup errorGroup;
 
@@ -18,10 +18,18 @@ namespace TouhouMix {
       errorGroup.alpha = 0;
 
       Levels.GameScheduler.instance.netManager.onNetErrorEvent += OnNetError;
+      Application.logMessageReceived += HandleLogs;
     }
 
     private void OnDestroy() {
       Levels.GameScheduler.instance.netManager.onNetErrorEvent -= OnNetError;
+      Application.logMessageReceived -= HandleLogs;
+    }
+
+    private void HandleLogs(string condition, string stackTrace, LogType type) {
+      if (type == LogType.Error || type == LogType.Exception) {
+        HintError(condition.Split('\n')[0]);
+      }
     }
 
     void OnNetError(string error) {

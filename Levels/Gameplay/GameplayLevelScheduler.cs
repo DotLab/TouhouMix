@@ -16,6 +16,7 @@ namespace TouhouMix.Levels.Gameplay {
 		public string testMidiPath;
 
 		[Space]
+		public Text infoText;
 		public CanvasSizeWatcher sizeWatcher;
 		public RawImage backgroundImage;
 		public bool shouldLoadGameplayConfig;
@@ -75,6 +76,9 @@ namespace TouhouMix.Levels.Gameplay {
 		float startTime;
 
 		public void Start() {
+			configPageGroup.gameObject.SetActive(false);
+			pausePageGroup.gameObject.SetActive(false);
+
 			startTime = Time.time;
 
 			game_ = GameScheduler.instance;
@@ -97,6 +101,8 @@ namespace TouhouMix.Levels.Gameplay {
 			sampleRate = audioConfig.sampleRate;
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 128);
 			sf2Synth.SetVolume(-6);
+
+			infoText.text = string.Format("{1}\n{0}\n{2}", game_.title, game_.subtitle, ((GameplayConfigProto.DifficaultyPresetEnum)game_.gameplayConfig.difficultyPreset).ToString());
 
 			midiFile = game_.midiFile ?? new MidiFile(Resources.Load<TextAsset>(testMidiPath).bytes);
 			sequenceCollection = game_.noteSequenceCollection ?? new NoteSequenceCollection(midiFile);
@@ -135,6 +141,13 @@ namespace TouhouMix.Levels.Gameplay {
 			ShowReadyAnimation();
 		}
 
+		static Color GetColorOrDefault(string hex, Color color) {
+			if (ColorUtility.TryParseHtmlString(hex, out Color c)) {
+				return c;
+			}
+			return color;
+		}
+
 		void LoadGameplayConfig() {
 			var config = game_.gameplayConfig;
 
@@ -145,8 +158,6 @@ namespace TouhouMix.Levels.Gameplay {
 					config.minCooldownTime = 2;
 					config.maxTouchMoveSpeed = 200;
 					config.maxBlockCoalesceTime = 2;
-					config.generateInstantConnect = true;
-					config.generateShortConnect = false;
 					break;
 				case (int)GameplayConfigProto.DifficaultyPresetEnum.EASY:
 					config.maxSimultaneousBlocks = 2;
@@ -154,8 +165,6 @@ namespace TouhouMix.Levels.Gameplay {
 					config.minCooldownTime = 2f;
 					config.maxTouchMoveSpeed = 200;
 					config.maxBlockCoalesceTime = 1;
-					config.generateInstantConnect = true;
-					config.generateShortConnect = false;
 					break;
 				case (int)GameplayConfigProto.DifficaultyPresetEnum.NORMAL:
 					config.maxSimultaneousBlocks = 2;
@@ -163,8 +172,6 @@ namespace TouhouMix.Levels.Gameplay {
 					config.minCooldownTime = 2f;
 					config.maxTouchMoveSpeed = 300;
 					config.maxBlockCoalesceTime = .25f;
-					config.generateInstantConnect = true;
-					config.generateShortConnect = false;
 					break;
 				case (int)GameplayConfigProto.DifficaultyPresetEnum.HARD:
 					config.maxSimultaneousBlocks = 2;
@@ -172,8 +179,6 @@ namespace TouhouMix.Levels.Gameplay {
 					config.minCooldownTime = 1.5f;
 					config.maxTouchMoveSpeed = 400;
 					config.maxBlockCoalesceTime = .05f;
-					config.generateInstantConnect = true;
-					config.generateShortConnect = true;
 					break;
 				case (int)GameplayConfigProto.DifficaultyPresetEnum.LUNATIC:
 					config.maxSimultaneousBlocks = 3;
@@ -181,8 +186,6 @@ namespace TouhouMix.Levels.Gameplay {
 					config.minCooldownTime = 1.5f;
 					config.maxTouchMoveSpeed = 600;
 					config.maxBlockCoalesceTime = .05f;
-					config.generateInstantConnect = true;
-					config.generateShortConnect = true;
 					break;
 				default: break;
 			}
@@ -190,6 +193,20 @@ namespace TouhouMix.Levels.Gameplay {
 			try {
 				cacheBeats = config.cacheTime;
 				playbackSpeed = config.playbackSpeed;
+
+				if (config.useRandomColor) {
+					if (config.useOneColor) {
+						oneOnlyGameplayManager.instantColor = oneOnlyGameplayManager.shortColor = Color.HSVToRGB(Random.Range(0, 1), 1, 1);
+					} else {
+						oneOnlyGameplayManager.instantColor = Color.HSVToRGB(Random.Range(0, 1f), 1, 1);
+						oneOnlyGameplayManager.shortColor = Color.HSVToRGB(Random.Range(0, 1f), 1, 1);
+						oneOnlyGameplayManager.longColor = Color.HSVToRGB(Random.Range(0, 1f), 1, 1);
+					}
+				} else {
+					oneOnlyGameplayManager.instantColor = GetColorOrDefault(config.instantBlockColor, oneOnlyGameplayManager.instantColor);
+					oneOnlyGameplayManager.shortColor = GetColorOrDefault(config.shortBlockColor, oneOnlyGameplayManager.shortColor);
+					oneOnlyGameplayManager.longColor = GetColorOrDefault(config.longBlockColor, oneOnlyGameplayManager.longColor);
+				}
 
 				var instantBlockPrefab = LoadBlockPreset(config.instantBlockPreset);
 				var shortBlockPrefab = LoadBlockPreset(config.shortBlockPreset);
@@ -237,7 +254,7 @@ namespace TouhouMix.Levels.Gameplay {
 			anim_.New(this).FadeIn(readyPageGroup, .5f, 0).Then()
 				.RotateFromTo(readyPageText.transform, -180, 0, .8f, EsType.BackOut)
 				.FadeOutFromOne(readyPageText, 1, EsType.QuadIn).Then()
-				.Set(readyPageText.GetStringSettable(), "GO")
+				.Set(readyPageText.GetStringSettable(), "♩ヽ(・ω・ヽ*)♬")
 				.Set(readyPageText.GetAlphaFloatSettable(), 1)
 				.ScaleTo(readyPageText.transform, new Vector3(2, 2, 1), 1, EsType.CubicIn)
 				.FadeOutFromOne(readyPageGroup, 1, EsType.QuadIn).Then()

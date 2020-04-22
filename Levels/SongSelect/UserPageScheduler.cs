@@ -19,7 +19,7 @@ namespace TouhouMix.Levels.SongSelect {
     public InputField usernameInput;
     public InputField passwordInput;
     public Text nameText;
-    public RawImage avatarIamge;
+    public RawImageCutter rawImageCutter;
 
     AnimationManager anim;
     NetManager net;
@@ -100,7 +100,7 @@ namespace TouhouMix.Levels.SongSelect {
         nameText.text = (string)userDict["name"];
         if (userDict.ContainsKey("avatarUrl")) {
           web.LoadTexture((string)userDict["avatarUrl"], job => {
-            avatarIamge.texture = job.GetData();
+            rawImageCutter.Cut(job.GetKey(), job.GetData());
           });
         }
       });

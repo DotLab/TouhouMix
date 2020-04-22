@@ -21,6 +21,12 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		// 0: OneOnly, 6: ScanningLine
 		public int layoutPreset;
 
+		public bool useRandomColor;
+		public bool useOneColor;
+		public string instantBlockColor;
+		public string shortBlockColor;
+		public string longBlockColor;
+
 		public string instantBlockPreset;
 		public string shortBlockPreset;
 		public string longBlockPreset;
@@ -70,6 +76,12 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 			return new GameplayConfigProto {
 				difficultyPreset = 0,
 				layoutPreset = 0,
+
+				useRandomColor = true,
+				useOneColor = false,
+				instantBlockColor = "#ff0000",
+				shortBlockColor = "#ff0000",
+				longBlockColor = "#ff0000",
 
 				instantBlockPreset = "",
 				shortBlockPreset = "",
