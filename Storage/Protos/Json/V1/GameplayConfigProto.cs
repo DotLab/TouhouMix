@@ -27,9 +27,8 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		public string shortBlockColor;
 		public string longBlockColor;
 
-		public string instantBlockPreset;
-		public string shortBlockPreset;
-		public string longBlockPreset;
+		public bool useCustomBlockSkin;
+		public string blockSkinPreset;
 
 		public int laneCount;
 		public float blockSize;
@@ -83,9 +82,8 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 				shortBlockColor = "#ff0000",
 				longBlockColor = "#ff0000",
 
-				instantBlockPreset = "",
-				shortBlockPreset = "",
-				longBlockPreset = "",
+				useCustomBlockSkin = false,
+				blockSkinPreset = "Squre45",
 
 				laneCount = 12,
 				blockSize = 120,

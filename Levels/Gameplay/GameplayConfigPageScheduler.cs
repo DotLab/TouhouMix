@@ -24,17 +24,13 @@ namespace TouhouMix.Levels.Gameplay {
 			set { GameScheduler.instance.gameplayConfig.longBlockColor = value; }
 		}
 
-		public string instantBlockPreset { 
-			get { return GameScheduler.instance.gameplayConfig.instantBlockPreset; }
-			set { GameScheduler.instance.gameplayConfig.instantBlockPreset = value; }
+		public int useCustomBlockSkin {
+			get { return BindingHelper.BoolToInt(GameScheduler.instance.gameplayConfig.useCustomBlockSkin); }
+			set { GameScheduler.instance.gameplayConfig.useCustomBlockSkin = BindingHelper.IntToBool(value); }
 		}
-		public string shortBlockPreset { 
-			get { return GameScheduler.instance.gameplayConfig.shortBlockPreset; }
-			set { GameScheduler.instance.gameplayConfig.shortBlockPreset = value; }
-		}
-		public string longBlockPreset { 
-			get { return GameScheduler.instance.gameplayConfig.longBlockPreset; }
-			set { GameScheduler.instance.gameplayConfig.longBlockPreset = value; }
+		public string blockSkinPreset { 
+			get { return GameScheduler.instance.gameplayConfig.blockSkinPreset; }
+			set { GameScheduler.instance.gameplayConfig.blockSkinPreset = value; }
 		}
 
 		public int laneCount { 

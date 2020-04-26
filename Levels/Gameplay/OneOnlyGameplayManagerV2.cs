@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Midif.V3;
 using Uif;
 using Systemf;
@@ -14,14 +15,27 @@ namespace TouhouMix.Levels.Gameplay {
 		const string BLOCK_INSTANT_CONNECT = "InstantConnect";
 		const string BLOCK_LONG_START = "LongStart";
 		const string BLOCK_LONG_FILL = "LongFill";
-		const string BLOCK_LONG_INNER = "LongInner";
 		const string BLOCK_LONG_END = "LongEnd";
 
-		public string skinPrefabPath = "Blocks/V2/Squre45/";
+		const string BLOCK_INSTANT_FILENAME = "instant.png";
+		const string BLOCK_SHORT_FILENAME = "short.png";
+		const string BLOCK_LONG_START_FILENAME = "long-b.png";
+		const string BLOCK_LONG_FILL_FILENAME = "long-f.png";
+		const string BLOCK_LONG_END_FILENAME = "long-t.png";
+
+		const string CUSTOM_SKIN_ROOT_PATH = "Skins";
+		const string BUILTIN_SKIN_ROOT_PATH = "Blocks";
+
+		public bool loadCustomSkin;
+		public string customSkinPath;
+		public GameObject customSkinTemplatePrefab;
+
+		public string skinPrefabPath = "Squre45";
 		public readonly Dictionary<string, GameObject> skinPrefabDict = new Dictionary<string, GameObject>();
 		protected readonly Dictionary<string, ActiveFreeContainer<BlockSkinController>> freeSkinContainerDict = new Dictionary<string, ActiveFreeContainer<BlockSkinController>>();
 
 		public RectTransform activeBlockRect;
+		public GameObject emptyBlock;
 
 		protected readonly ActiveFreeContainer<Block> blockContainer = new ActiveFreeContainer<Block>(() => new Block());
 		protected readonly ActiveFreeContainer<Connect> connectContainer = new ActiveFreeContainer<Connect>(() => new Connect());
@@ -67,24 +81,28 @@ namespace TouhouMix.Levels.Gameplay {
 		public virtual void Init(GameplayLevelScheduler level) {
 			this.level = level;
 
-			string[] skinNames = new string[] {
-				BLOCK_SHORT,
-				BLOCK_SHORT_CONNECT,
-				BLOCK_INSTANT,
-				BLOCK_INSTANT_INNER,
-				BLOCK_INSTANT_CONNECT,
-				BLOCK_LONG_START,
-				BLOCK_LONG_END,
-				BLOCK_LONG_FILL,
-				BLOCK_LONG_INNER,
-			};
-			foreach (var name in skinNames) {
-				var prefab = Resources.Load<GameObject>(skinPrefabPath + name);
-				skinPrefabDict[name] = prefab;
-				freeSkinContainerDict[name] = new ActiveFreeContainer<BlockSkinController>(() => {
-					var instance = Object.Instantiate(prefab, activeBlockRect, false);
-					return instance.GetComponent<BlockSkinController>();
-				});
+			if (loadCustomSkin) {
+				string skinPath = System.IO.Path.Combine(Application.persistentDataPath, CUSTOM_SKIN_ROOT_PATH, customSkinPath);
+				float pixelPerUnit = LoadCustomSkin(skinPath, BLOCK_SHORT_FILENAME, BLOCK_SHORT);
+				LoadCustomSkin(skinPath, BLOCK_INSTANT_FILENAME, BLOCK_INSTANT, pixelPerUnit);
+				LoadCustomSkin(skinPath, BLOCK_LONG_START_FILENAME, BLOCK_LONG_START, pixelPerUnit);
+				LoadCustomSkin(skinPath, BLOCK_LONG_FILL_FILENAME, BLOCK_LONG_FILL, pixelPerUnit);
+				LoadCustomSkin(skinPath, BLOCK_LONG_END_FILENAME, BLOCK_LONG_END, pixelPerUnit);
+			} else {
+				string[] skinNames = new string[] {
+					BLOCK_SHORT,
+					BLOCK_SHORT_CONNECT,
+					BLOCK_INSTANT,
+					BLOCK_INSTANT_INNER,
+					BLOCK_INSTANT_CONNECT,
+					BLOCK_LONG_START,
+					BLOCK_LONG_FILL,
+					BLOCK_LONG_END,
+				};
+				foreach (var name in skinNames) {
+					var prefab = Resources.Load<GameObject>(BUILTIN_SKIN_ROOT_PATH + "/" + skinPrefabPath + "/" + name);
+					LoadSkin(name, prefab ?? emptyBlock);
+				}
 			}
 
 			var canvasSize = level.sizeWatcher.canvasSize;
@@ -116,6 +134,54 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		#region Skin Management
+
+		protected float LoadCustomSkin(string root, string fileName, string skinName, float pixelPerUnit = -1) {
+			string path = System.IO.Path.Combine(root, fileName);
+			if (System.IO.File.Exists(path)) {
+				byte[] bytes = System.IO.File.ReadAllBytes(path);
+				var texture = new Texture2D(4, 4);
+				texture.filterMode = FilterMode.Point;
+				texture.LoadImage(bytes);
+				if (pixelPerUnit < 0) {
+					pixelPerUnit = 100f / texture.width;
+				}
+
+				var instance = Object.Instantiate(customSkinTemplatePrefab, activeBlockRect, false);
+				instance.name = fileName;
+				instance.GetComponent<CanvasGroup>().alpha = 0;
+
+				var image = instance.GetComponentInChildren<RawImage>();
+				image.texture = texture;
+				var imageRect = image.GetComponent<RectTransform>();
+				imageRect.sizeDelta = new Vector2(texture.width * pixelPerUnit, texture.height * pixelPerUnit);
+
+				if (skinName == BLOCK_LONG_FILL) {
+					instance.GetComponent<RectTransform>().pivot = new Vector2(.5f, 0);
+					imageRect.anchorMax = new Vector2(.5f, 1);
+					imageRect.anchorMin = new Vector2(.5f, 0);
+					imageRect.offsetMax = Vector2.zero;
+					imageRect.offsetMin = Vector2.zero;
+					imageRect.sizeDelta = new Vector2(texture.width * pixelPerUnit, 0);
+				}
+
+				LoadSkin(skinName, instance);
+			} else {
+				LoadSkin(skinName, emptyBlock);
+			}
+			return pixelPerUnit;
+		}
+
+		protected void LoadSkin(string skinName, GameObject prefab) {
+			skinPrefabDict[skinName] = prefab;
+			freeSkinContainerDict[skinName] = new ActiveFreeContainer<BlockSkinController>(() => {
+				var instance = Object.Instantiate(prefab, activeBlockRect, false);
+				return instance.GetComponent<BlockSkinController>();
+			});
+		}
+
+		protected bool HasSkin(string skinName) {
+			return skinPrefabDict.ContainsKey(skinName) && skinPrefabDict[skinName] != emptyBlock;
+		}
 
 		protected BlockSkinController CreateOrReuseSkin(string skinName) {
 			var skin = freeSkinContainerDict[skinName].CreateOrReuseItem();
@@ -181,7 +247,7 @@ namespace TouhouMix.Levels.Gameplay {
 							}
 						}
 					}
-					block.skinName = isInner ? BLOCK_INSTANT_INNER : BLOCK_INSTANT;
+					block.skinName = isInner && HasSkin(BLOCK_INSTANT_INNER) ? BLOCK_INSTANT_INNER : BLOCK_INSTANT;
 					block.skin = CreateOrReuseSkin(block.skinName);
 					block.skin.rect.SetAsLastSibling();
 					block.skin.color.Set(instantColor);
@@ -191,22 +257,21 @@ namespace TouhouMix.Levels.Gameplay {
 					block.skin.rect.SetAsLastSibling();
 					block.skin.color.Set(shortColor);
 				} else {  // tentativeBlock.type == GameplayBlockType.Long
+					block.longFillSkin = CreateOrReuseSkin(BLOCK_LONG_FILL);
+					block.longFillSkin.rect.localScale = new Vector3(blockScaling, 1, 1);
+					block.longFillSkin.rect.SetAsLastSibling();
+					block.longFillSkin.color.Set(longColor);
+
+					block.longEndSkin = CreateOrReuseSkin(BLOCK_LONG_END);
+					block.longEndSkin.rect.localScale = Vector3.one * blockScaling;
+					block.longEndSkin.rect.SetAsLastSibling();
+					block.longEndSkin.color.Set(longColor);
+					
 					block.skinName = BLOCK_LONG_START;
 					block.skin = CreateOrReuseSkin(block.skinName);
-					block.longFillSkin = CreateOrReuseSkin(BLOCK_LONG_FILL);
-					block.longEndSkin = CreateOrReuseSkin(BLOCK_LONG_END);
-					block.longFillSkin.rect.localScale = new Vector3(blockScaling, 1, 1);
-					block.longEndSkin.rect.localScale = Vector3.one * blockScaling;
-
-					block.longFillSkin.rect.SetAsLastSibling();
-					block.longEndSkin.rect.SetAsLastSibling();
 					block.skin.rect.SetAsLastSibling();
-
 					block.skin.color.Set(longColor);
-					block.longFillSkin.color.Set(longColor);
-					block.longEndSkin.color.Set(longColor);
 				}
-
 				block.skin.rect.localScale = Vector3.one * blockScaling;
 			}
 
@@ -217,6 +282,10 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		protected virtual void GenerateConnect(string skinName, Block from, Block to, Color color) {
+			if (!HasSkin(skinName)) {
+				return;
+			}
+
 			var connect = connectContainer.CreateOrReuseItem();
 			connect.isTentative = true;
 			connect.skinName = skinName;
@@ -243,7 +312,8 @@ namespace TouhouMix.Levels.Gameplay {
 				block.isTentative = false;
 
 				int start = block.note.start;
-				if (block.end < ticks - graceTicks) {
+				if ((block.type != BlockType.LONG && block.note.start < ticks - graceTicks) || 
+						(block.type == BlockType.LONG && block.end < ticks - graceTicks)) {
 					// miss
 					level.scoringManager.CountMiss();
 					HideAndFreeTouchedBlock(block);
@@ -266,7 +336,7 @@ namespace TouhouMix.Levels.Gameplay {
 						float blockX = block.holdingFingerId != -1 ? block.holdingX : block.x;
 						block.skin.rect.anchoredPosition = new Vector2(blockX, startY);
 						block.longFillSkin.rect.anchoredPosition = new Vector2(blockX, startY);
-						block.longFillSkin.rect.sizeDelta = new Vector2(0, endY - startY);
+						block.longFillSkin.rect.sizeDelta = new Vector2(100, endY - startY);
 						block.longEndSkin.rect.anchoredPosition = new Vector2(blockX, endY);
 					}
 				} else {

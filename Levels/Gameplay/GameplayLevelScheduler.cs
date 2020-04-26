@@ -208,12 +208,12 @@ namespace TouhouMix.Levels.Gameplay {
 					oneOnlyGameplayManager.longColor = GetColorOrDefault(config.longBlockColor, oneOnlyGameplayManager.longColor);
 				}
 
-				var instantBlockPrefab = LoadBlockPreset(config.instantBlockPreset);
-				var shortBlockPrefab = LoadBlockPreset(config.shortBlockPreset);
-				var longBlockPrefab = LoadBlockPreset(config.longBlockPreset);
-				//oneOnlyGameplayManager.instantBlockPrefab = instantBlockPrefab ? instantBlockPrefab : oneOnlyGameplayManager.instantBlockPrefab;
-				//oneOnlyGameplayManager.shortBlockPrefab = shortBlockPrefab ? shortBlockPrefab : oneOnlyGameplayManager.shortBlockPrefab;
-				//oneOnlyGameplayManager.longBlockPrefab = longBlockPrefab ? longBlockPrefab : oneOnlyGameplayManager.longBlockPrefab;
+				oneOnlyGameplayManager.loadCustomSkin = config.useCustomBlockSkin;
+				if (config.useCustomBlockSkin) {
+					oneOnlyGameplayManager.customSkinPath = config.blockSkinPreset;
+				} else {
+					oneOnlyGameplayManager.skinPrefabPath = config.blockSkinPreset;
+				}
 
 				oneOnlyGameplayManager.laneCount = config.laneCount;
 				oneOnlyGameplayManager.blockWidth = config.blockSize;
@@ -242,10 +242,6 @@ namespace TouhouMix.Levels.Gameplay {
 			} catch (System.Exception e) {
 				Debug.LogError(e);
 			}
-		}
-
-		GameObject LoadBlockPreset(string path) {
-			return Resources.Load<GameObject>("Blocks/" + path);
 		}
 
 		void ShowReadyAnimation() {

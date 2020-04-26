@@ -24,14 +24,18 @@ namespace TouhouMix.Storage {
 		public readonly List<Protos.Api.PersonProto> personProtoList = new List<Protos.Api.PersonProto>();
 		public readonly Dictionary<string, string> coverUrlById = new Dictionary<string, string>();
 
+
 		public readonly List<Protos.Resource.LangOptionProto> langOptionList = new List<Protos.Resource.LangOptionProto>();
 		public readonly Dictionary<string, Protos.Resource.LangOptionProto> langOptionDictByLang = new Dictionary<string, Protos.Resource.LangOptionProto>();
 		public readonly Dictionary<string, Protos.Resource.LangOptionProto> langOptionDictByName = new Dictionary<string, Protos.Resource.LangOptionProto>();
 		public readonly Dictionary<int, Protos.Resource.LangOptionProto> langOptionDictByIndex = new Dictionary<int, Protos.Resource.LangOptionProto>();
 
+		public readonly List<string> skinPathList = new List<string>();
+
 		public void Init(Levels.GameScheduler game) {
 			LoadMidis();
 			LoadLangOptions();
+			LoadSkins();
 		}
 
 		/// <summary>
@@ -119,8 +123,15 @@ namespace TouhouMix.Storage {
 			}
 		}
 
+		const string SKIN_ROOT = "Skin";
+
+		void LoadSkins() {
+			skinPathList.Clear();
+			skinPathList.AddRange(System.IO.Directory.GetDirectories(System.IO.Path.Combine(UnityEngine.Application.persistentDataPath, SKIN_ROOT)));
+		}
+
 		const string BUNDLE_ID_KEY = "installedMidiBundleId";
-		const string BUNDLE_ID = "202004110825";
+		const string BUNDLE_ID = "20200423";
 
 		public static void DecompressMidiBundle() {
 			if (UnityEngine.PlayerPrefs.GetString(BUNDLE_ID_KEY, "") == BUNDLE_ID) {
