@@ -8,17 +8,20 @@ using Systemf;
 namespace TouhouMix.Levels.Gameplay {
 	[System.Serializable]
 	public class OneOnlyGameplayManagerV2 : IGameplayManager {
-		const string BLOCK_SHORT = "Short";
-		const string BLOCK_SHORT_CONNECT = "ShortConnect";
 		const string BLOCK_INSTANT = "Instant";
 		const string BLOCK_INSTANT_INNER = "InstantInner";
 		const string BLOCK_INSTANT_CONNECT = "InstantConnect";
+		const string BLOCK_SHORT = "Short";
+		const string BLOCK_SHORT_CONNECT = "ShortConnect";
 		const string BLOCK_LONG_START = "LongStart";
 		const string BLOCK_LONG_FILL = "LongFill";
 		const string BLOCK_LONG_END = "LongEnd";
 
 		const string BLOCK_INSTANT_FILENAME = "instant.png";
+		const string BLOCK_INSTANT_INNER_FILENAME = "instant-i.png";
+		const string BLOCK_INSTANT_CONNECT_FILENAME = "instant-c.png";
 		const string BLOCK_SHORT_FILENAME = "short.png";
+		const string BLOCK_SHORT_CONNECT_FILENAME = "short-c.png";
 		const string BLOCK_LONG_START_FILENAME = "long-b.png";
 		const string BLOCK_LONG_FILL_FILENAME = "long-f.png";
 		const string BLOCK_LONG_END_FILENAME = "long-t.png";
@@ -83,11 +86,14 @@ namespace TouhouMix.Levels.Gameplay {
 
 			if (loadCustomSkin) {
 				string skinPath = System.IO.Path.Combine(Application.persistentDataPath, CUSTOM_SKIN_ROOT_PATH, customSkinPath);
-				float pixelPerUnit = LoadCustomSkin(skinPath, BLOCK_SHORT_FILENAME, BLOCK_SHORT);
-				LoadCustomSkin(skinPath, BLOCK_INSTANT_FILENAME, BLOCK_INSTANT, pixelPerUnit);
-				LoadCustomSkin(skinPath, BLOCK_LONG_START_FILENAME, BLOCK_LONG_START, pixelPerUnit);
-				LoadCustomSkin(skinPath, BLOCK_LONG_FILL_FILENAME, BLOCK_LONG_FILL, pixelPerUnit);
-				LoadCustomSkin(skinPath, BLOCK_LONG_END_FILENAME, BLOCK_LONG_END, pixelPerUnit);
+				float pixelsPerUnit = LoadCustomSkin(skinPath, BLOCK_SHORT_FILENAME, BLOCK_SHORT);
+				LoadCustomSkin(skinPath, BLOCK_SHORT_CONNECT_FILENAME, BLOCK_SHORT_CONNECT, pixelsPerUnit, true);
+				LoadCustomSkin(skinPath, BLOCK_INSTANT_FILENAME, BLOCK_INSTANT, pixelsPerUnit);
+				LoadCustomSkin(skinPath, BLOCK_INSTANT_INNER_FILENAME, BLOCK_INSTANT_INNER, pixelsPerUnit);
+				LoadCustomSkin(skinPath, BLOCK_INSTANT_CONNECT_FILENAME, BLOCK_INSTANT_CONNECT, pixelsPerUnit, true);
+				LoadCustomSkin(skinPath, BLOCK_LONG_START_FILENAME, BLOCK_LONG_START, pixelsPerUnit);
+				LoadCustomSkin(skinPath, BLOCK_LONG_FILL_FILENAME, BLOCK_LONG_FILL, pixelsPerUnit, true);
+				LoadCustomSkin(skinPath, BLOCK_LONG_END_FILENAME, BLOCK_LONG_END, pixelsPerUnit);
 			} else {
 				string[] skinNames = new string[] {
 					BLOCK_SHORT,
@@ -135,15 +141,15 @@ namespace TouhouMix.Levels.Gameplay {
 
 		#region Skin Management
 
-		protected float LoadCustomSkin(string root, string fileName, string skinName, float pixelPerUnit = -1) {
+		protected float LoadCustomSkin(string root, string fileName, string skinName, float pixelsPerUnit = -1, bool canStrech = false) {
 			string path = System.IO.Path.Combine(root, fileName);
 			if (System.IO.File.Exists(path)) {
 				byte[] bytes = System.IO.File.ReadAllBytes(path);
 				var texture = new Texture2D(4, 4);
 				texture.filterMode = FilterMode.Point;
 				texture.LoadImage(bytes);
-				if (pixelPerUnit < 0) {
-					pixelPerUnit = 100f / texture.width;
+				if (pixelsPerUnit < 0) {
+					pixelsPerUnit = 100f / texture.width;
 				}
 
 				var instance = Object.Instantiate(customSkinTemplatePrefab, activeBlockRect, false);
@@ -153,22 +159,28 @@ namespace TouhouMix.Levels.Gameplay {
 				var image = instance.GetComponentInChildren<RawImage>();
 				image.texture = texture;
 				var imageRect = image.GetComponent<RectTransform>();
-				imageRect.sizeDelta = new Vector2(texture.width * pixelPerUnit, texture.height * pixelPerUnit);
+				imageRect.sizeDelta = new Vector2(texture.width * pixelsPerUnit, texture.height * pixelsPerUnit);
 
-				if (skinName == BLOCK_LONG_FILL) {
+				if (canStrech) {
 					instance.GetComponent<RectTransform>().pivot = new Vector2(.5f, 0);
 					imageRect.anchorMax = new Vector2(.5f, 1);
 					imageRect.anchorMin = new Vector2(.5f, 0);
 					imageRect.offsetMax = Vector2.zero;
 					imageRect.offsetMin = Vector2.zero;
-					imageRect.sizeDelta = new Vector2(texture.width * pixelPerUnit, 0);
+					imageRect.sizeDelta = new Vector2(texture.width * pixelsPerUnit, 0);
+					var skin = instance.GetComponent<BlockSkinController>();
+					skin.rawImage = image;
+					skin.pixelsPerUnit = pixelsPerUnit;
+					texture.wrapMode = TextureWrapMode.Repeat;
+				} else {
+					texture.wrapMode = TextureWrapMode.Mirror;
 				}
 
 				LoadSkin(skinName, instance);
 			} else {
 				LoadSkin(skinName, emptyBlock);
 			}
-			return pixelPerUnit;
+			return pixelsPerUnit;
 		}
 
 		protected void LoadSkin(string skinName, GameObject prefab) {
@@ -249,30 +261,30 @@ namespace TouhouMix.Levels.Gameplay {
 					}
 					block.skinName = isInner && HasSkin(BLOCK_INSTANT_INNER) ? BLOCK_INSTANT_INNER : BLOCK_INSTANT;
 					block.skin = CreateOrReuseSkin(block.skinName);
-					block.skin.rect.SetAsLastSibling();
+					block.skin.MoveToFront();
 					block.skin.color.Set(instantColor);
 				} else if (block.type == BlockType.SHORT) {
 					block.skinName = BLOCK_SHORT;
 					block.skin = CreateOrReuseSkin(block.skinName);
-					block.skin.rect.SetAsLastSibling();
+					block.skin.MoveToFront();
 					block.skin.color.Set(shortColor);
 				} else {  // tentativeBlock.type == GameplayBlockType.Long
 					block.longFillSkin = CreateOrReuseSkin(BLOCK_LONG_FILL);
-					block.longFillSkin.rect.localScale = new Vector3(blockScaling, 1, 1);
-					block.longFillSkin.rect.SetAsLastSibling();
+					block.longFillSkin.Scale = new Vector3(blockScaling, 1, 1);
+					block.longFillSkin.MoveToFront();
 					block.longFillSkin.color.Set(longColor);
 
 					block.longEndSkin = CreateOrReuseSkin(BLOCK_LONG_END);
-					block.longEndSkin.rect.localScale = Vector3.one * blockScaling;
-					block.longEndSkin.rect.SetAsLastSibling();
+					block.longEndSkin.Scale = Vector3.one * blockScaling;
+					block.longEndSkin.MoveToFront();
 					block.longEndSkin.color.Set(longColor);
 					
 					block.skinName = BLOCK_LONG_START;
 					block.skin = CreateOrReuseSkin(block.skinName);
-					block.skin.rect.SetAsLastSibling();
+					block.skin.MoveToFront();
 					block.skin.color.Set(longColor);
 				}
-				block.skin.rect.localScale = Vector3.one * blockScaling;
+				block.skin.Scale = Vector3.one * blockScaling;
 			}
 
 			if (generateShortConnect && minXBlock != maxXBlock) {
@@ -290,14 +302,14 @@ namespace TouhouMix.Levels.Gameplay {
 			connect.isTentative = true;
 			connect.skinName = skinName;
 			connect.skin = CreateOrReuseSkin(skinName);
-			connect.skin.rect.localScale = new Vector3(blockScaling, 1, 1);
+			connect.skin.Scale = new Vector3(blockScaling, 1, 1);
 			connect.skin.color.Set(color);
 			connect.startX = from.x;
 			connect.startTick = from.note.start;
 			connect.endX = to.x;
 			connect.endTick = to.note.start;
 			// Push to back
-			connect.skin.rect.SetAsFirstSibling();
+			connect.skin.MoveToBack();
 		}
 
 		#endregion
@@ -334,13 +346,13 @@ namespace TouhouMix.Levels.Gameplay {
 						float startY = block.holdingFingerId != -1 ? judgeHeight : GetY(start);
 						float endY = GetY(end);
 						float blockX = block.holdingFingerId != -1 ? block.holdingX : block.x;
-						block.skin.rect.anchoredPosition = new Vector2(blockX, startY);
-						block.longFillSkin.rect.anchoredPosition = new Vector2(blockX, startY);
-						block.longFillSkin.rect.sizeDelta = new Vector2(100, endY - startY);
-						block.longEndSkin.rect.anchoredPosition = new Vector2(blockX, endY);
+						block.skin.Pos = new Vector2(blockX, startY);
+						block.longFillSkin.Pos = new Vector2(blockX, startY);
+						block.longFillSkin.Size = new Vector2(100, endY - startY);
+						block.longEndSkin.Pos = new Vector2(blockX, endY);
 					}
 				} else {
-					block.skin.rect.anchoredPosition = new Vector2(block.x, GetY(block.note.start));
+					block.skin.Pos = new Vector2(block.x, GetY(block.note.start));
 				}
 			}
 
@@ -356,11 +368,11 @@ namespace TouhouMix.Levels.Gameplay {
 				}
 
 				float startY = GetY(connect.startTick);
-				connect.skin.rect.anchoredPosition = new Vector2(connect.startX, startY);
+				connect.skin.Pos = new Vector2(connect.startX, startY);
 				float endY = GetY(connect.endTick);
 				float length = Vector2.Distance(new Vector2(connect.startX, startY), new Vector2(connect.endX, endY));
-				connect.skin.rect.sizeDelta = new Vector2(connect.skin.rect.sizeDelta.x, length);
-				connect.skin.rect.eulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
+				connect.skin.Size = new Vector2(connect.skin.Size.x, length);
+				connect.skin.Rot = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(connect.startX - connect.endX, endY - startY));
 			}
 		}
 
@@ -396,7 +408,8 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public void ProcessTouchUp(int id, float x, float y) {
-			if (!holdingBlockDict.TryGetValue(id, out Block holdingBlock)) {
+			Block holdingBlock;
+			if (!holdingBlockDict.TryGetValue(id, out holdingBlock)) {
 				return;
 			}
 			holdingBlock.holdingFingerId = -1;
@@ -412,7 +425,8 @@ namespace TouhouMix.Levels.Gameplay {
 		public void ProcessTouchHold(int id, float x, float y) {
 			CheckAllInstantBlocks(x, true);
 
-			if (!holdingBlockDict.TryGetValue(id, out Block holdingBlock)) {
+			Block holdingBlock;
+			if (!holdingBlockDict.TryGetValue(id, out holdingBlock)) {
 				return;
 			}
 			holdingBlock.holdingX = x + holdingBlock.holdingOffset;
@@ -489,7 +503,8 @@ namespace TouhouMix.Levels.Gameplay {
 			block.holdingFingerId = fingerId;
 			block.holdingOffset = block.x - x;
 			block.holdingX = block.x;
-			if (holdingBlockDict.TryGetValue(fingerId, out Block holdingBlock)) {
+			Block holdingBlock;
+			if (holdingBlockDict.TryGetValue(fingerId, out holdingBlock)) {
 				level.scoringManager.CountMiss();
 				HideAndFreeTouchedBlock(holdingBlock);
 			}

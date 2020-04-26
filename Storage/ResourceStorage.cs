@@ -131,7 +131,7 @@ namespace TouhouMix.Storage {
 		}
 
 		const string BUNDLE_ID_KEY = "installedMidiBundleId";
-		const string BUNDLE_ID = "20200423";
+		const string BUNDLE_ID = "20200426";
 
 		public static void DecompressMidiBundle() {
 			if (UnityEngine.PlayerPrefs.GetString(BUNDLE_ID_KEY, "") == BUNDLE_ID) {

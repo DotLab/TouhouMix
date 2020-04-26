@@ -49,7 +49,7 @@ namespace TouhouMix.Levels.Gameplay {
 		}
 
 		public virtual Vector2 Position {
-			get { return skin.rect.anchoredPosition; }
+			get { return skin.Pos; }
 		}
 	}
 }
