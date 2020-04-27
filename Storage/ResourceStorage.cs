@@ -123,7 +123,7 @@ namespace TouhouMix.Storage {
 			}
 		}
 
-		const string SKIN_ROOT = "Skin";
+		const string SKIN_ROOT = "Skins";
 
 		void LoadSkins() {
 			skinPathList.Clear();
@@ -137,15 +137,15 @@ namespace TouhouMix.Storage {
 			if (UnityEngine.PlayerPrefs.GetString(BUNDLE_ID_KEY, "") == BUNDLE_ID) {
 				return;
 			}
-			UnityEngine.PlayerPrefs.SetString(BUNDLE_ID_KEY, BUNDLE_ID);
-
 			UnityEngine.Debug.Log("Decompressing MidiBundle " + BUNDLE_ID);
 			string dataPath = UnityEngine.Application.persistentDataPath;
 			byte[] bytes = UnityEngine.Resources.Load<UnityEngine.TextAsset>("MidiBundle").bytes;
 			using (var stream = new System.IO.MemoryStream(bytes)) {
+				ZipConstants.DefaultCodePage = System.Text.Encoding.UTF8.CodePage;
 				new UnityFastZip().ExtractZip(stream, dataPath, UnityFastZip.Overwrite.Always, null, null, null, true, true);
 			}
 			UnityEngine.Debug.Log("MidiBundle decompressed");
+			UnityEngine.PlayerPrefs.SetString(BUNDLE_ID_KEY, BUNDLE_ID);
 		}
 
 		public static byte[] ReadMidiBytes(Protos.Api.MidiProto midi) {

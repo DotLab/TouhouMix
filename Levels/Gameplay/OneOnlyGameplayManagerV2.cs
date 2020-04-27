@@ -30,6 +30,7 @@ namespace TouhouMix.Levels.Gameplay {
 		const string BUILTIN_SKIN_ROOT_PATH = "Blocks";
 
 		public bool loadCustomSkin;
+		public Storage.Protos.Json.V1.GameplayConfigProto.CustomBlockSkinFilterModeEnum customSkinFilterMode;
 		public string customSkinPath;
 		public GameObject customSkinTemplatePrefab;
 
@@ -69,6 +70,10 @@ namespace TouhouMix.Levels.Gameplay {
 		public float blockJudgingWidth = 120;
 		protected float blockScaling;
 		protected float blockJudgingHalfWidth;
+
+		[Space]
+		public RectTransform keyboardHintsContainer;
+		public GameObject keyboardHintPrefab;
 
 		[Space]
 		public Color instantColor = Color.red;
@@ -127,6 +132,10 @@ namespace TouhouMix.Levels.Gameplay {
 			generator.laneCount = laneCount;
 			generator.laneX = laneX;
 
+			if (level.keyboardMode) {
+				GenerateKeyboardHints();
+			}
+
 			cacheTicks = cacheBeats * level.midiFile.ticksPerBeat;
 			graceTicks = graceBeats * level.midiFile.ticksPerBeat;
 
@@ -139,6 +148,14 @@ namespace TouhouMix.Levels.Gameplay {
 			blockInfoIndex = 0;
 		}
 
+		void GenerateKeyboardHints() {
+			foreach (var key in level.keyLaneDict.Keys) {
+				var instance = Object.Instantiate(keyboardHintPrefab, keyboardHintsContainer, false);
+				instance.GetComponent<RectTransform>().anchoredPosition = new Vector2(generator.laneX[level.keyLaneDict[key]], 0);
+				instance.GetComponentInChildren<Text>().text = key.ToString();
+			}
+		}
+
 		#region Skin Management
 
 		protected float LoadCustomSkin(string root, string fileName, string skinName, float pixelsPerUnit = -1, bool canStrech = false) {
@@ -146,7 +163,7 @@ namespace TouhouMix.Levels.Gameplay {
 			if (System.IO.File.Exists(path)) {
 				byte[] bytes = System.IO.File.ReadAllBytes(path);
 				var texture = new Texture2D(4, 4);
-				texture.filterMode = FilterMode.Point;
+				texture.filterMode = customSkinFilterMode == Storage.Protos.Json.V1.GameplayConfigProto.CustomBlockSkinFilterModeEnum.NEAREST ? FilterMode.Point : FilterMode.Bilinear;
 				texture.LoadImage(bytes);
 				if (pixelsPerUnit < 0) {
 					pixelsPerUnit = 100f / texture.width;
@@ -278,7 +295,7 @@ namespace TouhouMix.Levels.Gameplay {
 					block.longEndSkin.Scale = Vector3.one * blockScaling;
 					block.longEndSkin.MoveToFront();
 					block.longEndSkin.color.Set(longColor);
-					
+
 					block.skinName = BLOCK_LONG_START;
 					block.skin = CreateOrReuseSkin(block.skinName);
 					block.skin.MoveToFront();
@@ -324,7 +341,7 @@ namespace TouhouMix.Levels.Gameplay {
 				block.isTentative = false;
 
 				int start = block.note.start;
-				if ((block.type != BlockType.LONG && block.note.start < ticks - graceTicks) || 
+				if ((block.type != BlockType.LONG && block.note.start < ticks - graceTicks) ||
 						(block.type == BlockType.LONG && block.end < ticks - graceTicks)) {
 					// miss
 					level.scoringManager.CountMiss();
@@ -390,6 +407,18 @@ namespace TouhouMix.Levels.Gameplay {
 		#endregion
 
 		#region Touch
+
+		public void ProcessLaneDown(int id, int lane) {
+			ProcessTouchDown(id, generator.laneX[lane], judgeHeight);
+		}
+
+		public void ProcessLaneUp(int id, int lane) {
+			ProcessTouchUp(id, generator.laneX[lane], judgeHeight);
+		}
+
+		public void ProcessLaneHold(int id, int lane) {
+			ProcessTouchHold(id, generator.laneX[lane], judgeHeight);
+		}
 
 		public void ProcessTouchDown(int id, float x, float y) {
 			int bestBlockIndex = -1;

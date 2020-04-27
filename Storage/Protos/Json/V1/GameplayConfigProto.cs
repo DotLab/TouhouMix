@@ -3,9 +3,6 @@
 namespace TouhouMix.Storage.Protos.Json.V1 {
 	[System.Serializable]
 	public sealed class GameplayConfigProto {
-		public const int LAYOUT_PRESET_ONE_ONLY = 0;
-		public const int LAYOUT_PRESET_SCANNING_LINE = 6;
-
 		public enum DifficaultyPresetEnum {
 			BEGINNER = 0,
 			EASY = 1,
@@ -14,11 +11,12 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 			LUNATIC = 4,
 			CUSTOM = 5,
 		}
-
-		// 0: Beginner, 1: Easy, 2: Normal, 3: Hard, 4: Lunatic, 5: Custom
 		public int difficultyPreset;
 
-		// 0: OneOnly, 6: ScanningLine
+		public enum LayoutPresetEnum {
+			ONE_ONLY = 0,
+			SCANNING_LINE = 6,
+		}
 		public int layoutPreset;
 
 		public bool useRandomColor;
@@ -28,7 +26,15 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 		public string longBlockColor;
 
 		public bool useCustomBlockSkin;
+		public enum CustomBlockSkinFilterModeEnum {
+			NEAREST = 0,
+			BILINEAR = 1,
+		}
+		public int customBlockSkinFilterMode;
 		public string blockSkinPreset;
+
+		public bool keyboardMode;
+		public string keyboardModeKeys;
 
 		public int laneCount;
 		public float blockSize;
@@ -73,8 +79,8 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 
 		public static GameplayConfigProto CreateDefault() {
 			return new GameplayConfigProto {
-				difficultyPreset = 0,
-				layoutPreset = 0,
+				difficultyPreset = (int)DifficaultyPresetEnum.BEGINNER,
+				layoutPreset = (int)LayoutPresetEnum.ONE_ONLY,
 
 				useRandomColor = true,
 				useOneColor = false,
@@ -83,7 +89,15 @@ namespace TouhouMix.Storage.Protos.Json.V1 {
 				longBlockColor = "#ff0000",
 
 				useCustomBlockSkin = false,
+				customBlockSkinFilterMode = (int)CustomBlockSkinFilterModeEnum.NEAREST,
 				blockSkinPreset = "Squre45",
+
+#if UNITY_STANDALONE
+				keyboardMode = true,
+#else
+				keyboardMode = false,
+#endif
+				keyboardModeKeys = "S,D,F,J,K,L",
 
 				laneCount = 12,
 				blockSize = 120,

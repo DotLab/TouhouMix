@@ -28,6 +28,21 @@ namespace TouhouMix.Levels.Gameplay {
 			}
 		}
 
+		void ProcessKeyboard() {
+			foreach (var key in keyLaneDict.Keys) {
+				if (Input.GetKeyDown(key)) {
+					// find the nearest note to press
+					gameplayManager.ProcessLaneDown(keyTouchIdDict[key], keyLaneDict[key]);
+				} else if (Input.GetKeyUp(key)) {
+					// clean up hold and find the nearest perfect instant key to press
+					gameplayManager.ProcessLaneUp(keyTouchIdDict[key], keyLaneDict[key]);
+				} else if (Input.GetKey(key)) {
+					// update hold and find the perfect instant key to press
+					gameplayManager.ProcessLaneHold(keyTouchIdDict[key], keyLaneDict[key]);
+				}
+			}
+		}
+
 		void ProcessTouches() {
 			var touchCount = Input.touchCount;
 

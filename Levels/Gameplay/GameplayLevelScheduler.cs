@@ -12,6 +12,7 @@ using TouhouMix.Storage.Protos.Json.V1;
 namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
 		const int MOUSE_TOUCH_ID = -100;
+		const int KEYBOARD_TOUCH_ID_START = 100;
 
 		public string testMidiPath;
 
@@ -35,6 +36,12 @@ namespace TouhouMix.Levels.Gameplay {
 		public float endDelayBeats = 2;
 		float cacheTicks;
 		float endTicks;
+
+		[Space]
+		public bool keyboardMode;
+		public string keyboardModeKeys = "R,F,T,G,Y,H,U,I,J";
+		public readonly Dictionary<KeyCode, int> keyLaneDict = new Dictionary<KeyCode, int>();
+		public readonly Dictionary<KeyCode, int> keyTouchIdDict = new Dictionary<KeyCode, int>();
 
 		[Space]
 		public ScoringManager scoringManager;
@@ -211,11 +218,31 @@ namespace TouhouMix.Levels.Gameplay {
 				oneOnlyGameplayManager.loadCustomSkin = config.useCustomBlockSkin;
 				if (config.useCustomBlockSkin) {
 					oneOnlyGameplayManager.customSkinPath = config.blockSkinPreset;
+					oneOnlyGameplayManager.customSkinFilterMode = (GameplayConfigProto.CustomBlockSkinFilterModeEnum)config.customBlockSkinFilterMode;
 				} else {
 					oneOnlyGameplayManager.skinPrefabPath = config.blockSkinPreset;
 				}
 
-				oneOnlyGameplayManager.laneCount = config.laneCount;
+				keyboardMode = config.keyboardMode;
+				keyboardModeKeys = config.keyboardModeKeys;
+
+				if (keyboardMode) {
+					string[] keys = keyboardModeKeys.Split(',');
+					int keyboardLaneCount = 0;
+					foreach (string key in keys) {
+						if (System.Enum.TryParse(key, out KeyCode keyCode)) {
+							keyLaneDict[keyCode] = keyboardLaneCount;
+							keyTouchIdDict[keyCode] = KEYBOARD_TOUCH_ID_START + keyboardLaneCount;
+							keyboardLaneCount += 1;
+						} else {
+							continue;
+						}
+					}
+					oneOnlyGameplayManager.laneCount = keyboardLaneCount;
+				} else {
+					oneOnlyGameplayManager.laneCount = config.laneCount;
+				}
+
 				oneOnlyGameplayManager.blockWidth = config.blockSize;
 				oneOnlyGameplayManager.blockJudgingWidth = config.blockJudgingWidth;
 
@@ -325,6 +352,9 @@ namespace TouhouMix.Levels.Gameplay {
 #else
 			ProcessTouches();
 #endif
+			if (keyboardMode) {
+				ProcessKeyboard();
+			}
 
 			gameplayManager.UpdateBlocks();
 

@@ -82,17 +82,21 @@ namespace TouhouMix.Net {
 			if (dict.TryGetValue(key, out text)) {
 				callback(text);
 			} else {
-				net.ClAppTranslate(src, lang, ns, (err, data) => {
-					if (!string.IsNullOrEmpty(err)) {
-						UnityEngine.Debug.LogError("Translation: " + err);
-						callback(src);
-						return;
-					}
-					var res = (string)data;
-					// Possible duplicates, fix later
-					dict[key] = res;
-					callback(res);
-				});
+				if (net.available) {
+					net.ClAppTranslate(src, lang, ns, (err, data) => {
+						if (!string.IsNullOrEmpty(err)) {
+							UnityEngine.Debug.LogError("Translation: " + err);
+							callback(src);
+							return;
+						}
+						var res = (string)data;
+						// Possible duplicates, fix later
+						dict[key] = res;
+						callback(res);
+					});
+				} else {
+					callback(src);
+				}
 			}
 		}
 

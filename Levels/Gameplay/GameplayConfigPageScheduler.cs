@@ -28,9 +28,22 @@ namespace TouhouMix.Levels.Gameplay {
 			get { return BindingHelper.BoolToInt(GameScheduler.instance.gameplayConfig.useCustomBlockSkin); }
 			set { GameScheduler.instance.gameplayConfig.useCustomBlockSkin = BindingHelper.IntToBool(value); }
 		}
+		public int customBlockSkinFilterMode {
+			get { return GameScheduler.instance.gameplayConfig.customBlockSkinFilterMode; }
+			set { GameScheduler.instance.gameplayConfig.customBlockSkinFilterMode = value; }
+		}
 		public string blockSkinPreset { 
 			get { return GameScheduler.instance.gameplayConfig.blockSkinPreset; }
 			set { GameScheduler.instance.gameplayConfig.blockSkinPreset = value; }
+		}
+
+		public int keyboardMode {
+			get { return BindingHelper.BoolToInt(GameScheduler.instance.gameplayConfig.keyboardMode); }
+			set { GameScheduler.instance.gameplayConfig.keyboardMode = BindingHelper.IntToBool(value); }
+		}
+		public string keyboardModeKeys {
+			get { return GameScheduler.instance.gameplayConfig.keyboardModeKeys; }
+			set { GameScheduler.instance.gameplayConfig.keyboardModeKeys = value; }
 		}
 
 		public int laneCount { 
