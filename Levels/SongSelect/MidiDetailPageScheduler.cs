@@ -124,6 +124,10 @@ namespace TouhouMix.Levels.SongSelect {
 		}
 
 		void InitMidiRank() {
+			for (int i = 0; i < rankContentRect.childCount; i++) {
+				rankContentRect.GetChild(i).gameObject.SetActive(false);
+			}
+
 			game.netManager.ClAppMidiRecordList(hash, 0, (error, data) => {
 				if (!string.IsNullOrEmpty(error)) {
 					Debug.LogWarning(error);

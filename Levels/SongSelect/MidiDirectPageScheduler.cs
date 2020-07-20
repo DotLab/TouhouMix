@@ -54,6 +54,8 @@ namespace TouhouMix.Levels.SongSelect {
     }
 
     void Fetch() {
+      Render(new Storage.Protos.Api.MidiProto[0]);
+
       net.ClAppMidiListQuery(currentQuery, currentPage, (error, data) => {
         if (error != null) {
           Debug.Log(error);
