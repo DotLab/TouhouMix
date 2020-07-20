@@ -107,7 +107,7 @@ namespace TouhouMix.Levels.Gameplay {
 			var audioConfig = AudioSettings.GetConfiguration();
 			sampleRate = audioConfig.sampleRate;
 			sf2Synth = new Sf2Synth(sf2File, new Sf2Synth.Table(sampleRate), 128);
-			sf2Synth.SetVolume(-6);
+			sf2Synth.SetVolume(-10);
 
 			infoText.text = string.Format("{1}\n{0}\n{2}", game_.title, game_.subtitle, ((GameplayConfigProto.DifficaultyPresetEnum)game_.gameplayConfig.difficultyPreset).ToString());
 
