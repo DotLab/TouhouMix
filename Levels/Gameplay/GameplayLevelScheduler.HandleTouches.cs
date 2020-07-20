@@ -13,34 +13,72 @@ using TouhouMix.Storage.Protos.Json.V1;
 
 namespace TouhouMix.Levels.Gameplay {
 	public sealed partial class GameplayLevelScheduler : MonoBehaviour {
-		void ProcessMouse() {
-			var position = Input.mousePosition.Vec2().Div(sizeWatcher.resolution).Mult(sizeWatcher.canvasSize);
+		private Dictionary<int, Vector2> touchPositionDict = new Dictionary<int, Vector2>();
+		private Dictionary<int, Vector2> touchPositionOldDict = new Dictionary<int, Vector2>();
 
-			if (Input.GetMouseButtonDown(0)) {
-				// find the nearest note to press
-				gameplayManager.ProcessTouchDown(MOUSE_TOUCH_ID, position.x, position.y);
-			} else if (Input.GetMouseButtonUp(0)) {
-				// clean up hold and find the nearest perfect instant key to press
-				gameplayManager.ProcessTouchUp(MOUSE_TOUCH_ID, position.x, position.y);
-			} else if (Input.GetMouseButton(0)) {
-				// update hold and find the perfect instant key to press
-				gameplayManager.ProcessTouchHold(MOUSE_TOUCH_ID, position.x, position.y);
+		private Dictionary<int, int> touchLaneDict = new Dictionary<int, int>();
+		private Dictionary<int, int> touchLaneOldDict = new Dictionary<int, int>();
+
+		void HandleTouch(int touchId, Vector2 position) {
+			if (touchPositionOldDict.ContainsKey(touchId)) {
+				// Already down
+				gameplayManager.ProcessTouchHold(touchId, position.x, position.y);
+			} else {
+				// First frame down
+				gameplayManager.ProcessTouchDown(touchId, position.x, position.y);
 			}
+			touchPositionDict[touchId] = position;
 		}
 
-		void ProcessKeyboard() {
-			foreach (var key in keyLaneDict.Keys) {
-				if (Input.GetKeyDown(key)) {
-					// find the nearest note to press
-					gameplayManager.ProcessLaneDown(keyTouchIdDict[key], keyLaneDict[key]);
-				} else if (Input.GetKeyUp(key)) {
-					// clean up hold and find the nearest perfect instant key to press
-					gameplayManager.ProcessLaneUp(keyTouchIdDict[key], keyLaneDict[key]);
-				} else if (Input.GetKey(key)) {
-					// update hold and find the perfect instant key to press
-					gameplayManager.ProcessLaneHold(keyTouchIdDict[key], keyLaneDict[key]);
+		void BounceTouchesUp() {
+			foreach (var pair in touchPositionOldDict) {
+				int touchId = pair.Key;
+				if (!touchPositionDict.ContainsKey(touchId)) {
+					// Old touch not in new dict: touch up
+					var position = pair.Value;
+					gameplayManager.ProcessTouchUp(touchId, position.x, position.y);
 				}
 			}
+
+			touchPositionOldDict.Clear();
+			var clearedDict = touchPositionOldDict;
+			touchPositionOldDict = touchPositionDict;
+			touchPositionDict = clearedDict;
+		}
+
+		void HandleLane(int touchId, int lane) {
+			if (touchLaneOldDict.ContainsKey(touchId)) {
+				// Already down
+				gameplayManager.ProcessLaneHold(touchId, lane);
+			} else {
+				// First frame down
+				gameplayManager.ProcessLaneDown(touchId, lane);
+			}
+			touchLaneDict[touchId] = lane;
+		}
+
+		void BounceLanesUp() {
+			foreach (var pair in touchLaneOldDict) {
+				int touchId = pair.Key;
+				if (!touchLaneDict.ContainsKey(touchId)) {
+					// Old touch not in new dict: touch up
+					var lane = pair.Value;
+					gameplayManager.ProcessLaneUp(touchId, lane);
+				}
+			}
+
+			touchLaneOldDict.Clear();
+			var clearedDict = touchLaneOldDict;
+			touchLaneOldDict = touchLaneDict;
+			touchLaneDict = clearedDict;
+		}
+
+		void ProcessMouse() {
+			var position = Input.mousePosition.Vec2().Div(sizeWatcher.resolution).Mult(sizeWatcher.canvasSize);
+			if (Input.GetMouseButton(0)) {
+				HandleTouch(MOUSE_TOUCH_ID, position);
+			}
+			BounceTouchesUp();
 		}
 
 		void ProcessTouches() {
@@ -49,18 +87,21 @@ namespace TouhouMix.Levels.Gameplay {
 			for (int i = 0; i < touchCount; i++) {
 				var touch = Input.GetTouch(i);
 				var position = touch.position.Div(sizeWatcher.resolution).Mult(sizeWatcher.canvasSize);
+				HandleTouch(touch.fingerId, position);
+			}
 
-				if (touch.phase == TouchPhase.Began) {
-					// find the nearest note to press
-					gameplayManager.ProcessTouchDown(touch.fingerId, position.x, position.y);
-				} else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) {
-					// clean up hold and find the nearest perfect instant key to press
-					gameplayManager.ProcessTouchUp(touch.fingerId, position.x, position.y);
-				} else {
-					// update hold and find the perfect instant key to press
-					gameplayManager.ProcessTouchHold(touch.fingerId, position.x, position.y);
+			BounceTouchesUp();
+		}
+
+		void ProcessKeyboard() {
+			foreach (var key in keyLaneDict.Keys) {
+				int touchId = keyTouchIdDict[key];
+				if (Input.GetKey(key)) {
+					HandleLane(keyTouchIdDict[key], keyLaneDict[key]);
 				}
 			}
+
+			BounceLanesUp();
 		}
 	}
 }

@@ -111,9 +111,9 @@ namespace TouhouMix.Levels {
 		}
 
 		private void HandleLogs(string condition, string stackTrace, LogType type) {
-			if (type == LogType.Error || type == LogType.Exception) {
-				netManager.ClAppErrorReport(condition, stackTrace, type == LogType.Exception, null);
-			}
+			//if (type == LogType.Error || type == LogType.Exception) {
+			//	netManager.ClAppErrorReport(condition, stackTrace, type == LogType.Exception, null);
+			//}
 		}
 
 		[Button]

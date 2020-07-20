@@ -547,7 +547,7 @@ namespace TouhouMix {
 						}
 
 						if (restoreDateTimeOnExtract_) {
-							File.SetLastWriteTime(targetName, entry.DateTime);
+							//File.SetLastWriteTime(targetName, entry.DateTime);
 						}
 
 						if (RestoreAttributesOnExtract && entry.IsDOSEntry && (entry.ExternalFileAttributes != -1)) {

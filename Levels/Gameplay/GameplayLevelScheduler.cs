@@ -239,6 +239,7 @@ namespace TouhouMix.Levels.Gameplay {
 						}
 					}
 					oneOnlyGameplayManager.laneCount = keyboardLaneCount;
+					config.maxTouchMoveSpeed = 999999;
 				} else {
 					oneOnlyGameplayManager.laneCount = config.laneCount;
 				}
@@ -256,7 +257,11 @@ namespace TouhouMix.Levels.Gameplay {
 
 				oneOnlyGameplayManager.generator.instantBlockSeconds = config.instantBlockMaxTime;
 				oneOnlyGameplayManager.generator.shortBlockSeconds = config.shortBlockMaxTime;
+
 				oneOnlyGameplayManager.generator.maxTouchCount = config.maxSimultaneousBlocks;
+				oneOnlyGameplayManager.generator.minTapInterval = config.minTapInterval;
+				oneOnlyGameplayManager.generator.cooldownSeconds = config.minCooldownTime;
+				oneOnlyGameplayManager.generator.maxTouchMoveVelocity = config.maxTouchMoveSpeed;
 				oneOnlyGameplayManager.generator.blockCoalesceSeconds = config.maxBlockCoalesceTime;
 
 				oneOnlyGameplayManager.generateShortConnect = config.generateShortConnect;
@@ -352,6 +357,7 @@ namespace TouhouMix.Levels.Gameplay {
 #else
 			ProcessTouches();
 #endif
+
 			if (keyboardMode) {
 				ProcessKeyboard();
 			}

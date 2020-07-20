@@ -11,6 +11,7 @@ using Jsonf;
 using TouhouMix.Fonts;
 using Uif;
 using Uif.Settables;
+using Uif.Tasks;
 
 namespace TouhouMix.Levels.SongSelect {
   public sealed class MidiDirectPageScheduler : PageScheduler<SongSelectLevelScheduler> {
@@ -144,7 +145,7 @@ namespace TouhouMix.Levels.SongSelect {
         .RotateTo(item.iconText.transform, 0, 1, EsType.BackOut).Then().Repeat();
 
       net.ClAppMidiDownload(hash, (error, data) => {
-        web.LoadNull(hash, (string)data, job => {
+        var loadJob = web.LoadNull(hash, (string)data, job => {
           db.WriteDoc(LocalDb.COLLECTION_MIDIS, midiProto._id, midiProto);
           if (midiProto.song != null) {
             db.WriteDoc(LocalDb.COLLECTION_SONGS, midiProto.song._id, midiProto.song);
@@ -164,6 +165,12 @@ namespace TouhouMix.Levels.SongSelect {
           item.iconText.transform.localRotation = Quaternion.identity;
           item.iconText.text = FontAwesome.Solid.CheckCircle;
         });
+
+        anim.Clear(item);
+        game.ExecuteOnMain(() => item.iconText.transform.localRotation = Quaternion.identity);
+        anim.New(item).Wait(.001f).Then().Call(() => {
+          item.iconText.text = string.Format("<size=16>{0:P0}</size>", loadJob.GetProgress());
+        }).Repeat();
       });
     }
 

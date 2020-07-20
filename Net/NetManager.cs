@@ -1,5 +1,20 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Math.EC;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Crypto.Paddings;
+using Org.BouncyCastle.Crypto.Digests;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Asn1.Sec;
+using Org.BouncyCastle.Asn1.Nist;
+using System.Text;
 using UnityEngine;
 using WebSocketSharp;
 using Jsonf;
@@ -52,15 +67,15 @@ namespace TouhouMix.Net {
 		public event System.Action<string> onNetErrorEvent;
 
 		public void Init(Levels.GameScheduler game) {
-#if UNITY_EDITOR
-			websocket = new WebSocket("ws://192.168.1.102:6008");
-#else
+//#if UNITY_EDITOR
+//			websocket = new WebSocket("ws://192.168.1.102:6008");
+//#else
 			if (game.appConfig.networkEndpoint == 0) {
 				websocket = new WebSocket("wss://thmix.org/websocket");
 			} else {
 				websocket = new WebSocket("wss://asia.thmix.org/websocket");
 			}
-#endif
+//#endif
 
 			websocket.OnOpen += OnSocketOpen;
 			websocket.OnClose += OnSocketClose;
@@ -74,13 +89,13 @@ namespace TouhouMix.Net {
 					netStatus = NetStatus.CONNECTING;
 					onNetStatusChangedEvent?.Invoke(NetStatus.CONNECTING);
 					websocket.Connect();
-				} catch(System.Exception ex) {
+				} catch (System.Exception ex) {
 					Debug.LogError(ex);
 					Reconnect();
 				}
 			}).Start();
 
-			pingTask = new Task(async () => { 
+			pingTask = new Task(async () => {
 				try {
 					var watch = new Stopwatch();
 					watch.Start();
@@ -92,7 +107,7 @@ namespace TouhouMix.Net {
 						watch.Start();
 
 						if (available) {
-							ClAppPing((int)watch.ElapsedMilliseconds, (err, data) => { 
+							ClAppPing((int)watch.ElapsedMilliseconds, (err, data) => {
 								if (err != null) {
 									Debug.LogError(err);
 									return;
@@ -109,7 +124,7 @@ namespace TouhouMix.Net {
 							break;
 						}
 					}
-				} catch(System.Exception e) {
+				} catch (System.Exception e) {
 					Debug.LogError(e);
 				}
 			});
@@ -150,7 +165,7 @@ namespace TouhouMix.Net {
 
 		void OnSocketMessage(object sender, MessageEventArgs e) {
 			string data = e.Data;
-			
+
 			try {
 				var resJson = (JsonObj)json.Parse(data);
 				string id = (string)resJson["id"];
@@ -159,8 +174,9 @@ namespace TouhouMix.Net {
 
 				switch (command) {
 					case "SvAppHandleRpcResponse": HandleRpcResponse(id, args); break;
+					case "SvAppSecureHandshake": OnSvAppSecureHandshake(id, args); break;
 				}
-			} catch(System.Exception ex) {
+			} catch (System.Exception ex) {
 				HandleError(ex);
 			}
 		}
@@ -168,7 +184,7 @@ namespace TouhouMix.Net {
 		async void Reconnect() {
 			if (callbackDict.Count > 0) {
 				foreach (var key in callbackDict.Keys) {
-						callbackDict[key].Invoke("Connection closed", null);
+					callbackDict[key].Invoke("Connection closed", null);
 				}
 				callbackDict.Clear();
 			}
@@ -242,6 +258,40 @@ namespace TouhouMix.Net {
 			}
 		}
 
+		byte[] derivedKeyBytes;
+
+		void OnSvAppSecureHandshake(string id, JsonObj args) {
+			// https://davidtavarez.github.io/2019/implementing-elliptic-curve-diffie-hellman-c-sharp/
+			X9ECParameters x9Params = NistNamedCurves.GetByName("P-521");
+			ECDomainParameters domainParams = new ECDomainParameters(x9Params.Curve, x9Params.G, x9Params.N, x9Params.H, x9Params.GetSeed());
+			ECKeyPairGenerator generator = (ECKeyPairGenerator)GeneratorUtilities.GetKeyPairGenerator("ECDH");
+			generator.Init(new ECKeyGenerationParameters(domainParams, new SecureRandom()));
+			AsymmetricCipherKeyPair aliceKeyPair = generator.GenerateKeyPair();
+			ECPublicKeyParameters alicePublicKeyParams = (ECPublicKeyParameters)aliceKeyPair.Public;
+
+			string bobKey = args.Get<string>("key");
+			byte[] bobKeyBytes = System.Convert.FromBase64String(bobKey);
+			var bobPoint = x9Params.Curve.DecodePoint(bobKeyBytes);
+			ECPublicKeyParameters bobPublicKeyParams = new ECPublicKeyParameters("ECDH", bobPoint, SecObjectIdentifiers.SecP521r1);
+
+			IBasicAgreement agreement = AgreementUtilities.GetBasicAgreement("ECDH");
+			agreement.Init(aliceKeyPair.Private);
+			BigInteger sharedSecret = agreement.CalculateAgreement(bobPublicKeyParams);
+
+			IDigest digest = new Sha256Digest();
+			byte[] sharedSecretBytes = sharedSecret.ToBytes(66);
+			digest.BlockUpdate(sharedSecretBytes, 0, sharedSecretBytes.Length);
+			derivedKeyBytes = new byte[digest.GetDigestSize()];
+			digest.DoFinal(derivedKeyBytes, 0);
+
+			Debug.Log(System.BitConverter.ToString(sharedSecretBytes));
+			Debug.Log(System.Convert.ToBase64String(derivedKeyBytes));
+
+			ReturnSuccess(id, new JsonObj() {
+				["key"] = alicePublicKeyParams.Q.GetEncoded(),
+			});
+		}
+
 		void Rpc(string command, object args, RpcCallback callback = null) {
 			if (!available) {
 				Reconnect();
@@ -261,22 +311,67 @@ namespace TouhouMix.Net {
 						["command"] = command,
 						["args"] = args,
 					}));
-				} catch(System.Exception e) {
+				} catch (System.Exception e) {
 					Debug.LogError(e);
 					Reconnect();
 				}
 			}).Start();
 		}
 
+		void SecureRpc(string command, object args, RpcCallback callback = null) {
+			if (!available) {
+				Reconnect();
+				callback?.Invoke("Not available", null);
+				return;
+			}
+
+			string id = GenerateId();
+			Debug.Log("Rpc " + command + " " + id);
+			if (callback != null) {
+				callbackDict[id] = callback;
+			}
+			new Task(() => {
+				try {
+					string message = json.Stringify(new JsonObj() {
+						["id"] = id,
+						["command"] = command,
+						["args"] = args,
+					});
+
+					// https://stackoverflow.com/questions/56618150/please-help-me-to-fix-the-aes-ctr-mode-bouncy-castle-code-in-c-sharp
+					byte[] ivBytes = new byte[16];
+					new SecureRandom().NextBytes(ivBytes);
+
+					// create AES cipher
+					IBufferedCipher cipher = CipherUtilities.GetCipher("AES/CTR/NoPadding");
+					cipher.Init(true, new ParametersWithIV(ParameterUtilities.CreateKeyParameter("AES", derivedKeyBytes), ivBytes));
+
+					// encrypted
+					byte[] encryptedBytes = cipher.DoFinal(Encoding.UTF8.GetBytes(message));
+
+					websocket.Send(json.Stringify(new JsonObj() {
+						["key"] = id,
+						["iv"] = System.Convert.ToBase64String(ivBytes),
+						["message"] = System.Convert.ToBase64String(encryptedBytes),
+						["mac"] = "",
+					}));
+				} catch (System.Exception e) {
+					Debug.LogError(e);
+					Reconnect();
+				}
+			}).Start();
+
+		}
+
 		void ReturnSuccess(string id, object data) {
-			Rpc("svAppHandleRpcResponse", new JsonObj(){
+			Rpc("ClAppHandleRpcResponse", new JsonObj() {
 				["id"] = id,
 				["data"] = data,
 			});
 		}
 
 		void ReturnError(string id, string message) {
-			Rpc("svAppHandleRpcResponse", new JsonObj() {
+			Rpc("ClAppHandleRpcResponse", new JsonObj() {
 				["id"] = id,
 				["error"] = message,
 			});
@@ -297,7 +392,7 @@ namespace TouhouMix.Net {
 		}
 
 		public void ClAppMidiDownload(string hash, RpcCallback callback) {
-			Rpc("ClAppMidiDownload", new JsonObj() { 
+			Rpc("ClAppMidiDownload", new JsonObj() {
 				["hash"] = hash,
 			}, callback);
 		}
@@ -310,17 +405,17 @@ namespace TouhouMix.Net {
 
 		public sealed class Trial {
 			public bool withdrew;
-			
+
 			public string hash;
 			public int score;
 			public int combo;
 			public float accuracy;
 			public int duration;  // in ms
 
-			public int perfectCount; 
-			public int greatCount; 
-			public int goodCount; 
-			public int badCount; 
+			public int perfectCount;
+			public int greatCount;
+			public int goodCount;
+			public int badCount;
 			public int missCount;
 
 			public int version = 3;
@@ -338,7 +433,8 @@ namespace TouhouMix.Net {
 
 		public void ClAppMidiRecordList(string hash, int page, RpcCallback callback) {
 			Rpc("ClAppMidiRecordList", new JsonObj() {
-				["hash"] = hash, ["page"] = page,
+				["hash"] = hash,
+				["page"] = page,
 			}, callback);
 		}
 
@@ -406,6 +502,48 @@ namespace TouhouMix.Net {
 				["action"] = action,
 				["value"] = value,
 			}, callback);
+		}
+
+		sealed class KeyCoords {
+			public BigInteger x;
+			public BigInteger y;
+			public int byteCount;
+
+			public static KeyCoords FromBytes(byte[] bytes) {
+				// https://superuser.com/questions/900918/get-x-and-y-components-of-ec-public-key-using-openssl
+				int count = bytes.Length >> 1;
+				byte[] xBytes = new byte[count];
+				byte[] yBytes = new byte[count];
+				System.Buffer.BlockCopy(bytes, 1, xBytes, 0, count);
+				System.Buffer.BlockCopy(bytes, 1 + count, yBytes, 0, count);
+				return new KeyCoords {
+					x = new BigInteger(xBytes),
+					y = new BigInteger(yBytes),
+					byteCount = count,
+				};
+			}
+
+			public byte[] ToBytes() {
+				byte[] bytes = new byte[1 + (byteCount << 1)];
+				bytes[0] = 4;
+				byte[] xBytes = x.ToByteArray();
+				byte[] yBytes = y.ToByteArray();
+				System.Buffer.BlockCopy(xBytes, 0, bytes, 1 + (byteCount - xBytes.Length), xBytes.Length);
+				System.Buffer.BlockCopy(yBytes, 0, bytes, 1 + byteCount + (byteCount - yBytes.Length), yBytes.Length);
+				return bytes;
+			}
+		}
+	}
+
+	static class BigIntegerExtensions {
+		public static byte[] ToBytes(this BigInteger self, int byteCount) {
+			byte[] intBytes = self.ToByteArray();
+			if (intBytes.Length == byteCount) {
+				return intBytes;
+			}
+			byte[] bytes = new byte[byteCount];
+			System.Buffer.BlockCopy(intBytes, 0, bytes, byteCount - intBytes.Length, intBytes.Length);
+			return bytes;
 		}
 	}
 }
